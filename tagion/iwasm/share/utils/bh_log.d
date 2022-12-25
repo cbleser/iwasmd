@@ -22,7 +22,7 @@ extern(C): __gshared:
  */
 
 
-import tagion.iwasm.share.utils.bh_platform;
+import tagion.iwasm.app_framework.base.app.bh_platform;
 
 enum _LogLevel {
     BH_LOG_LEVEL_FATAL = 0,

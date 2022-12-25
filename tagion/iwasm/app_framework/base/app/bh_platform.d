@@ -1,6 +1,8 @@
-module bh_platform;
+module tagion.iwasm.app_framework.base.app.bh_platform;
 @nogc nothrow:
 extern(C): __gshared:
+
+
 import core.stdc.config: c_long, c_ulong;
 /*
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
@@ -8,8 +10,6 @@ import core.stdc.config: c_long, c_ulong;
  */
 
  
-public import stdbool;
-
 alias uint8 = ubyte;
 alias int8 = char;
 alias uint16 = ushort;
@@ -17,15 +17,6 @@ alias int16 = short;
 alias uint32 = uint;
 alias int32 = int;
 
-version (NULL) {} else {
-enum NULL = ((void *)0);
-}
-
-version (none) {} else {
-enum true = 1;
-enum false = 0;
-enum inline = __inline;
-}
 
 // all wasm-app<->native shared source files should use WA_MALLOC/WA_FREE.
 // they will be mapped to different implementations in each side
@@ -66,7 +57,6 @@ enum string bh_assert(string v) = `                                             
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_platform;
 public import core.stdc.stdio;
 public import core.stdc.stdlib;
 public import core.stdc.string;

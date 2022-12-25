@@ -1,4 +1,4 @@
-module mem_alloc;
+module tagion.iwasm.share.mem_alloc.mem_alloc;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,48 +6,13 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-#ifndef __MEM_ALLOC_H
-version = __MEM_ALLOC_H;
-
-public import bh_platform;
-
-#ifdef __cplusplus
-extern "C" {
-//! #endif
 
 alias mem_allocator_t = void*;
 
-mem_allocator_t mem_allocator_create(void* mem, uint size);
-
-mem_allocator_t mem_allocator_create_with_struct_and_pool(void* struct_buf, uint struct_buf_size, void* pool_buf, uint pool_buf_size);
-
-int mem_allocator_destroy(mem_allocator_t allocator);
-
-uint mem_allocator_get_heap_struct_size();
-
-void* mem_allocator_malloc(mem_allocator_t allocator, uint size);
-
-void* mem_allocator_realloc(mem_allocator_t allocator, void* ptr, uint size);
-
-void mem_allocator_free(mem_allocator_t allocator, void* ptr);
-
-int mem_allocator_migrate(mem_allocator_t allocator, char* pool_buf_new, uint pool_buf_size);
-
-bool mem_allocator_is_heap_corrupted(mem_allocator_t allocator);
-
-bool mem_allocator_get_alloc_info(mem_allocator_t allocator, void* mem_alloc_info);
-
-version (none) {
-}
-}
-
-//! #endif /* #ifndef __MEM_ALLOC_H */
 /*
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
-public import mem_alloc;
 
 static if (DEFAULT_MEM_ALLOCATOR == MEM_ALLOCATOR_EMS) {
 
@@ -96,7 +61,8 @@ bool mem_allocator_get_alloc_info(mem_allocator_t allocator, void* mem_alloc_inf
     return true;
 }
 
-} else { /* else of DEFAULT_MEM_ALLOCATOR */
+} 
+else { /* else of DEFAULT_MEM_ALLOCATOR */
 
 public import tlsf.tlsf;
 

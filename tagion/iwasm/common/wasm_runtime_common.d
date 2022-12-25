@@ -1,4 +1,4 @@
-module wasm_runtime_common;
+module tagion.iwasm.common.wasm_runtime_common;
 @nogc nothrow:
 extern(C): __gshared:
 
@@ -10,28 +10,27 @@ private template HasVersion(string versionId) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_platform;
-public import bh_common;
-public import bh_assert;
-public import bh_log;
-public import wasm_runtime_common;
-public import wasm_memory;
-static if (WASM_ENABLE_INTERP != 0) {
-public import ...interpreter.wasm_runtime;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
+public import tagion.iwasm.share.utils.bh_common;
+public import tagion.iwasm.share.utils.bh_assert;
+public import tagion.iwasm.share.utils.bh_log;
+public import tagion.common.wasm_memory;
+version (WASM_ENABLE_INTERP) {
+public import tagion.iwasm.interpreter.wasm_runtime;
 }
-static if (WASM_ENABLE_AOT != 0) {
-public import ...aot.aot_runtime;
-static if (WASM_ENABLE_DEBUG_AOT != 0) {
-public import ...aot.debug.jit_debug;
+version (WASM_ENABLE_AOT ) {
+public import tagion.iwasm.aot.aot.aot_runtime;
+static if (WASM_ENABLE_DEBUG_AOT ) {
+public import tagion.iwasm.aot.debug.jit_debug;
 }
 }
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+version (WASM_ENABLE_THREAD_MGR ) {
 public import ...libraries.thread-mgr.thread_manager;
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+version (WASM_ENABLE_DEBUG_INTERP) {
 public import ...libraries.debug-engine.debug_engine;
 }
 }
-static if (WASM_ENABLE_SHARED_MEMORY != 0) {
+static if (WASM_ENABLE_SHARED_MEMORY ) {
 public import wasm_shared_memory;
 }
 static if (WASM_ENABLE_FAST_JIT != 0) {
