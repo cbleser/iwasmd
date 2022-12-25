@@ -1,4 +1,4 @@
-module bh_list;
+module tagion.iwasm.shared.utils.bh_list;
 @nogc nothrow:
 extern(C): __gshared:
 /*

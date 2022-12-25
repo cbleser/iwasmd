@@ -3,15 +3,15 @@ module tagion.iwasm.aot.aot_runtime;
 extern(C): __gshared:
 
 private template HasVersion(string versionId) {
-	mixin("version("~versionId~") {enum HasVersion = true;} else {enum HasVersion = false;}");
+   mixin("version("~versionId~") {enum HasVersion = true;} else {enum HasVersion = false;}");
 }
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_log;
-public import mem_alloc;
+import tagion.iwasm.share.utils.bh_log;
+import tagion.iwasm.share.mem_alloc.mem_alloc;
 public import tagion.iwasm.common.wasm_runtime_common;
 public import tagion.iwasm.interpreter.wasm_runtime;
 static if (WASM_ENABLE_SHARED_MEMORY != 0) {

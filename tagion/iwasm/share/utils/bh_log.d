@@ -1,4 +1,4 @@
-module bh_log;
+module tagion.iwasm.share.utils	.bh_log;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -21,14 +21,8 @@ extern(C): __gshared:
  * are not start with "_" are exposed and can be used.
  */
 
-#ifndef _BH_LOG_H
-version = _BH_LOG_H;
 
-public import bh_platform;
-
-#ifdef __cplusplus
-extern "C" {
-//! #endif
+import tagion.iwasm.share.utils.bh_platform;
 
 enum _LogLevel {
     BH_LOG_LEVEL_FATAL = 0,
@@ -36,33 +30,41 @@ enum _LogLevel {
     BH_LOG_LEVEL_WARNING = 2,
     BH_LOG_LEVEL_DEBUG = 3,
     BH_LOG_LEVEL_VERBOSE = 4
-}alias LogLevel = _LogLevel;
+}
+alias LogLevel = _LogLevel;
 
-void bh_log_set_verbose_level(uint level);
+//void bh_log_set_verbose_level(uint level);
 
-void bh_log(LogLevel log_level, const(char)* file, int line, const(char)* fmt, ...);
+//void bh_log(LogLevel log_level, const(char)* file, int line, const(char)* fmt, ...);
 
-version (BH_PLATFORM_NUTTX) {
+//version (BH_PLATFORM_NUTTX) {
 
+//}
+
+version (BH_DEBUG) {
+void LOG_FATAL(Args...)(Args args, string file=__FILE__, size_t line=__LINE__) { 
+    bh_log(BH_LOG_LEVEL_FATAL, args, file, line);
+}
+}
+else {
+void LOG_FATAL(Args...)(Args args, string func=__FUNCTION__, size_t line=__LINE__) { 
+    bh_log(BH_LOG_LEVEL_FATAL, args, func, line);
+}
 }
 
-static if (BH_DEBUG != 0) {
-enum string LOG_FATAL(...) = ` \
-    bh_log(BH_LOG_LEVEL_FATAL, __FILE__, __LINE__, __VA_ARGS__)`;
-} else {
-enum string LOG_FATAL(...) = ` \
-    bh_log(BH_LOG_LEVEL_FATAL, __FUNCTION__, __LINE__, __VA_ARGS__)`;
+alias LOG_ERROR(Args...) = bh_log!Args(BH_LOG_LEVEL_ERROR);
+alias LOG_WARNING(Args...) = bh_log!Args(BH_LOG_LEVEL_WARNING);
+alias LOG_VERBOSE(Args...) = bh_log!Args(BH_LOG_LEVEL_VERBOSE);
+
+version(BH_DEBUG) {
+string LOG_DEBUG(Args...)(Args args, string file=__FILE__, size_t line=__LINE__) { 
+    return bh_log(BH_LOG_LEVEL_DEBUG, args, file, line);
 }
-
-enum string LOG_ERROR(...) = ` bh_log(BH_LOG_LEVEL_ERROR, NULL, 0, __VA_ARGS__)`;
-enum string LOG_WARNING(...) = ` bh_log(BH_LOG_LEVEL_WARNING, NULL, 0, __VA_ARGS__)`;
-enum string LOG_VERBOSE(...) = ` bh_log(BH_LOG_LEVEL_VERBOSE, NULL, 0, __VA_ARGS__)`;
-
-static if (BH_DEBUG != 0) {
-enum string LOG_DEBUG(...) = ` \
-    bh_log(BH_LOG_LEVEL_DEBUG, __FILE__, __LINE__, __VA_ARGS__)`;
-} else {
-enum string LOG_DEBUG(...) = ` (void)0`;
+}
+else {
+string LOG_DEBUG(Args...)(Args args, string func=__FUNCTION__, size_t line=__LINE__) { 
+	return null;
+} 
 }
 
 void bh_print_time(const(char)* prompt);
@@ -71,10 +73,8 @@ void bh_print_proc_mem(const(char)* prompt);
 
 void bh_log_proc_mem(const(char)* function_, uint line);
 
-enum string LOG_PROC_MEM(...) = ` bh_log_proc_mem(__FUNCTION__, __LINE__)`;
-
-version (none) {
-}
+string LOG_PROC_MEM(Args...)(Args args, string func=__FUNCTION__, size_t line=__LINE__) { 
+ bh_log_proc_mem(func, line);
 }
 
 //! #endif /* _BH_LOG_H */
@@ -83,7 +83,6 @@ version (none) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_log;
 
 /**
  * The verbose level of the log system.  Only those verbose logs whose
@@ -108,18 +107,18 @@ void bh_log(LogLevel log_level, const(char)* file, int line, const(char)* fmt, .
     self = os_self_thread();
 
     usec = os_time_get_boot_microsecond();
-    t = (uint32)(usec / 1000000) % (24 * 60 * 60);
+    t = cast(uint)(usec / 1000000) % (24 * 60 * 60);
     h = t / (60 * 60);
     t = t % (60 * 60);
     m = t / 60;
     s = t % 60;
-    mills = (uint32)(usec % 1000);
+    mills = cast(uint)(usec % 1000);
 
     snprintf(buf.ptr, buf.sizeof,
-             "%02" PRIu32 ~ ":%02" PRIu32 ~ ":%02" PRIu32 ~ ":%03" PRIu32, h, m, s,
+             "%02u:%02u:%02u:%03u", h, m, s,
              mills);
 
-    os_printf("[%s - %" PRIXPTR ~ "]: ", buf.ptr, cast(uintptr_t)self);
+    os_printf("[%s - %X ]: ", buf.ptr, cast(uintptr_t)self);
 
     if (file)
         os_printf("%s, line %d, ", file, line);
@@ -147,8 +146,7 @@ void bh_print_time(const(char)* prompt) {
 
     total_time_ms += curr_time_ms - last_time_ms;
 
-    os_printf("%-48s time of last stage: %" PRIu32 ~ " ms, total time: %" PRIu32
-              ~ " ms\n",
+    os_printf("%-48s time of last stage: %u  ms, total time: %u ms",
               prompt, curr_time_ms - last_time_ms, total_time_ms);
 
     last_time_ms = curr_time_ms;
@@ -171,7 +169,7 @@ void bh_print_proc_mem(const(char)* prompt) {
 }
 
 void bh_log_proc_mem(const(char)* function_, uint line) {
-    char[128] prompt = 0;
-    snprintf(prompt.ptr, prompt.sizeof, "[MEM] %s(...) L%" PRIu32, function_, line);
+    char[128] prompt = void;
+    snprintf(prompt.ptr, prompt.sizeof, "[MEM] %s(...) L%u", function_, line);
     bh_print_proc_mem(prompt.ptr);
 }
