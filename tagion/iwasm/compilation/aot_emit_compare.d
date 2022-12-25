@@ -1,4 +1,4 @@
-module aot_emit_compare;
+module tagio.iwasm.compilation.aot.aot_emit_compare;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,8 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_emit_compare;
-public import ...aot.aot_intrinsic;
+public import tagion.iwasm.aot.aot_intrinsic;
 
 private bool int_cond_to_llvm_op(IntCond cond, LLVMIntPredicate* op) {
     if (cond < INT_EQZ || cond > INT_GE_U)
@@ -226,7 +225,7 @@ fail:
 public import aot_compiler;
 
 version (none) {
-extern "C" {
+extern (C) {
 //! #endif
 
 bool aot_compile_op_i32_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);

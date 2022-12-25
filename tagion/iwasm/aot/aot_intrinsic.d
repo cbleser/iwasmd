@@ -1,4 +1,5 @@
-module aot_intrinsic;
+module tagion.iwasm.aot.aot_intrinsic;
+
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,13 +7,14 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_intrinsic;
 
 struct _Aot_intrinsic {
     const(char)* llvm_intrinsic;
     const(char)* native_intrinsic;
     ulong flag;
-}alias aot_intrinsic = _Aot_intrinsic;
+}
+
+alias aot_intrinsic = _Aot_intrinsic;
 
 /* clang-format off */
 private const(aot_intrinsic)[65] g_intrinsic_mapping = [
@@ -220,7 +222,7 @@ uint aot_intrinsic_clz_i64(ulong type) {
     uint num = 0;
     if (type == 0)
         return 64;
-    while (!(type & 0x8000000000000000LL)) {
+    while (!(type & 0x8000000000000000L)) {
         num++;
         type <<= 1;
     }
@@ -616,13 +618,13 @@ void aot_intrinsic_fill_capability_flags(AOTCompContext* comp_ctx) {
  */
 
  
-public import aot_runtime;
+import tagion.iwasm.aot.aot_runtime;
 static if (WASM_ENABLE_WAMR_COMPILER != 0 || WASM_ENABLE_JIT != 0) {
 public import aot_llvm;
 }
 
 version (none) {
-extern "C" {
+extern (C) {
 //! #endif
 
 enum AOT_INTRINSIC_GROUPS = 2;
@@ -635,7 +637,7 @@ enum AOT_INTRINSIC_GROUPS = 2;
 enum string AOT_INTRINSIC_FLAG(string group, string number) = ` \
     ((((uint64)(group & 0xffffLL)) << 48) | ((uint64)1 << number))`;
 
-enum AOT_INTRINSIC_FLAG_MASK = (0x0000ffffffffffffLL);
+enum AOT_INTRINSIC_FLAG_MASK = (0x0000ffffffffffffL);
 
 enum string AOT_INTRINSIC_GET_GROUP_FROM_FLAG(string flag) = ` \
     ((((uint64)flag) >> 48) & 0xffffLL)`;
