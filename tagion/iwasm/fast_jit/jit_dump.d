@@ -136,12 +136,12 @@ void jit_dump_basic_block(JitCompContext* cc, JitBasicBlock* block) {
     jit_dump_reg(cc, label);
     os_printf(":\n    ; PREDS(");
 
-    JIT_REG_VEC_FOREACH(preds, i, reg)
+    JIT_REG_VEC_FOREACH(preds, (i, reg)
     {
         if (i > 0)
             os_printf(" ");
         jit_dump_reg(cc, *reg);
-    }
+    });
 
     os_printf(")\n    ;");
 
@@ -181,17 +181,17 @@ void jit_dump_basic_block(JitCompContext* cc, JitBasicBlock* block) {
     }
     else {
         /* Dump IR.  */
-        JIT_FOREACH_INSN(block, insn) jit_dump_insn(cc, insn);
+        JIT_FOREACH_INSN(block, insn); jit_dump_insn(cc, insn);
     }
 
     os_printf("    ; SUCCS(");
 
-    JIT_REG_VEC_FOREACH(succs, i, reg)
+    JIT_REG_VEC_FOREACH(succs),  (i, reg)
     {
         if (i > 0)
             os_printf(" ");
         jit_dump_reg(cc, *reg);
-    }
+    });
 
     os_printf(")\n\n");
 }

@@ -1768,9 +1768,9 @@ private JitReg* jit_reg_vec_at(const(JitRegVec)* vec, uint i) {
 enum string JIT_REG_VEC_FOREACH(string V, string I, string R) = ` \
     for ((I) = 0, (R) = (V)._base; (I) < (V).num; (I)++, (R) += (V)._stride)`;
 
-void JIT_REG_VEC_FOREACH(ref JirRecVec V, void delegate(JitReg* R) dg) {
+void JIT_REG_VEC_FOREACH(ref JirRecVec V, void delegate(uint i, JitReg* R) dg) {
 	for(uint I=0, R=V._base; I < V._num; R += V._stribe) {
-		dg(R);
+		dg(I, R);
 	}
 }
 /**
@@ -1906,6 +1906,13 @@ enum string JIT_FOREACH_INSN(string B, string I) = `                            
     for (I = jit_basic_block_first_insn(B); I != jit_basic_block_end_insn(B); \
          I = I->next)`;
 
+void JIT_FOREACH_INSN(JitBasicBlock* B, ref JitInsn* I) {
+    for (I = jit_basic_block_first_insn(B); I != jit_basic_block_end_insn(B); 
+         I = I.next) { 
+		// empty
+	}
+
+}
 /**
  * Visit each instruction in the block from the last to the first. In
  * the code block, the instruction pointer @p I must be a valid
