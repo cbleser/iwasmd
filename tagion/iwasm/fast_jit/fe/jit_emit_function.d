@@ -81,7 +81,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
             case VALUE_TYPE_FUNCREF:
 }
                 if (i == 0 && first_res) {
-                    bh_assert(jit_reg_kind(first_res) == JIT_REG_KIND_I32);
+                    bh_assert(jit_reg_kind(first_res) == JitRegKind.I32);
                     value = first_res;
                 }
                 else {
@@ -94,7 +94,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             case VALUE_TYPE_I64:
                 if (i == 0 && first_res) {
-                    bh_assert(jit_reg_kind(first_res) == JIT_REG_KIND_I64);
+                    bh_assert(jit_reg_kind(first_res) == JitRegKind.I64);
                     value = first_res;
                 }
                 else {
@@ -107,7 +107,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             case VALUE_TYPE_F32:
                 if (i == 0 && first_res) {
-                    bh_assert(jit_reg_kind(first_res) == JIT_REG_KIND_F32);
+                    bh_assert(jit_reg_kind(first_res) == JitRegKind.F32);
                     value = first_res;
                 }
                 else {
@@ -120,7 +120,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             case VALUE_TYPE_F64:
                 if (i == 0 && first_res) {
-                    bh_assert(jit_reg_kind(first_res) == JIT_REG_KIND_F64);
+                    bh_assert(jit_reg_kind(first_res) == JitRegKind.F64);
                     value = first_res;
                 }
                 else {
@@ -796,16 +796,16 @@ private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg 
     i64_reg_idx = float_reg_idx = 0;
     for (i = 0; i < param_count; i++) {
         switch (jit_reg_kind(params[i])) {
-            case JIT_REG_KIND_I32:
+            case JitRegKind.I32:
                 GEN_INSN(I32TOI64, i64_arg_regs[i64_reg_idx++], params[i]);
                 break;
-            case JIT_REG_KIND_I64:
+            case JitRegKind.I64:
                 GEN_INSN(MOV, i64_arg_regs[i64_reg_idx++], params[i]);
                 break;
-            case JIT_REG_KIND_F32:
+            case JitRegKind.F32:
                 GEN_INSN(MOV, f32_arg_regs[float_reg_idx++], params[i]);
                 break;
-            case JIT_REG_KIND_F64:
+            case JitRegKind.F64:
                 GEN_INSN(MOV, f64_arg_regs[float_reg_idx++], params[i]);
                 break;
             default:
@@ -816,16 +816,16 @@ private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg 
 
     if (res) {
         switch (jit_reg_kind(res)) {
-            case JIT_REG_KIND_I32:
+            case JitRegKind.I32:
                 res_reg = eax_hreg;
                 break;
-            case JIT_REG_KIND_I64:
+            case JitRegKind.I64:
                 res_reg = res;
                 break;
-            case JIT_REG_KIND_F32:
+            case JitRegKind.F32:
                 res_reg = xmm0_hreg;
                 break;
-            case JIT_REG_KIND_F64:
+            case JitRegKind.F64:
                 res_reg = res;
                 break;
             default:
@@ -842,14 +842,14 @@ private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg 
     i64_reg_idx = float_reg_idx = 0;
     for (i = 0; i < param_count; i++) {
         switch (jit_reg_kind(params[i])) {
-            case JIT_REG_KIND_I32:
-            case JIT_REG_KIND_I64:
+            case JitRegKind.I32:
+            case JitRegKind.I64:
                 *(jit_insn_opndv(insn, i + 2)) = i64_arg_regs[i64_reg_idx++];
                 break;
-            case JIT_REG_KIND_F32:
+            case JitRegKind.F32:
                 *(jit_insn_opndv(insn, i + 2)) = f32_arg_regs[float_reg_idx++];
                 break;
-            case JIT_REG_KIND_F64:
+            case JitRegKind.F64:
                 *(jit_insn_opndv(insn, i + 2)) = f64_arg_regs[float_reg_idx++];
                 break;
             default:

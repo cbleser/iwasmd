@@ -21,26 +21,25 @@ public import tagion.iwasm.interpreter.wasm_runtime;
 version (WASM_ENABLE_AOT ) {
 public import tagion.iwasm.aot.aot.aot_runtime;
 static if (WASM_ENABLE_DEBUG_AOT ) {
-public import tagion.iwasm.aot.debug.jit_debug;
+public import tagion.iwasm.aot.debug_.jit_debug;
 }
 }
 version (WASM_ENABLE_THREAD_MGR ) {
-public import ...libraries.thread-mgr.thread_manager;
+public import tagion.iwasm.libraries.thread_mgr.thread_manager;
 version (WASM_ENABLE_DEBUG_INTERP) {
-public import ...libraries.debug-engine.debug_engine;
+public import tagion.iwasm.libraries.debug_engine.debug_engine;
 }
 }
-static if (WASM_ENABLE_SHARED_MEMORY ) {
+version (WASM_ENABLE_SHARED_MEMORY ) {
 public import wasm_shared_memory;
 }
-static if (WASM_ENABLE_FAST_JIT != 0) {
-public import ...fast-jit.jit_compiler;
+version (WASM_ENABLE_FAST_JIT ) {
+public import tagion.iwasm.fast_jit.jit_compiler;
 }
 static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
-public import ...compilation.aot_llvm;
+public import tagion.iwasm.compilation.aot_llvm;
 }
-public import ...common.wasm_c_api_internal;
-public import ......version;
+public import tagion.iwasm.common.wasm_c_api_internal;
 
 /**
  * For runtime build, BH_MALLOC/BH_FREE should be defined as
@@ -69,23 +68,23 @@ struct LoadingModule {
     const(char)* module_name;
 }
 
-private bh_list loading_module_list_head;
-private bh_list* loading_module_list = &loading_module_list_head;
-private korp_mutex loading_module_list_lock;
+//private bh_list loading_module_list_head;
+//private bh_list* loading_module_list = &loading_module_list_head;
+//private korp_mutex loading_module_list_lock;
 
 /**
  * A list to store all exported functions/globals/memories/tables
  * of every fully loaded module
  */
-private bh_list registered_module_list_head;
-private bh_list* registered_module_list = &registered_module_list_head;
-private korp_mutex registered_module_list_lock;
-private void wasm_runtime_destroy_registered_module_list();
+//private bh_list registered_module_list_head;
+//private bh_list* registered_module_list = &registered_module_list_head;
+//private korp_mutex registered_module_list_lock;
+//private void wasm_runtime_destroy_registered_module_list();
 } /* WASM_ENABLE_MULTI_MODULE */
 
 enum E_TYPE_XIP = 4;
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+version (WASM_ENABLE_REF_TYPES ) {
 /* Initialize externref hashmap */
 private bool wasm_externref_map_init();
 

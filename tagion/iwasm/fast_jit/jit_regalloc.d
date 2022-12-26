@@ -120,10 +120,10 @@ struct RegallocContext {
     /* Information of virtual registers.  The register allocation must
        not increase the virtual register number during the allocation
        process.  */
-    VirtualReg*[JIT_REG_KIND_L32] vregs;
+    VirtualReg*[JitRegKind.L32] vregs;
 
     /* Information of hard registers. */
-    HardReg*[JIT_REG_KIND_L32] hregs;
+    HardReg*[JitRegKind.L32] hregs;
 
     /* Number of elements in the spill_slots array.  */
     uint spill_slot_num;
@@ -272,7 +272,7 @@ private void rc_free_spill_slot(RegallocContext* rc, JitReg slot_reg) {
 private void rc_destroy(RegallocContext* rc) {
     uint i = void, j = void;
 
-    for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
+    for (i = JitRegKind.VOID; i < JitRegKind.L32; i++) {
         const(uint) vreg_num = jit_cc_reg_num(rc.cc, i);
 
         if (rc.vregs[i])
@@ -292,7 +292,7 @@ private bool rc_init(RegallocContext* rc, JitCompContext* cc) {
     memset(rc, 0, typeof(*rc).sizeof);
     rc.cc = cc;
 
-    for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
+    for (i = JitRegKind.VOID; i < JitRegKind.L32; i++) {
         const(uint) vreg_num = jit_cc_reg_num(cc, i);
         const(uint) hreg_num = jit_cc_hreg_num(cc, i);
 
@@ -441,26 +441,26 @@ private JitInsn* reload_vreg(RegallocContext* rc, JitReg vreg, JitInsn* cur_insn
         offset = offset_of_spill_slot(rc.cc, vr.slot);
 
         switch (jit_reg_kind(vreg)) {
-            case JIT_REG_KIND_I32:
+            case JitRegKind.I32:
                 insn = jit_cc_new_insn(rc.cc, LDI32, vr.hreg, fp_reg, offset);
                 break;
-            case JIT_REG_KIND_I64:
+            case JitRegKind.I64:
                 insn = jit_cc_new_insn(rc.cc, LDI64, vr.hreg, fp_reg, offset);
                 break;
-            case JIT_REG_KIND_F32:
+            case JitRegKind.F32:
                 insn = jit_cc_new_insn(rc.cc, LDF32, vr.hreg, fp_reg, offset);
                 break;
-            case JIT_REG_KIND_F64:
+            case JitRegKind.F64:
                 insn = jit_cc_new_insn(rc.cc, LDF64, vr.hreg, fp_reg, offset);
                 break;
-            case JIT_REG_KIND_V64:
+            case JitRegKind.V64:
                 insn = jit_cc_new_insn(rc.cc, LDV64, vr.hreg, fp_reg, offset);
                 break;
-            case JIT_REG_KIND_V128:
+            case JitRegKind.V128:
                 insn =
                     jit_cc_new_insn(rc.cc, LDV128, vr.hreg, fp_reg, offset);
                 break;
-            case JIT_REG_KIND_V256:
+            case JitRegKind.V256:
                 insn =
                     jit_cc_new_insn(rc.cc, LDV256, vr.hreg, fp_reg, offset);
                 break;
@@ -500,25 +500,25 @@ private JitInsn* spill_vreg(RegallocContext* rc, JitReg vreg, JitInsn* cur_insn)
     offset = offset_of_spill_slot(rc.cc, vr.slot);
 
     switch (jit_reg_kind(vreg)) {
-        case JIT_REG_KIND_I32:
+        case JitRegKind.I32:
             insn = jit_cc_new_insn(rc.cc, STI32, vr.hreg, fp_reg, offset);
             break;
-        case JIT_REG_KIND_I64:
+        case JitRegKind.I64:
             insn = jit_cc_new_insn(rc.cc, STI64, vr.hreg, fp_reg, offset);
             break;
-        case JIT_REG_KIND_F32:
+        case JitRegKind.F32:
             insn = jit_cc_new_insn(rc.cc, STF32, vr.hreg, fp_reg, offset);
             break;
-        case JIT_REG_KIND_F64:
+        case JitRegKind.F64:
             insn = jit_cc_new_insn(rc.cc, STF64, vr.hreg, fp_reg, offset);
             break;
-        case JIT_REG_KIND_V64:
+        case JitRegKind.V64:
             insn = jit_cc_new_insn(rc.cc, STV64, vr.hreg, fp_reg, offset);
             break;
-        case JIT_REG_KIND_V128:
+        case JitRegKind.V128:
             insn = jit_cc_new_insn(rc.cc, STV128, vr.hreg, fp_reg, offset);
             break;
-        case JIT_REG_KIND_V256:
+        case JitRegKind.V256:
             insn = jit_cc_new_insn(rc.cc, STV256, vr.hreg, fp_reg, offset);
             break;
         default:
@@ -654,7 +654,7 @@ private JitReg allocate_for_vreg(RegallocContext* rc, JitReg vreg, JitInsn* insn
 private bool clobber_live_regs(RegallocContext* rc, bool is_native, JitInsn* insn) {
     uint i = void, j = void;
 
-    for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
+    for (i = JitRegKind.VOID; i < JitRegKind.L32; i++) {
         const(uint) hreg_num = jit_cc_hreg_num(rc.cc, i);
 
         for (j = 0; j < hreg_num; j++) {

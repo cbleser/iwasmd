@@ -1,4 +1,4 @@
-module jit_ir;
+module tagion.iwasm.fast_jit.jit_ir;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,14 +6,17 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_ir;
 public import jit_codegen;
 public import jit_frontend;
 
 /**
  * Operand kinds of instructions.
  */
-enum { JIT_OPND_KIND_Reg, JIT_OPND_KIND_VReg, JIT_OPND_KIND_LookupSwitch }
+enum JIT_OPND_KIND{ 
+Reg, 
+VReg, 
+LookupSwitch 
+}
 
 /**
  * Operand kind of each instruction.
@@ -362,10 +365,10 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
         goto fail;
 
     cc.hreg_info = jit_codegen_get_hreg_info();
-    bh_assert(cc.hreg_info.info[JIT_REG_KIND_I32].num > 3);
+    bh_assert(cc.hreg_info.info[JitRegKind.I32].num > 3);
 
     /* Initialize virtual registers for hard registers.  */
-    for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
+    for (i = JitRegKind.VOID; i < JitRegKind.L32; i++) {
         if ((num = cc.hreg_info.info[i].num)) {
             /* Initialize the capacity to be large enough.  */
             jit_cc_new_reg(cc, i);
@@ -375,10 +378,10 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
     }
 
     /* Create registers for frame pointer, exec_env and cmp.  */
-    cc.fp_reg = jit_reg_new(JIT_REG_KIND_PTR, cc.hreg_info.fp_hreg_index);
+    cc.fp_reg = jit_reg_new(JitRegKind.PTR, cc.hreg_info.fp_hreg_index);
     cc.exec_env_reg =
-        jit_reg_new(JIT_REG_KIND_PTR, cc.hreg_info.exec_env_hreg_index);
-    cc.cmp_reg = jit_reg_new(JIT_REG_KIND_I32, cc.hreg_info.cmp_hreg_index);
+        jit_reg_new(JitRegKind.PTR, cc.hreg_info.exec_env_hreg_index);
+    cc.cmp_reg = jit_reg_new(JitRegKind.I32, cc.hreg_info.cmp_hreg_index);
 
     cc._const_val._hash_table_size = htab_size;
 
@@ -448,7 +451,7 @@ void jit_cc_destroy(JitCompContext* cc) {
     /* clang-format on */
 
     /* Release constant values.  */
-    for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
+    for (i = JitRegKind.VOID; i < JitRegKind.L32; i++) {
         jit_free(cc._const_val._value[i]);
         jit_free(cc._const_val._next[i]);
     }
@@ -500,7 +503,7 @@ private uint hash_of_const(uint kind, uint size, void* val) {
     return hash;
 }
 
-pragma(inline, true) private void* address_of_const(JitCompContext* cc, JitReg reg, uint size) {
+ private void* address_of_const(JitCompContext* cc, JitReg reg, uint size) {
     int kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     uint idx = no & ~_JIT_REG_CONST_IDX_FLAG;
@@ -510,7 +513,7 @@ pragma(inline, true) private void* address_of_const(JitCompContext* cc, JitReg r
     return cc._const_val._value[kind] + size * idx;
 }
 
-pragma(inline, true) private JitReg next_of_const(JitCompContext* cc, JitReg reg) {
+ private JitReg next_of_const(JitCompContext* cc, JitReg reg) {
     int kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     uint idx = no & ~_JIT_REG_CONST_IDX_FLAG;
@@ -580,20 +583,20 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
     return r;
 }
 
-pragma(inline, true) private int get_const_val_in_reg(JitReg reg) {
-    int shift = 8 * sizeof(reg) - _JIT_REG_KIND_SHIFT + 1;
+ private int get_const_val_in_reg(JitReg reg) {
+    int shift = 8 * sizeof(reg) - _JitRegKind.SHIFT + 1;
     return ((int32)(reg << shift)) >> shift;
 }
 
 enum string _JIT_CC_NEW_CONST_HELPER(string KIND, string TYPE, string val) = `                             \
     do {                                                                      \
         JitReg reg = jit_reg_new(                                             \
-            JIT_REG_KIND_##KIND,                                              \
-            (_JIT_REG_CONST_VAL_FLAG | ((JitReg)val & ~_JIT_REG_KIND_MASK))); \
+            JitRegKind.##KIND,                                              \
+            (_JIT_REG_CONST_VAL_FLAG | ((JitReg)val & ~_JitRegKind.MASK))); \
                                                                               \
         if ((TYPE)get_const_val_in_reg(reg) == val)                           \
             return reg;                                                       \
-        return _jit_cc_new_const(cc, JIT_REG_KIND_##KIND, sizeof(val), &val); \
+        return _jit_cc_new_const(cc, JitRegKind.##KIND, sizeof(val), &val); \
     } while (0)`;
 
 JitReg jit_cc_new_const_I32_rel(JitCompContext* cc, int val, uint rel) {
@@ -610,7 +613,7 @@ JitReg jit_cc_new_const_F32(JitCompContext* cc, float val) {
 
     if (!memcmp(&val, &float_neg_zero, float.sizeof))
         /* Create const -0.0f */
-        return _jit_cc_new_const(cc, JIT_REG_KIND_F32, float.sizeof, &val);
+        return _jit_cc_new_const(cc, JitRegKind.F32, float.sizeof, &val);
 
     _JIT_CC_NEW_CONST_HELPER(F32, float, val);
 }
@@ -620,14 +623,14 @@ JitReg jit_cc_new_const_F64(JitCompContext* cc, double val) {
 
     if (!memcmp(&val, &double_neg_zero, double.sizeof))
         /* Create const -0.0d */
-        return _jit_cc_new_const(cc, JIT_REG_KIND_F64, double.sizeof, &val);
+        return _jit_cc_new_const(cc, JitRegKind.F64, double.sizeof, &val);
 
     _JIT_CC_NEW_CONST_HELPER(F64, double, val);
 }
 
 enum string _JIT_CC_GET_CONST_HELPER(string KIND, string TYPE) = `                               \
     do {                                                                   \
-        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_##KIND);               \
+        bh_assert(jit_reg_kind(reg) == JitRegKind.##KIND);               \
         bh_assert(jit_reg_is_const(reg));                                  \
                                                                            \
         return (jit_reg_is_const_val(reg)                                  \
@@ -692,7 +695,7 @@ public import jit_ir.d;
 
     cc._ann._label_num = num + 1;
 
-    return jit_reg_new(JIT_REG_KIND_L32, num);
+    return jit_reg_new(JitRegKind.L32, num);
 }
 
 JitBasicBlock* jit_cc_new_basic_block(JitCompContext* cc, int n) {
@@ -872,7 +875,7 @@ enum string ANN_REG(string TYPE, string NAME) = `                               
         if (cc->_ann._reg_##NAME##_enabled)                            \
             return true;                                               \
                                                                        \
-        for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++)         \
+        for (k = JitRegKind.VOID; k < JitRegKind.L32; k++)         \
             if (cc->_ann._reg_capacity[k] > 0                          \
                 && !(cc->_ann._reg_##NAME[k] = jit_calloc(             \
                          cc->_ann._reg_capacity[k] * sizeof(TYPE)))) { \
@@ -904,7 +907,7 @@ enum string ANN_REG(string TYPE, string NAME) = `                               
     {                                                            \
         unsigned k;                                              \
                                                                  \
-        for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++) { \
+        for (k = JitRegKind.VOID; k < JitRegKind.L32; k++) { \
             jit_free(cc->_ann._reg_##NAME[k]);                   \
             cc->_ann._reg_##NAME[k] = NULL;                      \
         }                                                        \
@@ -943,11 +946,16 @@ bool jit_cc_update_cfg(JitCompContext* cc) {
     JIT_FOREACH_BLOCK_ENTRY_EXIT(cc, block_index, end, block)
     {
         JitRegVec succs = jit_basic_block_succs(block);
-
+/*
         JIT_REG_VEC_FOREACH(succs, succ_index, target)
         if (jit_reg_is_kind(L32, *target))
             *(jit_annl_pred_num(cc, *target)) += 1;
+ */
+        JIT_REG_VEC_FOREACH(succs, (target) {
+        if (jit_reg_is_kind(L32, *target)) {
+            *(jit_annl_pred_num(cc, *target)) += 1;
     }
+		}
 
     /* Resize predecessor vectors of body blocks.  */
     JIT_FOREACH_BLOCK(cc, block_index, end, block)
@@ -1095,7 +1103,7 @@ void jit_block_destroy(JitBlock* block) {
     jit_free(block);
 }
 
-pragma(inline, true) private ubyte to_stack_value_type(ubyte type) {
+ private ubyte to_stack_value_type(ubyte type) {
 static if (WASM_ENABLE_REF_TYPES != 0) {
     if (type == VALUE_TYPE_EXTERNREF || type == VALUE_TYPE_FUNCREF)
         return VALUE_TYPE_I32;
@@ -1305,9 +1313,9 @@ extern "C" {
  * allocated to the hard registers of themselves.
  *
  * Classification of registers:
- *   + void register (kind == JIT_REG_KIND_VOID, no. must be 0)
- *   + label registers (kind == JIT_REG_KIND_L32)
- *   + value registers (kind == JIT_REG_KIND_I32/I64/F32/F64/V64/V128/V256)
+ *   + void register (kind == JitRegKind.VOID, no. must be 0)
+ *   + label registers (kind == JitRegKind.L32)
+ *   + value registers (kind == JitRegKind.I32/I64/F32/F64/V64/V128/V256)
  *   | + constants (_JIT_REG_CONST_VAL_FLAG | _JIT_REG_CONST_IDX_FLAG)
  *   | | + constant values (_JIT_REG_CONST_VAL_FLAG)
  *   | | + constant indexes (_JIT_REG_CONST_IDX_FLAG)
@@ -1320,13 +1328,13 @@ alias JitReg = uint;
 /*
  * Mask and shift bits of register kind.
  */
-enum _JIT_REG_KIND_MASK = 0xf0000000;
-enum _JIT_REG_KIND_SHIFT = 28;
+enum _JitRegKind.MASK = 0xf0000000;
+enum _JitRegKind.SHIFT = 28;
 
 /*
  * Mask of register no. which must be the least significant bits.
  */
-enum _JIT_REG_NO_MASK = (~_JIT_REG_KIND_MASK);
+enum _JIT_REG_NO_MASK = (~_JitRegKind.MASK);
 
 /*
  * Constant value flag (the most significant bit) of register
@@ -1352,33 +1360,22 @@ enum _JIT_REG_CONST_IDX_FLAG = (_JIT_REG_CONST_VAL_FLAG >> 1);
  * of JitCompContext).
  */
 enum JitRegKind {
-    JIT_REG_KIND_VOID = 0x00, /* void type */
-    JIT_REG_KIND_I32 = 0x01,  /* 32-bit signed or unsigned integer */
-    JIT_REG_KIND_I64 = 0x02,  /* 64-bit signed or unsigned integer */
-    JIT_REG_KIND_F32 = 0x03,  /* 32-bit floating point */
-    JIT_REG_KIND_F64 = 0x04,  /* 64-bit floating point */
-    JIT_REG_KIND_V64 = 0x05,  /* 64-bit vector */
-    JIT_REG_KIND_V128 = 0x06, /* 128-bit vector */
-    JIT_REG_KIND_V256 = 0x07, /* 256-bit vector */
-    JIT_REG_KIND_L32 = 0x08,  /* 32-bit label address */
-    JIT_REG_KIND_NUM          /* number of register kinds */
+    VOID = 0x00, /* void type */
+    I32 = 0x01,  /* 32-bit signed or unsigned integer */
+    I64 = 0x02,  /* 64-bit signed or unsigned integer */
+    F32 = 0x03,  /* 32-bit floating point */
+    F64 = 0x04,  /* 64-bit floating point */
+    V64 = 0x05,  /* 64-bit vector */
+    V128 = 0x06, /* 128-bit vector */
+    V256 = 0x07, /* 256-bit vector */
+    L32 = 0x08,  /* 32-bit label address */
+    NUM          /* number of register kinds */
 }
-alias JIT_REG_KIND_VOID = JitRegKind.JIT_REG_KIND_VOID;
-alias JIT_REG_KIND_I32 = JitRegKind.JIT_REG_KIND_I32;
-alias JIT_REG_KIND_I64 = JitRegKind.JIT_REG_KIND_I64;
-alias JIT_REG_KIND_F32 = JitRegKind.JIT_REG_KIND_F32;
-alias JIT_REG_KIND_F64 = JitRegKind.JIT_REG_KIND_F64;
-alias JIT_REG_KIND_V64 = JitRegKind.JIT_REG_KIND_V64;
-alias JIT_REG_KIND_V128 = JitRegKind.JIT_REG_KIND_V128;
-alias JIT_REG_KIND_V256 = JitRegKind.JIT_REG_KIND_V256;
-alias JIT_REG_KIND_L32 = JitRegKind.JIT_REG_KIND_L32;
-alias JIT_REG_KIND_NUM = JitRegKind.JIT_REG_KIND_NUM;
-
 
 static if (UINTPTR_MAX == UINT64_MAX) {
-enum JIT_REG_KIND_PTR = JIT_REG_KIND_I64;
+enum JitRegKind.PTR = JitRegKind.I64;
 } else {
-enum JIT_REG_KIND_PTR = JIT_REG_KIND_I32;
+enum JitRegKind.PTR = JitRegKind.I32;
 }
 
 /**
@@ -1389,8 +1386,8 @@ enum JIT_REG_KIND_PTR = JIT_REG_KIND_I32;
  *
  * @return the new register with the given kind and no.
  */
-pragma(inline, true) private JitReg jit_reg_new(uint reg_kind, uint reg_no) {
-    return (JitReg)((reg_kind << _JIT_REG_KIND_SHIFT) | reg_no);
+ private JitReg jit_reg_new(uint reg_kind, uint reg_no) {
+    return (JitReg)((reg_kind << _JitRegKind.SHIFT) | reg_no);
 }
 
 /**
@@ -1400,8 +1397,8 @@ pragma(inline, true) private JitReg jit_reg_new(uint reg_kind, uint reg_no) {
  *
  * @return the register kind of register r
  */
-pragma(inline, true) private int jit_reg_kind(JitReg r) {
-    return (r & _JIT_REG_KIND_MASK) >> _JIT_REG_KIND_SHIFT;
+ private int jit_reg_kind(JitReg r) {
+    return (r & _JitRegKind.MASK) >> _JitRegKind.SHIFT;
 }
 
 /**
@@ -1411,7 +1408,7 @@ pragma(inline, true) private int jit_reg_kind(JitReg r) {
  *
  * @return the register no. of register r
  */
-pragma(inline, true) private int jit_reg_no(JitReg r) {
+ private int jit_reg_no(JitReg r) {
     return r & _JIT_REG_NO_MASK;
 }
 
@@ -1422,9 +1419,9 @@ pragma(inline, true) private int jit_reg_no(JitReg r) {
  *
  * @return true iff the register is a normal value register
  */
-pragma(inline, true) private bool jit_reg_is_value(JitReg r) {
+ private bool jit_reg_is_value(JitReg r) {
     uint kind = jit_reg_kind(r);
-    return kind > JIT_REG_KIND_VOID && kind < JIT_REG_KIND_L32;
+    return kind > JitRegKind.VOID && kind < JitRegKind.L32;
 }
 
 /**
@@ -1434,7 +1431,7 @@ pragma(inline, true) private bool jit_reg_is_value(JitReg r) {
  *
  * @return true iff register r is a constant value
  */
-pragma(inline, true) private bool jit_reg_is_const_val(JitReg r) {
+ private bool jit_reg_is_const_val(JitReg r) {
     return jit_reg_is_value(r) && (r & _JIT_REG_CONST_VAL_FLAG);
 }
 
@@ -1445,7 +1442,7 @@ pragma(inline, true) private bool jit_reg_is_const_val(JitReg r) {
  *
  * @return true iff register r is a constant table index
  */
-pragma(inline, true) private bool jit_reg_is_const_idx(JitReg r) {
+ private bool jit_reg_is_const_idx(JitReg r) {
     return (jit_reg_is_value(r) && !jit_reg_is_const_val(r)
             && (r & _JIT_REG_CONST_IDX_FLAG));
 }
@@ -1457,7 +1454,7 @@ pragma(inline, true) private bool jit_reg_is_const_idx(JitReg r) {
  *
  * @return true iff register r is a constant
  */
-pragma(inline, true) private bool jit_reg_is_const(JitReg r) {
+ private bool jit_reg_is_const(JitReg r) {
     return (jit_reg_is_value(r)
             && (r & (_JIT_REG_CONST_VAL_FLAG | _JIT_REG_CONST_IDX_FLAG)));
 }
@@ -1469,7 +1466,7 @@ pragma(inline, true) private bool jit_reg_is_const(JitReg r) {
  *
  * @return true iff the register is a normal variable register
  */
-pragma(inline, true) private bool jit_reg_is_variable(JitReg r) {
+ private bool jit_reg_is_variable(JitReg r) {
     return (jit_reg_is_value(r)
             && !(r & (_JIT_REG_CONST_VAL_FLAG | _JIT_REG_CONST_IDX_FLAG)));
 }
@@ -1482,7 +1479,7 @@ pragma(inline, true) private bool jit_reg_is_variable(JitReg r) {
  *
  * @return true if the register is the given kind
  */
-enum string jit_reg_is_kind(string KIND, string R) = ` (jit_reg_kind(R) == JIT_REG_KIND_##KIND)`;
+enum string jit_reg_is_kind(string KIND, string R) = ` (jit_reg_kind(R) == JitRegKind.##KIND)`;
 
 /**
  * Construct a zero IR register with given the kind.
@@ -1491,8 +1488,8 @@ enum string jit_reg_is_kind(string KIND, string R) = ` (jit_reg_kind(R) == JIT_R
  *
  * @return a constant register of zero
  */
-pragma(inline, true) private JitReg jit_reg_new_zero(uint kind) {
-    bh_assert(kind != JIT_REG_KIND_VOID && kind < JIT_REG_KIND_L32);
+ private JitReg jit_reg_new_zero(uint kind) {
+    bh_assert(kind != JitRegKind.VOID && kind < JitRegKind.L32);
     return jit_reg_new(kind, _JIT_REG_CONST_VAL_FLAG);
 }
 
@@ -1503,7 +1500,7 @@ pragma(inline, true) private JitReg jit_reg_new_zero(uint kind) {
  *
  * @return true iff the register is a constant zero
  */
-pragma(inline, true) private JitReg jit_reg_is_zero(JitReg reg) {
+ private JitReg jit_reg_is_zero(JitReg reg) {
     return (jit_reg_is_value(reg)
             && jit_reg_no(reg) == _JIT_REG_CONST_VAL_FLAG);
 }
@@ -1623,7 +1620,7 @@ public import jit_ir.d;
  *
  * @param insn an instruction to be deleted
  */
-pragma(inline, true) private void jit_insn_delete(JitInsn* insn) {
+ private void jit_insn_delete(JitInsn* insn) {
     jit_free(insn);
 }
 
@@ -1650,7 +1647,7 @@ bool _jit_insn_check_opnd_access_LookupSwitch(const(JitInsn)* insn);
  *
  * @return pointer to the n-th operand
  */
-pragma(inline, true) private JitReg* jit_insn_opnd(JitInsn* insn, int n) {
+ private JitReg* jit_insn_opnd(JitInsn* insn, int n) {
     bh_assert(_jit_insn_check_opnd_access_Reg(insn, n));
     return &insn._opnd._opnd_Reg[n];
 }
@@ -1664,7 +1661,7 @@ pragma(inline, true) private JitReg* jit_insn_opnd(JitInsn* insn, int n) {
  *
  * @return pointer to the n-th operand
  */
-pragma(inline, true) private JitReg* jit_insn_opndv(JitInsn* insn, int n) {
+ private JitReg* jit_insn_opndv(JitInsn* insn, int n) {
     bh_assert(_jit_insn_check_opnd_access_VReg(insn, n));
     return &insn._opnd._opnd_VReg._reg[n];
 }
@@ -1677,7 +1674,7 @@ pragma(inline, true) private JitReg* jit_insn_opndv(JitInsn* insn, int n) {
  *
  * @return operand number of the instruction
  */
-pragma(inline, true) private uint jit_insn_opndv_num(const(JitInsn)* insn) {
+ private uint jit_insn_opndv_num(const(JitInsn)* insn) {
     bh_assert(_jit_insn_check_opnd_access_VReg(insn, 0));
     return insn._opnd._opnd_VReg._reg_num;
 }
@@ -1690,7 +1687,7 @@ pragma(inline, true) private uint jit_insn_opndv_num(const(JitInsn)* insn) {
  *
  * @return pointer to the operand
  */
-pragma(inline, true) private JitOpndLookupSwitch* jit_insn_opndls(JitInsn* insn) {
+ private JitOpndLookupSwitch* jit_insn_opndls(JitInsn* insn) {
     bh_assert(_jit_insn_check_opnd_access_LookupSwitch(insn));
     return &insn._opnd._opnd_LookupSwitch;
 }
@@ -1756,7 +1753,7 @@ struct JitRegVec {
  *
  * @return the address of the i-th register in the vector
  */
-pragma(inline, true) private JitReg* jit_reg_vec_at(const(JitRegVec)* vec, uint i) {
+private JitReg* jit_reg_vec_at(const(JitRegVec)* vec, uint i) {
     bh_assert(i < vec.num);
     return vec._base + vec._stride * i;
 }
@@ -1771,6 +1768,11 @@ pragma(inline, true) private JitReg* jit_reg_vec_at(const(JitRegVec)* vec, uint 
 enum string JIT_REG_VEC_FOREACH(string V, string I, string R) = ` \
     for ((I) = 0, (R) = (V)._base; (I) < (V).num; (I)++, (R) += (V)._stride)`;
 
+void JIT_REG_VEC_FOREACH(ref JirRecVec V, void delegate(JitReg* R) dg) {
+	for(uint I=0, R=V._base; I < V._num; R += V._stribe) {
+		dg(R);
+	}
+}
 /**
  * Visit each register defined by an instruction.
  *
@@ -1852,7 +1854,7 @@ void jit_basic_block_delete(JitBasicBlock* block);
  *
  * @return the label of the basic block
  */
-pragma(inline, true) private JitReg jit_basic_block_label(JitBasicBlock* block) {
+private JitReg jit_basic_block_label(JitBasicBlock* block) {
     return *(jit_insn_opndv(block, 0));
 }
 
@@ -1863,7 +1865,7 @@ pragma(inline, true) private JitReg jit_basic_block_label(JitBasicBlock* block) 
  *
  * @return the first instruction of the basic block
  */
-pragma(inline, true) private JitInsn* jit_basic_block_first_insn(JitBasicBlock* block) {
+ private JitInsn* jit_basic_block_first_insn(JitBasicBlock* block) {
     return block.next;
 }
 
@@ -1874,7 +1876,7 @@ pragma(inline, true) private JitInsn* jit_basic_block_first_insn(JitBasicBlock* 
  *
  * @return the last instruction of the basic block
  */
-pragma(inline, true) private JitInsn* jit_basic_block_last_insn(JitBasicBlock* block) {
+ private JitInsn* jit_basic_block_last_insn(JitBasicBlock* block) {
     return block.prev;
 }
 
@@ -1886,7 +1888,7 @@ pragma(inline, true) private JitInsn* jit_basic_block_last_insn(JitBasicBlock* b
  *
  * @return the end of instruction list of the basic block
  */
-pragma(inline, true) private JitInsn* jit_basic_block_end_insn(JitBasicBlock* block) {
+ private JitInsn* jit_basic_block_end_insn(JitBasicBlock* block) {
     return block;
 }
 
@@ -1925,7 +1927,7 @@ enum string JIT_FOREACH_INSN_REVERSE(string B, string I) = `                    
  * @param block a block
  * @param insn an instruction to be prepended
  */
-pragma(inline, true) private void jit_basic_block_prepend_insn(JitBasicBlock* block, JitInsn* insn) {
+ private void jit_basic_block_prepend_insn(JitBasicBlock* block, JitInsn* insn) {
     jit_insn_insert_after(block, insn);
 }
 
@@ -1935,7 +1937,7 @@ pragma(inline, true) private void jit_basic_block_prepend_insn(JitBasicBlock* bl
  * @param block a basic block
  * @param insn an instruction to be appended
  */
-pragma(inline, true) private void jit_basic_block_append_insn(JitBasicBlock* block, JitInsn* insn) {
+ private void jit_basic_block_append_insn(JitBasicBlock* block, JitInsn* insn) {
     jit_insn_insert_before(block, insn);
 }
 
@@ -1973,7 +1975,7 @@ struct JitHardRegInfo {
 
         /* Whether each register is caller-saved in the JITed ABI. */
         const(ubyte)* caller_saved_jitted;
-    }_Info[JIT_REG_KIND_L32] info;
+    }_Info[JitRegKind.L32] info;
 
     /* The indexes of hard registers of frame pointer, exec_env and cmp. */
     uint fp_hreg_index;
@@ -2239,16 +2241,16 @@ struct JitCompContext {
     /* Constant values. */
     struct __const_val {
         /* Number of constant values of each kind. */
-        uint[JIT_REG_KIND_L32] _num;
+        uint[JitRegKind.L32] _num;
 
         /* Capacity of register annotations of each kind. */
-        uint[JIT_REG_KIND_L32] _capacity;
+        uint[JitRegKind.L32] _capacity;
 
         /* Constant vallues of each kind. */
-        ubyte*[JIT_REG_KIND_L32] _value;
+        ubyte*[JitRegKind.L32] _value;
 
         /* Next element on the list of values with the same hash code. */
-        JitReg*[JIT_REG_KIND_L32] _next;
+        JitReg*[JitRegKind.L32] _next;
 
         /* Size of the hash table. */
         uint _hash_table_size;
@@ -2272,15 +2274,15 @@ struct JitCompContext {
         uint _insn_capacity;
 
         /* Number of ever created registers of each kind. */
-        uint[JIT_REG_KIND_L32] _reg_num;
+        uint[JitRegKind.L32] _reg_num;
 
         /* Capacity of register annotations of each kind. */
-        uint[JIT_REG_KIND_L32] _reg_capacity;
+        uint[JitRegKind.L32] _reg_capacity;
 
         /* Storage of annotations. */
 enum string ANN_LABEL(string TYPE, string NAME) = ` TYPE *_label_##NAME;`;
 enum string ANN_INSN(string TYPE, string NAME) = ` TYPE *_insn_##NAME;`;
-enum string ANN_REG(string TYPE, string NAME) = ` TYPE *_reg_##NAME[JIT_REG_KIND_L32];`;
+enum string ANN_REG(string TYPE, string NAME) = ` TYPE *_reg_##NAME[JitRegKind.L32];`;
 //! #include "jit_ir.def"
         /* Flags of annotations. */
 enum string ANN_LABEL(string TYPE, string NAME) = ` uint32 _label_##NAME##_enabled : 1;`;
@@ -2311,7 +2313,7 @@ enum string ANN_LABEL(string TYPE, string NAME) = `                             
     static inline TYPE *jit_annl_##NAME(JitCompContext *cc, JitReg label) \
     {                                                                     \
         unsigned idx = jit_reg_no(label);                                 \
-        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);               \
+        bh_assert(jit_reg_kind(label) == JitRegKind.L32);               \
         bh_assert(idx < cc->_ann._label_num);                             \
         bh_assert(cc->_ann._label_##NAME##_enabled);                      \
         return &cc->_ann._label_##NAME[idx];                              \
@@ -2329,7 +2331,7 @@ enum string ANN_REG(string TYPE, string NAME) = `                               
     {                                                                   \
         unsigned kind = jit_reg_kind(reg);                              \
         unsigned no = jit_reg_no(reg);                                  \
-        bh_assert(kind < JIT_REG_KIND_L32);                             \
+        bh_assert(kind < JitRegKind.L32);                             \
         bh_assert(no < cc->_ann._reg_num[kind]);                        \
         bh_assert(cc->_ann._reg_##NAME##_enabled);                      \
         return &cc->_ann._reg_##NAME[kind][no];                         \
@@ -2398,7 +2400,7 @@ void jit_cc_destroy(JitCompContext* cc);
  *
  * @param cc the compilation context
  */
-pragma(inline, true) private void jit_cc_inc_ref(JitCompContext* cc) {
+ private void jit_cc_inc_ref(JitCompContext* cc) {
     cc._reference_count++;
 }
 
@@ -2439,7 +2441,7 @@ JitReg jit_cc_new_const_I32_rel(JitCompContext* cc, int val, uint rel);
  *
  * @return a constant register containing the value
  */
-pragma(inline, true) private JitReg jit_cc_new_const_I32(JitCompContext* cc, int val) {
+ private JitReg jit_cc_new_const_I32(JitCompContext* cc, int val) {
     return jit_cc_new_const_I32_rel(cc, val, 0);
 }
 
@@ -2536,7 +2538,7 @@ double jit_cc_get_const_F64(JitCompContext* cc, JitReg reg);
  *
  * @return the number of total created labels
  */
-pragma(inline, true) private uint jit_cc_label_num(JitCompContext* cc) {
+ private uint jit_cc_label_num(JitCompContext* cc) {
     return cc._ann._label_num;
 }
 
@@ -2547,7 +2549,7 @@ pragma(inline, true) private uint jit_cc_label_num(JitCompContext* cc) {
  *
  * @return the number of total created instructions
  */
-pragma(inline, true) private uint jit_cc_insn_num(JitCompContext* cc) {
+ private uint jit_cc_insn_num(JitCompContext* cc) {
     return cc._ann._insn_num;
 }
 
@@ -2559,8 +2561,8 @@ pragma(inline, true) private uint jit_cc_insn_num(JitCompContext* cc) {
  *
  * @return the number of total created registers
  */
-pragma(inline, true) private uint jit_cc_reg_num(JitCompContext* cc, uint kind) {
-    bh_assert(kind < JIT_REG_KIND_L32);
+ private uint jit_cc_reg_num(JitCompContext* cc, uint kind) {
+    bh_assert(kind < JitRegKind.L32);
     return cc._ann._reg_num[kind];
 }
 
@@ -2682,7 +2684,7 @@ enum string jit_cc_new_insn_norm(string cc, string result, string NAME, ...) = `
  *
  * @return the new instruction if inserted, NULL otherwise
  */
-pragma(inline, true) private JitInsn* _gen_insn(JitCompContext* cc, JitInsn* insn) {
+ private JitInsn* _gen_insn(JitCompContext* cc, JitInsn* insn) {
     if (insn)
         jit_basic_block_append_insn(cc.cur_basic_block, insn);
     else
@@ -2721,12 +2723,12 @@ JitReg jit_cc_new_reg(JitCompContext* cc, uint kind);
  * context. They are more convenient than the above one.
  */
 
-pragma(inline, true) private JitReg jit_cc_new_reg_I32(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_I32);
+ private JitReg jit_cc_new_reg_I32(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.I32);
 }
 
-pragma(inline, true) private JitReg jit_cc_new_reg_I64(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_I64);
+ private JitReg jit_cc_new_reg_I64(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.I64);
 }
 
 static if (UINTPTR_MAX == UINT64_MAX) {
@@ -2735,24 +2737,24 @@ enum jit_cc_new_reg_ptr = jit_cc_new_reg_I64;
 enum jit_cc_new_reg_ptr = jit_cc_new_reg_I32;
 }
 
-pragma(inline, true) private JitReg jit_cc_new_reg_F32(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_F32);
+ private JitReg jit_cc_new_reg_F32(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.F32);
 }
 
-pragma(inline, true) private JitReg jit_cc_new_reg_F64(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_F64);
+ private JitReg jit_cc_new_reg_F64(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.F64);
 }
 
-pragma(inline, true) private JitReg jit_cc_new_reg_V64(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_V64);
+ private JitReg jit_cc_new_reg_V64(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.V64);
 }
 
-pragma(inline, true) private JitReg jit_cc_new_reg_V128(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_V128);
+ private JitReg jit_cc_new_reg_V128(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.V128);
 }
 
-pragma(inline, true) private JitReg jit_cc_new_reg_V256(JitCompContext* cc) {
-    return jit_cc_new_reg(cc, JIT_REG_KIND_V256);
+ private JitReg jit_cc_new_reg_V256(JitCompContext* cc) {
+    return jit_cc_new_reg(cc, JitRegKind.V256);
 }
 
 /**
@@ -2763,8 +2765,8 @@ pragma(inline, true) private JitReg jit_cc_new_reg_V256(JitCompContext* cc) {
  *
  * @return number of hard registers of the given kind
  */
-pragma(inline, true) private uint jit_cc_hreg_num(JitCompContext* cc, uint kind) {
-    bh_assert(kind < JIT_REG_KIND_L32);
+ private uint jit_cc_hreg_num(JitCompContext* cc, uint kind) {
+    bh_assert(kind < JitRegKind.L32);
     return cc.hreg_info.info[kind].num;
 }
 
@@ -2776,7 +2778,7 @@ pragma(inline, true) private uint jit_cc_hreg_num(JitCompContext* cc, uint kind)
  *
  * @return true if the register is a hard register
  */
-pragma(inline, true) private bool jit_cc_is_hreg(JitCompContext* cc, JitReg reg) {
+ private bool jit_cc_is_hreg(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     bh_assert(jit_reg_is_variable(reg));
@@ -2791,7 +2793,7 @@ pragma(inline, true) private bool jit_cc_is_hreg(JitCompContext* cc, JitReg reg)
  *
  * @return true if the hard register is fixed
  */
-pragma(inline, true) private bool jit_cc_is_hreg_fixed(JitCompContext* cc, JitReg reg) {
+ private bool jit_cc_is_hreg_fixed(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     bh_assert(jit_cc_is_hreg(cc, reg));
@@ -2806,7 +2808,7 @@ pragma(inline, true) private bool jit_cc_is_hreg_fixed(JitCompContext* cc, JitRe
  *
  * @return true if the hard register is caller-saved-native
  */
-pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_native(JitCompContext* cc, JitReg reg) {
+ private bool jit_cc_is_hreg_caller_saved_native(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     bh_assert(jit_cc_is_hreg(cc, reg));
@@ -2821,7 +2823,7 @@ pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_native(JitCompCont
  *
  * @return true if the hard register is caller-saved-jitted
  */
-pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_jitted(JitCompContext* cc, JitReg reg) {
+ private bool jit_cc_is_hreg_caller_saved_jitted(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     bh_assert(jit_cc_is_hreg(cc, reg));
@@ -2835,7 +2837,7 @@ pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_jitted(JitCompCont
  *
  * @return the entry block of the compilation context
  */
-pragma(inline, true) private JitBasicBlock* jit_cc_entry_basic_block(JitCompContext* cc) {
+ private JitBasicBlock* jit_cc_entry_basic_block(JitCompContext* cc) {
     return *(jit_annl_basic_block(cc, cc.entry_label));
 }
 
@@ -2846,7 +2848,7 @@ pragma(inline, true) private JitBasicBlock* jit_cc_entry_basic_block(JitCompCont
  *
  * @return the exit block of the compilation context
  */
-pragma(inline, true) private JitBasicBlock* jit_cc_exit_basic_block(JitCompContext* cc) {
+ private JitBasicBlock* jit_cc_exit_basic_block(JitCompContext* cc) {
     return *(jit_annl_basic_block(cc, cc.exit_label));
 }
 

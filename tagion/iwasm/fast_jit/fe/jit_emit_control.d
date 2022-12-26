@@ -163,7 +163,7 @@ fail:
 }
 
 private bool jit_reg_is_i32_const(JitCompContext* cc, JitReg reg, int val) {
-    return (jit_reg_kind(reg) == JIT_REG_KIND_I32 && jit_reg_is_const(reg)
+    return (jit_reg_kind(reg) == JitRegKind.I32 && jit_reg_is_const(reg)
             && jit_cc_get_const_I32(cc, reg) == val)
                ? true
                : false;

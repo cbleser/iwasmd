@@ -1,4 +1,4 @@
-module jit_dump;
+module tagion.iwasm.fast_jit.jit_dump;
 @nogc nothrow:
 extern(C): __gshared:
 
@@ -19,11 +19,11 @@ void jit_dump_reg(JitCompContext* cc, JitReg reg) {
     uint no = jit_reg_no(reg);
 
     switch (kind) {
-        case JIT_REG_KIND_VOID:
+        case JitRegKind.VOID:
             os_printf("VOID");
             break;
 
-        case JIT_REG_KIND_I32:
+        case JitRegKind.I32:
             if (jit_reg_is_const(reg)) {
                 uint rel = jit_cc_get_const_I32_rel(cc, reg);
 
@@ -36,28 +36,28 @@ void jit_dump_reg(JitCompContext* cc, JitReg reg) {
                 os_printf("i%d", no);
             break;
 
-        case JIT_REG_KIND_I64:
+        case JitRegKind.I64:
             if (jit_reg_is_const(reg))
                 os_printf("0x%llxL", jit_cc_get_const_I64(cc, reg));
             else
                 os_printf("I%d", no);
             break;
 
-        case JIT_REG_KIND_F32:
+        case JitRegKind.F32:
             if (jit_reg_is_const(reg))
                 os_printf("%f", jit_cc_get_const_F32(cc, reg));
             else
                 os_printf("f%d", no);
             break;
 
-        case JIT_REG_KIND_F64:
+        case JitRegKind.F64:
             if (jit_reg_is_const(reg))
                 os_printf("%fL", jit_cc_get_const_F64(cc, reg));
             else
                 os_printf("D%d", no);
             break;
 
-        case JIT_REG_KIND_L32:
+        case JitRegKind.L32:
             os_printf("L%d", no);
             break;
 
@@ -107,6 +107,7 @@ private void jit_dump_insn_LookupSwitch(JitCompContext* cc, JitInsn* insn, uint 
     }
 }
 
+/** fix later
 void jit_dump_insn(JitCompContext* cc, JitInsn* insn) {
     switch (insn.opcode) {
 enum string INSN(string NAME, string OPND_KIND, string OPND_NUM, string FIRST_USE) = `     \
@@ -114,9 +115,13 @@ enum string INSN(string NAME, string OPND_KIND, string OPND_NUM, string FIRST_US
         os_printf("    %-15s", #NAME);                 \
         jit_dump_insn_##OPND_KIND(cc, insn, OPND_NUM); \
         break;`;
+
 public import jit_ir.d;
-    default: break;}
+    default: 
+		break;
+	}
 }
+*/
 
 void jit_dump_basic_block(JitCompContext* cc, JitBasicBlock* block) {
     uint i = void, label_index = void;
@@ -195,7 +200,7 @@ private void dump_func_name(JitCompContext* cc) {
     const(char)* func_name = null;
     WASMModule* module_ = cc.cur_wasm_module;
 
-static if (WASM_ENABLE_CUSTOM_NAME_SECTION != 0) {
+version (WASM_ENABLE_CUSTOM_NAME_SECTION ) {
     func_name = cc.cur_wasm_func.field_name;
 }
 
@@ -234,14 +239,14 @@ private void dump_cc_ir(JitCompContext* cc) {
 
     os_printf("; Constant table sizes:");
 
-    for (i = 0; i < JIT_REG_KIND_L32; i++)
+    for (i = 0; i < JitRegKind.L32; i++)
         os_printf(" %s=%d", kind_names[i], cc._const_val._num[i]);
 
     os_printf("\n; Label number: %d", jit_cc_label_num(cc));
     os_printf("\n; Instruction number: %d", jit_cc_insn_num(cc));
     os_printf("\n; Register numbers:");
 
-    for (i = 0; i < JIT_REG_KIND_L32; i++)
+    for (i = 0; i < JitRegKind.L32; i++)
         os_printf(" %s=%d", kind_names[i], jit_cc_reg_num(cc, i));
 
     os_printf("\n; Label annotations:");

@@ -147,10 +147,10 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
     if (cond == FLOAT_EQ || cond == FLOAT_NE) {
         kind = jit_reg_kind(lhs);
         if (cond == FLOAT_EQ)
-            func = (kind == JIT_REG_KIND_F32) ? cast(void*)float_cmp_eq
+            func = (kind == JitRegKind.F32) ? cast(void*)float_cmp_eq
                                               : cast(void*)double_cmp_eq;
         else
-            func = (kind == JIT_REG_KIND_F32) ? cast(void*)float_cmp_ne
+            func = (kind == JitRegKind.F32) ? cast(void*)float_cmp_ne
                                               : cast(void*)double_cmp_ne;
 
         res = jit_cc_new_reg_I32(cc);

@@ -488,23 +488,23 @@ void gen_commit_values(JitFrame* frame, JitValueSlot* begin, JitValueSlot* end) 
         n = p - frame.lp;
 
         switch (jit_reg_kind(p.reg)) {
-            case JIT_REG_KIND_I32:
+            case JitRegKind.I32:
                 GEN_INSN(STI32, p.reg, cc.fp_reg,
                          NEW_CONST(I32, offset_of_local(n)));
                 break;
 
-            case JIT_REG_KIND_I64:
+            case JitRegKind.I64:
                 GEN_INSN(STI64, p.reg, cc.fp_reg,
                          NEW_CONST(I32, offset_of_local(n)));
                 (++p).dirty = 0;
                 break;
 
-            case JIT_REG_KIND_F32:
+            case JitRegKind.F32:
                 GEN_INSN(STF32, p.reg, cc.fp_reg,
                          NEW_CONST(I32, offset_of_local(n)));
                 break;
 
-            case JIT_REG_KIND_F64:
+            case JitRegKind.F64:
                 GEN_INSN(STF64, p.reg, cc.fp_reg,
                          NEW_CONST(I32, offset_of_local(n)));
                 (++p).dirty = 0;

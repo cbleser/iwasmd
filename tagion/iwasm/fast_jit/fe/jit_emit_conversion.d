@@ -176,10 +176,10 @@ private bool jit_compile_check_value_range(JitCompContext* cc, JitReg value, Jit
     JitRegKind kind = jit_reg_kind(value);
     bool emit_ret = false;
 
-    bh_assert(JIT_REG_KIND_F32 == kind || JIT_REG_KIND_F64 == kind);
+    bh_assert(JitRegKind.F32 == kind || JitRegKind.F64 == kind);
 
     /* If value is NaN, throw exception */
-    if (JIT_REG_KIND_F32 == kind)
+    if (JitRegKind.F32 == kind)
         emit_ret = jit_emit_callnative(cc, &local_isnanf, nan_ret, &value, 1);
     else
         emit_ret = jit_emit_callnative(cc, &local_isnan, nan_ret, &value, 1);
