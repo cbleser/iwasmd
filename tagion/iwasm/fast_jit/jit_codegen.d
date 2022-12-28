@@ -1,4 +1,4 @@
-module jit_codegen;
+module tagion.iwasm.fast_jit.jit_codegen;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,8 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_compiler;
-public import jit_codegen;
+import tagion.iwasm.fast_jit.jit_compiler;
 
 bool jit_pass_lower_cg(JitCompContext* cc) {
     return jit_codegen_lower(cc);
@@ -25,11 +24,11 @@ bool jit_pass_codegen(JitCompContext* cc) {
  */
 
  
-public import bh_platform;
-public import jit_compiler;
+import tagion.iwasm.app_framework.base.app.bh_platform;
+public import tagion.iwasm.fast_jit.jit_compiler;
 
 version (none) {
-extern "C" {
+extern (C) {
 //! #endif
 
 /**
@@ -93,8 +92,6 @@ void* jit_codegen_compile_call_to_fast_jit(const(WASMModule)* module_, uint func
 void jit_codegen_dump_native(void* begin_addr, void* end_addr);
 
 int jit_codegen_interp_jitted_glue(void* self, JitInterpSwitchInfo* info, uint func_idx, void* pc);
-
-version (none) {}
 }
 }
 

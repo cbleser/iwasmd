@@ -10,9 +10,8 @@ private template HasVersion(string versionId) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_dump;
-public import jit_compiler;
-public import jit_codegen;
+import tagion.iwasm.fast_jit.jit_compiler;
+import tagion.iwasm.fast_jit.jit_codegen;
 
 void jit_dump_reg(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
@@ -186,10 +185,11 @@ void jit_dump_basic_block(JitCompContext* cc, JitBasicBlock* block) {
 
     os_printf("    ; SUCCS(");
 
-    JIT_REG_VEC_FOREACH(succs),  (i, reg)
+    JIT_REG_VEC_FOREACH(succs,  (i, reg)
     {
-        if (i > 0)
+        if (i > 0) {
             os_printf(" ");
+		}
         jit_dump_reg(cc, *reg);
     });
 
@@ -250,20 +250,26 @@ private void dump_cc_ir(JitCompContext* cc) {
         os_printf(" %s=%d", kind_names[i], jit_cc_reg_num(cc, i));
 
     os_printf("\n; Label annotations:");
-enum string ANN_LABEL(string TYPE, string NAME) = `           \
+
+	enum string ANN_LABEL(string TYPE, string NAME) = `           \
     if (jit_annl_is_enabled_##NAME(cc)) \
         os_printf(" %s", #NAME);`;
-public import jit_ir.d;
+
+pragma(msg, "include public import jit_ir.def");
     os_printf("\n; Instruction annotations:");
+
 enum string ANN_INSN(string TYPE, string NAME) = `            \
     if (jit_anni_is_enabled_##NAME(cc)) \
         os_printf(" %s", #NAME);`;
-public import jit_ir.d;
+
+pragma(msg, "	public import jit_ir.def");
     os_printf("\n; Register annotations:");
-enum string ANN_REG(string TYPE, string NAME) = `             \
+
+	enum string ANN_REG(string TYPE, string NAME) = `             \
     if (jit_annr_is_enabled_##NAME(cc)) \
         os_printf(" %s", #NAME);`;
-public import jit_ir.d;
+
+pragma(msg, "	public import jit_ir.def");
     os_printf("\n\n");
 
     if (jit_annl_is_enabled_next_label(cc)) {
@@ -276,7 +282,9 @@ public import jit_ir.d;
         /* Otherwise, use the default order.  */
         jit_dump_basic_block(cc, jit_cc_entry_basic_block(cc));
 
-        JIT_FOREACH_BLOCK(cc, i, end, block) jit_dump_basic_block(cc, block);
+//        JIT_FOREACH_BLOCK(cc, i, end, block) jit_dump_basic_block(cc, block);
+        JIT_FOREACH_BLOCK(cc, end, 
+		(cc, block) =>jit_dump_basic_block(cc, block));
 
         jit_dump_basic_block(cc, jit_cc_exit_basic_block(cc));
     }
@@ -320,7 +328,7 @@ bool jit_pass_update_cfg(JitCompContext* cc) {
 public import jit_compiler;
 
 version (none) {
-extern "C" {
+extern (C) {
 //! #endif
 
 /**

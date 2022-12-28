@@ -6,50 +6,19 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_codegen;
-public import jit_frontend;
+import tagion.iwasm.fast_jit.jit_codegen;
+import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.insn_opnd;
 
-/**
- * Operand kinds of instructions.
- */
-enum JIT_OPND_KIND{ 
-Reg, 
-VReg, 
-LookupSwitch 
+JitInsn* JIT_INSN_NEW_Reg(int OPND_NUM) {
+    return jit_calloc(JitInsn._opnd.offsetof + JitReg.sizeof * OPND_NUM);
 }
 
-/**
- * Operand kind of each instruction.
- */
-private const(ubyte)[2] insn_opnd_kind = [
-#define INSN(NAME, OPND_KIND, OPND_NUM, FIRST_USE) JIT_OPND_KIND_##OPND_KIND,
-public import "jit_ir.def"
-#undef INSN
-];
+JitInsn* JIT_INSN_NEW_VReg(int OPND_NUM) {
+    return jit_calloc(JitInsn._opnd._opnd_VReg._reg.offsetof 
+               + JitReg.sizeof * (OPND_NUM));
+}
 
-/**
- * Operand number of each instruction.
- */
-private const(ubyte)[2] insn_opnd_num = [
-#define INSN(NAME, OPND_KIND, OPND_NUM, FIRST_USE) OPND_NUM,
-public import "jit_ir.def"
-#undef INSN
-];
-
-/**
- * Operand number of each instruction.
- */
-private const(ubyte)[2] insn_opnd_first_use = [
-#define INSN(NAME, OPND_KIND, OPND_NUM, FIRST_USE) FIRST_USE,
-public import "jit_ir.def"
-#undef INSN
-];
-
-enum string JIT_INSN_NEW_Reg(string OPND_NUM) = ` \
-    jit_calloc(offsetof(JitInsn, _opnd) + sizeof(JitReg) * (OPND_NUM))`;
-enum string JIT_INSN_NEW_VReg(string OPND_NUM) = `                     \
-    jit_calloc(offsetof(JitInsn, _opnd._opnd_VReg._reg) \
-               + sizeof(JitReg) * (OPND_NUM))`;
 
 JitInsn* _jit_insn_new_Reg_1(JitOpcode opc, JitReg r0) {
     JitInsn* insn = JIT_INSN_NEW_Reg(1);
@@ -73,6 +42,7 @@ JitInsn* _jit_insn_new_Reg_2(JitOpcode opc, JitReg r0, JitReg r1) {
 
     return insn;
 }
+
 
 JitInsn* _jit_insn_new_Reg_3(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2) {
     JitInsn* insn = JIT_INSN_NEW_Reg(3);
@@ -444,10 +414,16 @@ void jit_cc_destroy(JitCompContext* cc) {
 
     /* clang-format off */
     /* Release blocks and instructions.  */
-    JIT_FOREACH_BLOCK(cc, i, end, block)
+/+
+	JIT_FOREACH_BLOCK(cc, i, end, block)
     {
         jit_basic_block_delete(block);
     }
+		+/
+    _JIT_FOREACH_BLOCK(cc, 
+	(block) => 
+        jit_basic_block_delete(block)
+	);
     /* clang-format on */
 
     /* Release constant values.  */
@@ -460,7 +436,6 @@ void jit_cc_destroy(JitCompContext* cc) {
 enum string ANN_LABEL(string TYPE, string NAME) = ` jit_annl_disable_##NAME(cc);`;
 enum string ANN_INSN(string TYPE, string NAME) = ` jit_anni_disable_##NAME(cc);`;
 enum string ANN_REG(string TYPE, string NAME) = ` jit_annr_disable_##NAME(cc);`;
-public import jit_ir.d;
 }
 
 void jit_cc_delete(JitCompContext* cc) {
@@ -585,7 +560,7 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
 
  private int get_const_val_in_reg(JitReg reg) {
     int shift = 8 * sizeof(reg) - _JitRegKind.SHIFT + 1;
-    return ((int32)(reg << shift)) >> shift;
+    return (cast(int)(reg << shift)) >> shift;
 }
 
 enum string _JIT_CC_NEW_CONST_HELPER(string KIND, string TYPE, string val) = `                             \
@@ -628,26 +603,25 @@ JitReg jit_cc_new_const_F64(JitCompContext* cc, double val) {
     _JIT_CC_NEW_CONST_HELPER(F64, double, val);
 }
 
-enum string _JIT_CC_GET_CONST_HELPER(string KIND, string TYPE) = `                               \
-    do {                                                                   \
-        bh_assert(jit_reg_kind(reg) == JitRegKind.##KIND);               \
-        bh_assert(jit_reg_is_const(reg));                                  \
-                                                                           \
-        return (jit_reg_is_const_val(reg)                                  \
-                    ? (TYPE)get_const_val_in_reg(reg)                      \
-                    : *(TYPE *)(address_of_const(cc, reg, sizeof(TYPE)))); \
-    } while (0)`;
+mixin template _JIT_CC_GET_CONST_HELPER(KIND, TYPE) {
+		import std.format;
+        mixin(format(q{bh_assert(jit_reg_kind(reg) == JitRegKind.%s);}, KIND.stringof);
+        bh_assert(jit_reg_is_const(reg));                
+        return (jit_reg_is_const_val(reg)               
+                    ? (TYPE)get_const_val_in_reg(reg)  
+                    : *(TYPE *)(address_of_const(cc, reg, TYPE.sizeof))); 
+}
 
 private ulong jit_cc_get_const_I32_helper(JitCompContext* cc, JitReg reg) {
-    _JIT_CC_GET_CONST_HELPER(I32, uint64);
+    mixin _JIT_CC_GET_CONST_HELPER!(I32, uint64);
 }
 
 uint jit_cc_get_const_I32_rel(JitCompContext* cc, JitReg reg) {
-    return (uint32)(jit_cc_get_const_I32_helper(cc, reg) >> 32);
+    return cast(uint)(jit_cc_get_const_I32_helper(cc, reg) >> 32);
 }
 
 int jit_cc_get_const_I32(JitCompContext* cc, JitReg reg) {
-    return (int32)(jit_cc_get_const_I32_helper(cc, reg));
+    return cast(int)(jit_cc_get_const_I32_helper(cc, reg));
 }
 
 long jit_cc_get_const_I64(JitCompContext* cc, JitReg reg) {
@@ -2162,256 +2136,6 @@ struct JitBlockStack {
 }
 
 /**
- * The JIT compilation context for one compilation process of a
- * compilation unit.
- */
-struct JitCompContext {
-    /* Hard register information of each kind. */
-    const(JitHardRegInfo)* hreg_info;
-
-    /* No. of the pass to be applied. */
-    ubyte cur_pass_no;
-
-    /* The current wasm module */
-    WASMModule* cur_wasm_module;
-    /* The current wasm function */
-    WASMFunction* cur_wasm_func;
-    /* The current wasm function index */
-    uint cur_wasm_func_idx;
-    /* The block stack */
-    JitBlockStack block_stack;
-
-    bool mem_space_unchanged;
-
-    /* Entry and exit labels of the compilation unit, whose numbers must
-       be 0 and 1 respectively (see JIT_FOREACH_BLOCK). */
-    JitReg entry_label;
-    JitReg exit_label;
-    JitBasicBlock** exce_basic_blocks;
-    JitIncomingInsnList* incoming_insns_for_exec_bbs;
-
-    /* The current basic block to generate instructions */
-    JitBasicBlock* cur_basic_block;
-
-    /* Registers of frame pointer, exec_env and CMP result. */
-    JitReg fp_reg;
-    JitReg exec_env_reg;
-    JitReg cmp_reg;
-
-    /* WASM module instance */
-    JitReg module_inst_reg;
-    /* WASM module */
-    JitReg module_reg;
-    /* module_inst->import_func_ptrs */
-    JitReg import_func_ptrs_reg;
-    /* module_inst->fast_jit_func_ptrs */
-    JitReg fast_jit_func_ptrs_reg;
-    /* module_inst->func_type_indexes */
-    JitReg func_type_indexes_reg;
-    /* Boundary of auxiliary stack */
-    JitReg aux_stack_bound_reg;
-    /* Bottom of auxiliary stack */
-    JitReg aux_stack_bottom_reg;
-    /* Data of memory instances */
-    JitMemRegs* memory_regs;
-    /* Data of table instances */
-    JitTableRegs* table_regs;
-
-    /* Current frame information for translation */
-    JitFrame* jit_frame;
-
-    /* The total frame size of current function */
-    uint total_frame_size;
-
-    /* The spill cache offset to the interp frame */
-    uint spill_cache_offset;
-    /* The spill cache size */
-    uint spill_cache_size;
-
-    /* The offset of jitted_return_address in the frame, which is set by
-       the pass frontend and used by the pass codegen. */
-    uint jitted_return_address_offset;
-
-    /* Begin and end addresses of the jitted code produced by the pass
-       codegen and consumed by the region registration after codegen and
-       the pass dump. */
-    void* jitted_addr_begin;
-    void* jitted_addr_end;
-
-    char[128] last_error = 0;
-
-    /* Below fields are all private.  Don't access them directly. */
-
-    /* Reference count of the compilation context. */
-    ushort _reference_count;
-
-    /* Constant values. */
-    struct __const_val {
-        /* Number of constant values of each kind. */
-        uint[JitRegKind.L32] _num;
-
-        /* Capacity of register annotations of each kind. */
-        uint[JitRegKind.L32] _capacity;
-
-        /* Constant vallues of each kind. */
-        ubyte*[JitRegKind.L32] _value;
-
-        /* Next element on the list of values with the same hash code. */
-        JitReg*[JitRegKind.L32] _next;
-
-        /* Size of the hash table. */
-        uint _hash_table_size;
-
-        /* Map values to JIT register. */
-        JitReg* _hash_table;
-    }__const_val _const_val;
-
-    /* Annotations of labels, registers and instructions. */
-    struct __ann {
-        /* Number of all ever created labels. */
-        uint _label_num;
-
-        /* Capacity of label annotations. */
-        uint _label_capacity;
-
-        /* Number of all ever created instructions. */
-        uint _insn_num;
-
-        /* Capacity of instruction annotations. */
-        uint _insn_capacity;
-
-        /* Number of ever created registers of each kind. */
-        uint[JitRegKind.L32] _reg_num;
-
-        /* Capacity of register annotations of each kind. */
-        uint[JitRegKind.L32] _reg_capacity;
-
-        /* Storage of annotations. */
-enum string ANN_LABEL(string TYPE, string NAME) = ` TYPE *_label_##NAME;`;
-enum string ANN_INSN(string TYPE, string NAME) = ` TYPE *_insn_##NAME;`;
-enum string ANN_REG(string TYPE, string NAME) = ` TYPE *_reg_##NAME[JitRegKind.L32];`;
-//! #include "jit_ir.def"
-        /* Flags of annotations. */
-enum string ANN_LABEL(string TYPE, string NAME) = ` uint32 _label_##NAME##_enabled : 1;`;
-enum string ANN_INSN(string TYPE, string NAME) = ` uint32 _insn_##NAME##_enabled : 1;`;
-enum string ANN_REG(string TYPE, string NAME) = ` uint32 _reg_##NAME##_enabled : 1;`;
-//! #include "jit_ir.def"
-    }__ann _ann;
-
-    /* Instruction hash table. */
-    struct __insn_hash_table {
-        /* Size of the hash table. */
-        uint _size;
-
-        /* The hash table. */
-        JitInsn** _table;
-    }__insn_hash_table _insn_hash_table;
-
-    /* indicate if the last comparision is about floating-point numbers or not
-     */
-    bool last_cmp_on_fp;
-}
-
-/*
- * Annotation accessing functions jit_annl_NAME, jit_anni_NAME and
- * jit_annr_NAME.
- */
-enum string ANN_LABEL(string TYPE, string NAME) = `                                             \
-    static inline TYPE *jit_annl_##NAME(JitCompContext *cc, JitReg label) \
-    {                                                                     \
-        unsigned idx = jit_reg_no(label);                                 \
-        bh_assert(jit_reg_kind(label) == JitRegKind.L32);               \
-        bh_assert(idx < cc->_ann._label_num);                             \
-        bh_assert(cc->_ann._label_##NAME##_enabled);                      \
-        return &cc->_ann._label_##NAME[idx];                              \
-    }`;
-enum string ANN_INSN(string TYPE, string NAME) = `                                               \
-    static inline TYPE *jit_anni_##NAME(JitCompContext *cc, JitInsn *insn) \
-    {                                                                      \
-        unsigned uid = insn->uid;                                          \
-        bh_assert(uid < cc->_ann._insn_num);                               \
-        bh_assert(cc->_ann._insn_##NAME##_enabled);                        \
-        return &cc->_ann._insn_##NAME[uid];                                \
-    }`;
-enum string ANN_REG(string TYPE, string NAME) = `                                             \
-    static inline TYPE *jit_annr_##NAME(JitCompContext *cc, JitReg reg) \
-    {                                                                   \
-        unsigned kind = jit_reg_kind(reg);                              \
-        unsigned no = jit_reg_no(reg);                                  \
-        bh_assert(kind < JitRegKind.L32);                             \
-        bh_assert(no < cc->_ann._reg_num[kind]);                        \
-        bh_assert(cc->_ann._reg_##NAME##_enabled);                      \
-        return &cc->_ann._reg_##NAME[kind][no];                         \
-    }`;
-public import jit_ir.d;
-/*
- * Annotation enabling functions jit_annl_enable_NAME,
- * jit_anni_enable_NAME and jit_annr_enable_NAME, which allocate
- * sufficient memory for the annotations.
- */
-enum string ANN_LABEL(string TYPE, string NAME) = ` bool jit_annl_enable_##NAME(JitCompContext *cc);`;
-enum string ANN_INSN(string TYPE, string NAME) = ` bool jit_anni_enable_##NAME(JitCompContext *cc);`;
-enum string ANN_REG(string TYPE, string NAME) = ` bool jit_annr_enable_##NAME(JitCompContext *cc);`;
-public import jit_ir.d;
-/*
- * Annotation disabling functions jit_annl_disable_NAME,
- * jit_anni_disable_NAME and jit_annr_disable_NAME, which release
- * memory of the annotations.  Before calling these functions,
- * resources owned by the annotations must be explictely released.
- */
-enum string ANN_LABEL(string TYPE, string NAME) = ` void jit_annl_disable_##NAME(JitCompContext *cc);`;
-enum string ANN_INSN(string TYPE, string NAME) = ` void jit_anni_disable_##NAME(JitCompContext *cc);`;
-enum string ANN_REG(string TYPE, string NAME) = ` void jit_annr_disable_##NAME(JitCompContext *cc);`;
-public import jit_ir.d;
-/*
- * Functions jit_annl_is_enabled_NAME, jit_anni_is_enabled_NAME and
- * jit_annr_is_enabled_NAME for checking whether an annotation is
- * enabled.
- */
-enum string ANN_LABEL(string TYPE, string NAME) = `                                         \
-    static inline bool jit_annl_is_enabled_##NAME(JitCompContext *cc) \
-    {                                                                 \
-        return !!cc->_ann._label_##NAME##_enabled;                    \
-    }`;
-enum string ANN_INSN(string TYPE, string NAME) = `                                          \
-    static inline bool jit_anni_is_enabled_##NAME(JitCompContext *cc) \
-    {                                                                 \
-        return !!cc->_ann._insn_##NAME##_enabled;                     \
-    }`;
-enum string ANN_REG(string TYPE, string NAME) = `                                           \
-    static inline bool jit_annr_is_enabled_##NAME(JitCompContext *cc) \
-    {                                                                 \
-        return !!cc->_ann._reg_##NAME##_enabled;                      \
-    }`;
-public import jit_ir.d;
-/**
- * Initialize a compilation context.
- *
- * @param cc the compilation context
- * @param htab_size the initial hash table size of constant pool
- *
- * @return cc if succeeds, NULL otherwise
- */
-JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size);
-
-/**
- * Release all resources of a compilation context, which doesn't
- * include the compilation context itself.
- *
- * @param cc the compilation context
- */
-void jit_cc_destroy(JitCompContext* cc);
-
-/**
- * Increase the reference count of the compilation context.
- *
- * @param cc the compilation context
- */
- private void jit_cc_inc_ref(JitCompContext* cc) {
-    cc._reference_count++;
-}
-
-/**
  * Decrease the reference_count and destroy and free the compilation
  * context if the reference_count is decreased to zero.
  *
@@ -2910,6 +2634,16 @@ enum string JIT_FOREACH_BLOCK(string CC, string I, string E, string B) = `      
     for ((I) = 2, (E) = (CC)->_ann._label_num; (I) < (E); (I)++) \
         if (((B) = (CC)->_ann._label_basic_block[(I)]))`;
 
+void _JIT_FOREACH_BLOCK(const( JitCompContext*) CC,
+void delegate(JiyBasicBlock* B) {
+uint E;
+	for (uint I = 2, E = CC._ann._label_num; I < E; I++) 
+        if (B = CC._ann._label_basic_block[I]) {
+dg( B);
+	}
+
+
+}
 /**
  * The version that includes entry and exit block.
  */

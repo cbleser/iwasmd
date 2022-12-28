@@ -1,4 +1,4 @@
-module jit_compiler;
+module tagion.iwasm.fast_jit.jit_compiler;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,11 +6,10 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_compiler;
-public import jit_ir;
+import tagion.iwasm.fast_jit.jit_ir;
 public import jit_codegen;
 public import jit_codecache;
-public import ...interpreter.wasm;
+public import tagion.iwasm.interpreter.wasm;
 
 struct JitCompilerPass {
     /* Name of the pass */
@@ -20,23 +19,21 @@ struct JitCompilerPass {
 }
 
 /* clang-format off */
-static JitCompilerPass compiler_passes[] = {
-    { null, null },
-#define REG_PASS(name) { //! #name, jit_pass_##name }
-    REG_PASS(dump),
-    REG_PASS(update_cfg),
-    REG_PASS(frontend),
-    REG_PASS(lower_cg),
-    REG_PASS(regalloc),
-    REG_PASS(codegen),
-    REG_PASS(register_jitted_code)
-#undef REG_PASS
+JitCompilerPass[] compiler_passes = {
+    { name: null, run:null },
+    JitCompilerPass(dump.stringof.ptr, &dump),
+    JitCompilerPass(update_cfg.stringof.ptr, &update_cfg),
+    JitCompilerPass(frontend.stringof.ptr),
+    JitCompilerPass(lower_cg.strionof.ptr, &lower_cg),
+    JitCompilerPass(regalloc.stringof.ptr, &regalloc),
+    JitCompilerPass(codegen.stringof.ptr, &codegen),
+    JitCompilerPass(register_jitted_code.stringof.ptr, &register_jitted)
 };
 
 /* Number of compiler passes */
 enum COMPILER_PASS_NUM = (sizeof(compiler_passes) / sizeof(compiler_passes[0]));
 
-static if (WASM_ENABLE_FAST_JIT_DUMP == 0) {
+version(WASM_ENABLE_FAST_JIT_DUMP ) {
 private const(ubyte)[6] compiler_passes_without_dump = [
     3, 4, 5, 6, 7, 0
 ];
@@ -46,18 +43,34 @@ private const(ubyte)[11] compiler_passes_with_dump = [
 ];
 }
 
+struct JitGlobals {
+    /* Compiler pass sequence, the last element must be 0 */
+    const(ubyte)* passes;
+    char* return_to_interp_from_jitted;
+version(WASM_ENABLE_LAZY_JIT) {
+    char* compile_fast_jit_and_then_call;
+}
+}
+
 /* The exported global data of JIT compiler */
-private JitGlobals jit_globals = {
-#if WASM_ENABLE_FAST_JIT_DUMP == 0
-    .passes = compiler_passes_without_dump,
-#else
-    passes: compiler_passes_with_dump,
-#endif
-    return_to_interp_from_jitted: null,
-#if WASM_ENABLE_LAZY_JIT != 0
-    .compile_fast_jit_and_then_call = null,
-#endif
-};
+JitGlobals jit_globals;
+
+//const x=jit_globals.return_to_interp_from_jitted;
+static this() {
+jit_globals.x=10;
+jit_globals.return_to_interp_from_jitted= null;
+jit_globals.passes = null;
+version(WASM_ENABLE_FAST_JIT_DUMP) {
+jit_globals.passes = compiler_passes_without_dump.ptr;
+}
+else {
+    jit_globals.passes = compiler_passes_with_dump.ptr;
+}
+    jit_globals.return_to_interp_from_jitted = null;
+version(WASM_ENABLE_LAZY_JIT) {
+    jit_globals.compile_fast_jit_and_then_call = null;
+}
+}
 /* clang-format on */
 
 private bool apply_compiler_passes(JitCompContext* cc) {
@@ -259,21 +272,14 @@ int jit_interp_switch_to_jitted(void* exec_env, JitInterpSwitchInfo* info, uint 
  */
 
  
-public import bh_platform;
-public import ...interpreter.wasm_runtime;
-public import jit_ir;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
+public import tagion.iwasm.interpreter.wasm_runtime;
+public import tagion.iwasm.fast_jit.jit_ir;
 
-version (none) {
-extern "C" {
+//version (none) {
+extern (C) {
 //! #endif
 
-struct JitGlobals {
-    /* Compiler pass sequence, the last element must be 0 */
-    const(ubyte)* passes;
-    char* return_to_interp_from_jitted;
-static if (WASM_ENABLE_LAZY_JIT != 0) {
-    char* compile_fast_jit_and_then_call;
-}
 }
 
 /**
@@ -329,17 +335,17 @@ struct JitCompOptions {
     uint opt_level;
 }
 
-bool jit_compiler_init(const(JitCompOptions)* option);
+//bool jit_compiler_init(const(JitCompOptions)* option);
 
-void jit_compiler_destroy();
+//void jit_compiler_destroy();
 
-JitGlobals* jit_compiler_get_jit_globals();
+//JitGlobals* jit_compiler_get_jit_globals();
 
-const(char)* jit_compiler_get_pass_name(uint i);
+//const(char)* jit_compiler_get_pass_name(uint i);
 
-bool jit_compiler_compile(WASMModule* module_, uint func_idx);
+//bool jit_compiler_compile(WASMModule* module_, uint func_idx);
 
-bool jit_compiler_compile_all(WASMModule* module_);
+//bool jit_compiler_compile_all(WASMModule* module_);
 
 bool jit_compiler_is_compiled(const(WASMModule)* module_, uint func_idx);
 
@@ -392,8 +398,3 @@ bool jit_pass_codegen(JitCompContext* cc);
  */
 bool jit_pass_register_jitted_code(JitCompContext* cc);
 
-version (none) {}
-}
-}
-
- /* end of _JIT_COMPILER_H_ */
