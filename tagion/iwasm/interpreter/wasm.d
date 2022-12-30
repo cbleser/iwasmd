@@ -7,13 +7,10 @@ extern(C): __gshared:
  */
 
  
-public import bh_platform;
-public import bh_hashmap;
-public import bh_assert;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
+public import tagion.iwasm.share.utils.bh_hashmap;
+public import tagion.iwasm.share.utils.bh_assert;
 
-version (none) {
-extern "C" {
-//! #endif
 
 /** Value Type */
 enum VALUE_TYPE_I32 = 0x7F;
@@ -125,7 +122,7 @@ struct WASMType {
     ushort param_cell_num;
     ushort ret_cell_num;
     ushort ref_count;
-static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 \
+static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 
     && WASM_ENABLE_LAZY_JIT != 0) {
     /* Code block to call llvm jit functions of this
        kind of function type from fast jit jitted code */
@@ -262,7 +259,7 @@ static if (WASM_ENABLE_FAST_INTERP != 0) {
     uint const_cell_num;
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 \
+static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 
     || WASM_ENABLE_WAMR_COMPILER != 0) {
     /* Whether function has opcode memory.grow */
     bool has_op_memory_grow;
@@ -500,14 +497,14 @@ static if (WASM_ENABLE_DEBUG_INTERP != 0 || WASM_ENABLE_DEBUG_AOT != 0) {
     ubyte* buf_code;
     ulong buf_code_size;
 }
-static if (WASM_ENABLE_DEBUG_INTERP != 0 || WASM_ENABLE_DEBUG_AOT != 0 \
+static if (WASM_ENABLE_DEBUG_INTERP != 0 || WASM_ENABLE_DEBUG_AOT != 0 
     || WASM_ENABLE_FAST_JIT != 0) {
     ubyte* load_addr;
     ulong load_size;
 }
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0                    \
-    || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT \
+static if (WASM_ENABLE_DEBUG_INTERP != 0                    
+    || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT 
         && WASM_ENABLE_LAZY_JIT != 0)) {
     /**
      * List of instances referred to this module. When source debugging
@@ -559,7 +556,7 @@ static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0) {
     bool orcjit_stop_compiling;
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 \
+static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 
     && WASM_ENABLE_LAZY_JIT != 0) {
     /* wait lock/cond for the synchronization of
        the llvm jit initialization */
@@ -683,7 +680,7 @@ pragma(inline, true) private bool wasm_type_equal(const(WASMType)* type1, const(
     return (type1.param_count == type2.param_count
             && type1.result_count == type2.result_count
             && memcmp(type1.types, type2.types,
-                      (uint32)(type1.param_count + type1.result_count))
+                      cast(uint)(type1.param_count + type1.result_count))
                    == 0)
                ? true
                : false;
@@ -731,8 +728,4 @@ pragma(inline, true) private uint block_type_get_result_types(BlockType* block_t
     return result_count;
 }
 
-version (none) {}
-} /* end of extern "C" */
-}
 
- /* end of _WASM_H_ */

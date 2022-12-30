@@ -1,4 +1,4 @@
-module bh_assert;
+module tagion.iwasm.share.utils.bh_assert;
 @nogc nothrow:
 extern(C): __gshared:
 
@@ -11,11 +11,6 @@ private template HasVersion(string versionId) {
  */
 
  
-public import bh_platform;
-
-version (none) {
-extern "C" {
-//! #endif
 
 static if (BH_DEBUG != 0) {
 void bh_assert_internal(int v, const(char)* file_name, int line_number, const(char)* expr_string);
@@ -29,8 +24,8 @@ static if (!HasVersion!"__has_extension") {
 enum string __has_extension(string a) = ` 0`;
 }
 
-static if (__STDC_VERSION__ >= 201112L                                          \
-    || (HasVersion!"__GNUC__" && __GNUC__ * 0x100 + __GNUC_MINOR__ >= 0x406) \
+static if (__STDC_VERSION__ >= 201112L                                          
+    || (HasVersion!"__GNUC__" && __GNUC__ * 0x100 + __GNUC_MINOR__ >= 0x406) 
     || __has_extension(c_static_assert)) {
 
 enum string bh_static_assert(string expr) = ` _Static_assert(expr, #expr)`;
@@ -38,9 +33,6 @@ enum string bh_static_assert(string expr) = ` _Static_assert(expr, #expr)`;
 //#define bh_static_assert(expr) /* nothing */
 }
 
-version (none) {}
-}
-}
 
  /* end of _BH_ASSERT_H */
 /*
@@ -48,7 +40,6 @@ version (none) {}
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_assert;
 
 void bh_assert_internal(int v, const(char)* file_name, int line_number, const(char)* expr_string) {
     if (v)

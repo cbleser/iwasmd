@@ -1,4 +1,4 @@
-module jit_codecache;
+module tagion.iwasm.fast_jit.jit_codecache;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,9 +6,8 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_codecache;
-public import mem_alloc;
-public import jit_compiler;
+import tagion.iwasm.share.mem_alloc.mem_alloc;
+import tagion.iwasm.fast_jit.jit_compiler;
 
 private void* code_cache_pool = null;
 private uint code_cache_pool_size = 0;
@@ -60,22 +59,4 @@ bool jit_pass_register_jitted_code(JitCompContext* cc) {
  */
 
  
-public import bh_platform;
 
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_code_cache_init(uint code_cache_size);
-
-void jit_code_cache_destroy();
-
-void* jit_code_cache_alloc(uint size);
-
-void jit_code_cache_free(void* ptr);
-
-version (none) {}
-}
-}
-
- /* end of _JIT_CODE_CACHE_H_ */

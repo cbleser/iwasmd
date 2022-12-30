@@ -7,9 +7,8 @@ extern(C): __gshared:
  */
 
 import tagion.iwasm.fast_jit.jit_ir;
-public import jit_codegen;
-public import jit_codecache;
-public import tagion.iwasm.interpreter.wasm;
+import tagion.iwasm.fast_jit.jit_codecache;
+import tagion.iwasm.interpreter.wasm;
 
 struct JitCompilerPass {
     /* Name of the pass */

@@ -1,127 +1,142 @@
-module tagion.iwasmd.fast_jit.insn_opnd;
-import tagion.iwasm.fast_jit.jit_ir;
-enum JIT_OPND_KIND : ubyte {
+module insn_opnd_tmp;
+@nogc nothrow:
+extern(C): __gshared:
+/* Copyright (C) 1991-2022 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <https://www.gnu.org/licenses/>.  */
+/* This header is separate from features.h so that the compiler can
+   include it implicitly at the start of every compilation.  It must
+   not itself include <features.h> or any other header that includes
+   <features.h> because the implicit include comes before any feature
+   test macros that may be defined in a source file before it first
+   explicitly includes a system header.  GCC knows the name of this
+   header in order to preinclude it.  */
+/* glibc's intent is to support the IEC 559 math functionality, real
+   and complex.  If the GCC (4.9 and later) predefined macros
+   specifying compiler intent are available, use them to determine
+   whether the overall intent is to support these features; otherwise,
+   presume an older compiler has intent to support these features and
+   define these macros by default.  */
+/* wchar_t uses Unicode 10.0.0.  Version 10.0 of the Unicode Standard is
+   synchronized with ISO/IEC 10646:2017, fifth edition, plus
+   the following additions from Amendment 1 to the fifth edition:
+   - 56 emoji characters
+   - 285 hentaigana
+   - 3 additional Zanabazar Square characters */
+/**
+ * Operand kinds of instructions.
+ */
+JIT_OPND_KIND ubyte_ {
 Reg,
 VReg,
 LookupSwitch
+};
+struct JitOpnd {
+aling(1):
+JIT_OPND_KIND kind = void;
+ubyte_ num = void;
+ubyte_ first_use = void;
 }
-struct InsnOpnd {
- align (1):
- ubyte kind;
- ubyte num;
- ubyte first_use;
+immutable_[JitOpnd(Reg, 2, 1)]* JitOpnd; immutable_ JitOpnd(VReg); immutable_ JitOpnd(Reg), JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd, JitOpnd; immutable_ JitOpnd(LookupSwitch); immutable_ JitOpnd(VReg); immutable_ JitOpnd(Reg), JitOpnd, JitOpnd; immutable_ jit_cc_new_const_I32_rel(JitCompContext* cc, int val, uint rel);
+{
+    ulong val64 = cast(ulong)cast(uint)val | (cast(ulong)rel << 32);
+    do { JitReg reg = jit_reg_new( JIT_REG_KIND_I32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg)val64 & ~_JIT_REG_KIND_MASK))); if (cast(ulong)get_const_val_in_reg(reg) == val64) return reg; return _jit_cc_new_const(cc, JIT_REG_KIND_I32, val64.sizeof, &val64); } while (0);
 }
-immutable(InsnOpnd[]) insn_opnd = [
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.VReg, 1, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 1, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 1, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 1, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.LookupSwitch, 1, 0),
-InsnOpnd(JIT_OPND_KIND.VReg, 2, 1),
-InsnOpnd(JIT_OPND_KIND.Reg, 4, 2),
-InsnOpnd(JIT_OPND_KIND.Reg, 3, 0),
-InsnOpnd(JIT_OPND_KIND.Reg, 1, 0),
+private ulong jit_cc_get_const_I32_helper(JitCompContext* cc, JitReg reg) {
+do { bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I32); bh_assert(jit_reg_is_const(reg)); return (jit_reg_is_const_val(reg) ? cast(ulong)get_const_val_in_reg(reg) : *cast(ulong*)(address_of_const(cc, reg, uint64.sizeof))); } while (0);
+}
+JitReg jit_cc_new_label(JitCompContext* cc) {
+    uint num = cc._ann._label_num;
+    uint capacity = cc._ann._label_capacity;
+    bool successful = true;
+    bh_assert(num <= capacity);
+    if (num == capacity) {
+        capacity = capacity > 0 ? (capacity + capacity / 2) : 16;
+/*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+/**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+/**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+/* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
 
 
+/* conversion. will extend or truncate */
 
 
 
@@ -130,57 +145,7 @@ InsnOpnd(JIT_OPND_KIND.Reg, 1, 0),
 
 
 
-];
 
-struct JitCompContext {
-    const(JitHardRegInfo)* hreg_info;
-    ubyte cur_pass_no;
-    WASMModule* cur_wasm_module;
-    WASMFunction* cur_wasm_func;
-    uint cur_wasm_func_idx;
-    JitBlockStack block_stack;
-    bool mem_space_unchanged;
-    JitReg entry_label;
-    JitReg exit_label;
-    JitBasicBlock** exce_basic_blocks;
-    JitIncomingInsnList* incoming_insns_for_exec_bbs;
-    JitBasicBlock* cur_basic_block;
-    JitReg fp_reg;
-    JitReg exec_env_reg;
-    JitReg cmp_reg;
-    JitReg module_inst_reg;
-    JitReg module_reg;
-    JitReg import_func_ptrs_reg;
-    JitReg fast_jit_func_ptrs_reg;
-    JitReg func_type_indexes_reg;
-    JitReg aux_stack_bound_reg;
-    JitReg aux_stack_bottom_reg;
-    JitMemRegs* memory_regs;
-    JitTableRegs* table_regs;
-    JitFrame* jit_frame;
-    uint total_frame_size;
-    uint spill_cache_offset;
-    uint spill_cache_size;
-    uint jitted_return_address_offset;
-    void* jitted_addr_begin;
-    void* jitted_addr_end;
-    char[128] last_error = 0;
-    ushort _reference_count;
-    struct __const_val {
-        uint[JitRegKind.L32] _num;
-        uint[JitRegKind.L32] _capacity;
-        ubyte*[JitRegKind.L32] _value;
-        JitReg*[JitRegKind.L32] _next;
-        uint _hash_table_size;
-        JitReg* _hash_table;
-    }__const_val _const_val;
-    struct __Ann {
-        uint _label_num;
-        uint _label_capacity;
-        uint _insn_num;
-        uint _insn_capacity;
-        uint[JitRegKind.L32] _reg_num;
-        uint[JitRegKind.L32] _reg_capacity;
 
 
 
@@ -199,10 +164,15 @@ struct JitCompContext {
 
 
 
+/**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
 
 
 
 
+/* Arithmetic and bitwise instructions: */
 
 
 
@@ -226,6 +196,7 @@ struct JitCompContext {
 
 
 
+/* Select instruction: */
 
 
 
@@ -236,6 +207,7 @@ struct JitCompContext {
 
 
 
+/* Memory access instructions: */
 
 
 
@@ -262,6 +234,7 @@ struct JitCompContext {
 
 
 
+/* Control instructions */
 
 
 
@@ -274,159 +247,167 @@ struct JitCompContext {
 
 
 
+/* Call and return instructions */
 
 
 
 
+/**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Basic Block of a label.  */
+if (successful && cc._ann._label_basic_block_enabled) { JitBasicBlock** ptr = _jit_realloc(cc._ann._label_basic_block , (JitBasicBlock*).sizeof * capacity, (JitBasicBlock*).sizeof * num); if (ptr) cc._ann._label_basic_block = ptr; else successful = false; }
+/* Predecessor number of the block that is only used in
+   jit_cc_update_cfg for updating the CFG.  */
+if (successful && cc._ann._label_pred_num_enabled) { ushort* ptr = _jit_realloc(cc._ann._label_pred_num , sizeof(uint16) * capacity, sizeof(uint16) * num); if (ptr) cc._ann._label_pred_num = ptr; else successful = false; }
+/* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+if (successful && cc._ann._label_freq_enabled) { ushort* ptr = _jit_realloc(cc._ann._label_freq , sizeof(uint16) * capacity, sizeof(uint16) * num); if (ptr) cc._ann._label_freq = ptr; else successful = false; }
+/* Begin bytecode instruction pointer of the block.  */
+if (successful && cc._ann._label_begin_bcip_enabled) { ubyte** ptr = _jit_realloc(cc._ann._label_begin_bcip , (ubyte*).sizeof * capacity, (ubyte*).sizeof * num); if (ptr) cc._ann._label_begin_bcip = ptr; else successful = false; }
+/* End bytecode instruction pointer of the block.  */
+if (successful && cc._ann._label_end_bcip_enabled) { ubyte** ptr = _jit_realloc(cc._ann._label_end_bcip , (ubyte*).sizeof * capacity, (ubyte*).sizeof * num); if (ptr) cc._ann._label_end_bcip = ptr; else successful = false; }
+/* Stack pointer offset at the end of the block.  */
+if (successful && cc._ann._label_end_sp_enabled) { ushort* ptr = _jit_realloc(cc._ann._label_end_sp , sizeof(uint16) * capacity, sizeof(uint16) * num); if (ptr) cc._ann._label_end_sp = ptr; else successful = false; }
+/* The label of the next physically adjacent block.  */
+if (successful && cc._ann._label_next_label_enabled) { JitReg* ptr = _jit_realloc(cc._ann._label_next_label , sizeof(JitReg) * capacity, sizeof(JitReg) * num); if (ptr) cc._ann._label_next_label = ptr; else successful = false; }
+/* Compiled code address of the block.  */
+if (successful && cc._ann._label_jitted_addr_enabled) { void** ptr = _jit_realloc(cc._ann._label_jitted_addr , (void*).sizeof * capacity, (void*).sizeof * num); if (ptr) cc._ann._label_jitted_addr = ptr; else successful = false; }
+/**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
 
+/**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Defining instruction of registers satisfying SSA property.  */
 
-
-
-
-
-
-
-
-
-
-JitBasicBlock * *_label_basic_block;
-uint16 *_label_pred_num;
-uint16 *_label_freq;
-uint8 * *_label_begin_bcip;
-uint8 * *_label_end_bcip;
-uint16 *_label_end_sp;
-JitReg *_label_next_label;
-void * *_label_jitted_addr;
-JitInsn * *_insn__hash_link;
-JitInsn * *[JitRegKind.L32]_reg_def_insn;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-uint _label_basic_block_enabled = 1;
-uint _label_pred_num_enabled = 1;
-uint _label_freq_enabled = 1;
-uint _label_begin_bcip_enabled = 1;
-uint _label_end_bcip_enabled = 1;
-uint _label_end_sp_enabled = 1;
-uint _label_next_label_enabled = 1;
-uint _label_jitted_addr_enabled = 1;
-uint _insn__hash_link_enabled = 1;
-uint _reg_def_insn_enabled = 1;
+        if (!successful) {
+            jit_set_last_error(cc, "create label register failed");
+            return 0;
+        }
+        cc._ann._label_capacity = capacity;
     }
- __Ann _ann;
-    struct __insn_hash_table {
-        uint _size;
-        JitInsn** _table;
-    }__insn_hash_table _insn_hash_table;
-    bool last_cmp_on_fp;
+    cc._ann._label_num = num + 1;
+    return jit_reg_new(JIT_REG_KIND_L32, num);
 }
+/*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+/**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+/**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+/* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
 
 
+/* conversion. will extend or truncate */
 
 
 
@@ -454,10 +435,15 @@ uint _reg_def_insn_enabled = 1;
 
 
 
+/**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
 
 
 
 
+/* Arithmetic and bitwise instructions: */
 
 
 
@@ -481,6 +467,7 @@ uint _reg_def_insn_enabled = 1;
 
 
 
+/* Select instruction: */
 
 
 
@@ -491,6 +478,7 @@ uint _reg_def_insn_enabled = 1;
 
 
 
+/* Memory access instructions: */
 
 
 
@@ -517,6 +505,7 @@ uint _reg_def_insn_enabled = 1;
 
 
 
+/* Control instructions */
 
 
 
@@ -529,435 +518,1214 @@ uint _reg_def_insn_enabled = 1;
 
 
 
+/* Call and return instructions */
 
 
 
 
-JitBasicBlock * *jit_annl_basic_block(JitCompContext *cc, JitReg label) { 
-	unsigned idx = jit_reg_no(label); 
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32); 
-	bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_basic_block_enabled); 
-	return &cc._ann._label_basic_block[idx]; 
-};
-uint16 *jit_annl_pred_num(JitCompContext *cc, JitReg label) {
-	unsigned idx = jit_reg_no(label); 
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32); 
-	bh_assert(idx < cc._ann._label_num); 
-	bh_assert(cc._ann._label_pred_num_enabled); 
-	return &cc._ann._label_pred_num[idx]; 
-};
-uint16 *jit_annl_freq(JitCompContext *cc, JitReg label) { 
-	unsigned idx = jit_reg_no(label); 
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32); 
-	bh_assert(idx < cc._ann._label_num); 
-	bh_assert(cc._ann._label_freq_enabled); 
-	return &cc._ann._label_freq[idx]; 
-};
-uint8 * *jit_annl_begin_bcip(JitCompContext *cc, JitReg label) { 
-	unsigned idx = jit_reg_no(label); 
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32); 
-	bh_assert(idx < cc._ann._label_num); 
-	bh_assert(cc._ann._label_begin_bcip_enabled);
-	return &cc._ann._label_begin_bcip[idx];
-};
-uint8 * *jit_annl_end_bcip(JitCompContext *cc, JitReg label) { 
-	unsigned idx = jit_reg_no(label); 
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32);
-	bh_assert(idx < cc._ann._label_num);
-	bh_assert(cc._ann._label_end_bcip_enabled);
-	return &cc._ann._label_end_bcip[idx];
-};
-uint16 *jit_annl_end_sp(JitCompContext *cc, JitReg label) {
-	unsigned idx = jit_reg_no(label);
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32);
-	bh_assert(idx < cc._ann._label_num);
-	bh_assert(cc._ann._label_end_sp_enabled);
-	return &cc._ann._label_end_sp[idx];
-};
-JitReg *jit_annl_next_label(JitCompContext *cc, JitReg label) {
-	unsigned idx = jit_reg_no(label);
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32);
-	bh_assert(idx < cc._ann._label_num); 
-	bh_assert(cc._ann._label_next_label_enabled);
-	return &cc._ann._label_next_label[idx];
-};
-void * *jit_annl_jitted_addr(JitCompContext *cc, JitReg label) {
-	unsigned idx = jit_reg_no(label);
-	bh_assert(jit_reg_kind(label) == JitRegKind.L32);
-	bh_assert(idx < cc._ann._label_num);
-	bh_assert(cc._ann._label_jitted_addr_enabled);
-	return &cc._ann._label_jitted_addr[idx];
-};
-YPE *jit_anni__hash_link(JitCompContext *cc, JitInsn *insn) {
-	unsigned uid = insn.uid;
-	bh_assert(uid < cc._ann._insn_num);
-	bh_assert(cc._ann._insn__hash_link_enabled);
-	return &cc._ann._insn__hash_link[uid];
-};
-JitInsn * *jit_annr_def_insn(JitCompContext *cc, JitReg reg) {
-	unsigned kind = jit_reg_kind(reg);
-	unsigned no = jit_reg_no(reg);
-	bh_assert(kind < JitRegKind.L32);
-	bh_assert(no < cc._ann._reg_num[kind]);
-	bh_assert(cc._ann._reg_def_insn_enabled);
-	return &cc._ann._reg_def_insn[kind][no];
-};
+/**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Basic Block of a label.  */
 
+/* Predecessor number of the block that is only used in
+   jit_cc_update_cfg for updating the CFG.  */
 
+/* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
 
+/* Begin bytecode instruction pointer of the block.  */
 
+/* End bytecode instruction pointer of the block.  */
 
+/* Stack pointer offset at the end of the block.  */
 
+/* The label of the next physically adjacent block.  */
 
+/* Compiled code address of the block.  */
 
+/**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+if (successful && cc._ann._insn__hash_link_enabled) { JitInsn** ptr = _jit_realloc(cc._ann._insn__hash_link , (JitInsn*).sizeof * capacity, (JitInsn*).sizeof * num); if (ptr) cc._ann._insn__hash_link = ptr; else successful = false; }
+/**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Defining instruction of registers satisfying SSA property.  */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool jit_annl_enable_basic_block(JitCompContext *cc);
-bool jit_annl_enable_pred_num(JitCompContext *cc);
-bool jit_annl_enable_freq(JitCompContext *cc);
-bool jit_annl_enable_begin_bcip(JitCompContext *cc);
-bool jit_annl_enable_end_bcip(JitCompContext *cc);
-bool jit_annl_enable_end_sp(JitCompContext *cc);
-bool jit_annl_enable_next_label(JitCompContext *cc);
-bool jit_annl_enable_jitted_addr(JitCompContext *cc);
-bool jit_anni_enable__hash_link(JitCompContext *cc);
-bool jit_annr_enable_def_insn(JitCompContext *cc);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void jit_annl_disable_basic_block(JitCompContext *cc);
-void jit_annl_disable_pred_num(JitCompContext *cc);
-void jit_annl_disable_freq(JitCompContext *cc);
-void jit_annl_disable_begin_bcip(JitCompContext *cc);
-void jit_annl_disable_end_bcip(JitCompContext *cc);
-void jit_annl_disable_end_sp(JitCompContext *cc);
-void jit_annl_disable_next_label(JitCompContext *cc);
-void jit_annl_disable_jitted_addr(JitCompContext *cc);
-void jit_anni_disable__hash_link(JitCompContext *cc);
-void jit_annr_disable_def_insn(JitCompContext *cc);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool jit_annl_is_enabled_basic_block(JitCompContext *cc) { return !!cc._ann._label_basic_block_enabled; };
-bool jit_annl_is_enabled_pred_num(JitCompContext *cc) { return !!cc._ann._label_pred_num_enabled; };
-bool jit_annl_is_enabled_freq(JitCompContext *cc) { return !!cc._ann._label_freq_enabled; };
-bool jit_annl_is_enabled_begin_bcip(JitCompContext *cc) { return !!cc._ann._label_begin_bcip_enabled; };
-bool jit_annl_is_enabled_end_bcip(JitCompContext *cc) { return !!cc._ann._label_end_bcip_enabled; };
-bool jit_annl_is_enabled_end_sp(JitCompContext *cc) { return !!cc._ann._label_end_sp_enabled; };
-bool jit_annl_is_enabled_next_label(JitCompContext *cc) { return !!cc._ann._label_next_label_enabled; };
-bool jit_annl_is_enabled_jitted_addr(JitCompContext *cc) { return !!cc._ann._label_jitted_addr_enabled; };
-bool jit_anni_is_enabled__hash_link(JitCompContext *cc) { return !!cc._ann._insn__hash_link_enabled; };
-bool jit_annr_is_enabled_def_insn(JitCompContext *cc) { return !!cc._ann._reg_def_insn_enabled; };
-JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size);
-void jit_cc_destroy(JitCompContext* cc);
- private void jit_cc_inc_ref(JitCompContext* cc) {
-    cc._reference_count++;
+            if (!successful) {
+                jit_set_last_error(cc, "set insn uid failed");
+                return null;
+            }
+            cc._ann._insn_capacity = capacity;
+        }
+        cc._ann._insn_num = num + 1;
+        insn.uid = num;
+    }
+    return insn;
 }
+/*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+/**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+/**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+/* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
+
+
+/* conversion. will extend or truncate */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
+
+
+
+
+/* Arithmetic and bitwise instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Select instruction: */
+
+
+
+
+
+
+
+
+
+
+/* Memory access instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Control instructions */
+
+
+
+
+
+
+
+
+
+
+
+
+/* Call and return instructions */
+
+
+
+
+/**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Basic Block of a label.  */
+
+/* Predecessor number of the block that is only used in
+   jit_cc_update_cfg for updating the CFG.  */
+
+/* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+
+/* Begin bytecode instruction pointer of the block.  */
+
+/* End bytecode instruction pointer of the block.  */
+
+/* Stack pointer offset at the end of the block.  */
+
+/* The label of the next physically adjacent block.  */
+
+/* Compiled code address of the block.  */
+
+/**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+
+/**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Defining instruction of registers satisfying SSA property.  */
+if (successful && cc._ann._reg_def_insn_enabled) { JitInsn** ptr = _jit_realloc(cc._ann._reg_def_insn [kind], (JitInsn*).sizeof * capacity, (JitInsn*).sizeof * num); if (ptr) cc._ann._reg_def_insn [kind] = ptr; else successful = false; }
+        if (!successful) {
+            jit_set_last_error(cc, "create register failed");
+            return 0;
+        }
+        cc._ann._reg_capacity[kind] = capacity;
+    }
+    cc._ann._reg_num[kind] = num + 1;
+    return jit_reg_new(kind, num);
+}
+void jit_cc_destroy(JitCompContext* cc) {
+    uint i = void, end = void;
+    JitBasicBlock* block = void;
+    JitIncomingInsn* incoming_insn = void, incoming_insn_next = void;
+    jit_block_stack_destroy(&cc.block_stack);
+    if (cc.jit_frame) {
+        if (cc.jit_frame.memory_regs)
+            jit_free(cc.jit_frame.memory_regs);
+        if (cc.jit_frame.table_regs)
+            jit_free(cc.jit_frame.table_regs);
+        jit_free(cc.jit_frame);
+    }
+    if (cc.memory_regs)
+        jit_free(cc.memory_regs);
+    if (cc.table_regs)
+        jit_free(cc.table_regs);
+    jit_free(cc._const_val._hash_table);
+    /* Release the instruction hash table.  */
+    jit_cc_disable_insn_hash(cc);
+    jit_free(cc.exce_basic_blocks);
+    if (cc.incoming_insns_for_exec_bbs) {
+        for (i = 0; i < EXCE_NUM; i++) {
+            incoming_insn = cc.incoming_insns_for_exec_bbs[i];
+            while (incoming_insn) {
+                incoming_insn_next = incoming_insn.next;
+                jit_free(incoming_insn);
+                incoming_insn = incoming_insn_next;
+            }
+        }
+        jit_free(cc.incoming_insns_for_exec_bbs);
+    }
+    /* Release entry and exit blocks.  */
+    if (0 != cc.entry_label)
+        jit_basic_block_delete(jit_cc_entry_basic_block(cc));
+    if (0 != cc.exit_label)
+        jit_basic_block_delete(jit_cc_exit_basic_block(cc));
+    /* clang-format off */
+    /* Release blocks and instructions.  */
+    JIT_FOREACH_BLOCK(cc, i, end, block)
+    {
+        jit_basic_block_delete(block);
+    }
+    /* clang-format on */
+    /* Release constant values.  */
+    for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
+        jit_free(cc._const_val._value[i]);
+        jit_free(cc._const_val._next[i]);
+    }
+    /* Release storage of annotations.  */
+/*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+/**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+/**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+/* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
+
+
+/* conversion. will extend or truncate */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
+
+
+
+
+/* Arithmetic and bitwise instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Select instruction: */
+
+
+
+
+
+
+
+
+
+
+/* Memory access instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Control instructions */
+
+
+
+
+
+
+
+
+
+
+
+
+/* Call and return instructions */
+
+
+
+
+/**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Basic Block of a label.  */
+jit_annl_disable_basic_block(cc);
+/* Predecessor number of the block that is only used in
+   jit_cc_update_cfg for updating the CFG.  */
+jit_annl_disable_pred_num(cc);
+/* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+jit_annl_disable_freq(cc);
+/* Begin bytecode instruction pointer of the block.  */
+jit_annl_disable_begin_bcip(cc);
+/* End bytecode instruction pointer of the block.  */
+jit_annl_disable_end_bcip(cc);
+/* Stack pointer offset at the end of the block.  */
+jit_annl_disable_end_sp(cc);
+/* The label of the next physically adjacent block.  */
+jit_annl_disable_next_label(cc);
+/* Compiled code address of the block.  */
+jit_annl_disable_jitted_addr(cc);
+/**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+jit_anni_disable__hash_link(cc);
+/**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Defining instruction of registers satisfying SSA property.  */
+jit_annr_disable_def_insn(cc);
+}
+JitReg
+jit_cc_new_reg(JitCompContext* cc, uint kind)
+{
+    uint num = jit_cc_reg_num(cc, kind);
+    uint capacity = cc._ann._reg_capacity[kind];
+    bool successful = true;
+    bh_assert(num <= capacity);
+    if (num == capacity) {
+        capacity = (capacity == 0
+                        /* Initialize the capacity to be larger than hard
+                           register number.  */
+                        ? cc.hreg_info.info[kind].num + 16
+                        : capacity + capacity / 2);
+/*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+/**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+/**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+/* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
+
+
+/* conversion. will extend or truncate */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
+
+
+
+
+/* Arithmetic and bitwise instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Select instruction: */
+
+
+
+
+
+
+
+
+
+
+/* Memory access instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Control instructions */
+
+
+
+
+
+
+
+
+
+
+
+
+/* Call and return instructions */
+
+
+
+
+/**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Basic Block of a label.  */
+bool jit_annl_enable_basic_block(JitCompContext* cc) { if (cc._ann._label_basic_block_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_basic_block = jit_calloc(cc._ann._label_capacity * (JitBasicBlock*).sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "basic_block" ~ "failed"); return false; } cc._ann._label_basic_block_enabled = 1; return true; }
+/* Predecessor number of the block that is only used in
+   jit_cc_update_cfg for updating the CFG.  */
+bool jit_annl_enable_pred_num(JitCompContext* cc) { if (cc._ann._label_pred_num_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_pred_num = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "pred_num" ~ "failed"); return false; } cc._ann._label_pred_num_enabled = 1; return true; }
+/* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+bool jit_annl_enable_freq(JitCompContext* cc) { if (cc._ann._label_freq_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_freq = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "freq" ~ "failed"); return false; } cc._ann._label_freq_enabled = 1; return true; }
+/* Begin bytecode instruction pointer of the block.  */
+bool jit_annl_enable_begin_bcip(JitCompContext* cc) { if (cc._ann._label_begin_bcip_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_begin_bcip = jit_calloc(cc._ann._label_capacity * (ubyte*).sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "begin_bcip" ~ "failed"); return false; } cc._ann._label_begin_bcip_enabled = 1; return true; }
+/* End bytecode instruction pointer of the block.  */
+bool jit_annl_enable_end_bcip(JitCompContext* cc) { if (cc._ann._label_end_bcip_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_end_bcip = jit_calloc(cc._ann._label_capacity * (ubyte*).sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "end_bcip" ~ "failed"); return false; } cc._ann._label_end_bcip_enabled = 1; return true; }
+/* Stack pointer offset at the end of the block.  */
+bool jit_annl_enable_end_sp(JitCompContext* cc) { if (cc._ann._label_end_sp_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_end_sp = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "end_sp" ~ "failed"); return false; } cc._ann._label_end_sp_enabled = 1; return true; }
+/* The label of the next physically adjacent block.  */
+bool jit_annl_enable_next_label(JitCompContext* cc) { if (cc._ann._label_next_label_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_next_label = jit_calloc(cc._ann._label_capacity * JitReg.sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "next_label" ~ "failed"); return false; } cc._ann._label_next_label_enabled = 1; return true; }
+/* Compiled code address of the block.  */
+bool jit_annl_enable_jitted_addr(JitCompContext* cc) { if (cc._ann._label_jitted_addr_enabled) return true; if (cc._ann._label_capacity > 0 && ((cc._ann._label_jitted_addr = jit_calloc(cc._ann._label_capacity * (void*).sizeof)) == 0)) { jit_set_last_error(cc, "annl enable " ~ "jitted_addr" ~ "failed"); return false; } cc._ann._label_jitted_addr_enabled = 1; return true; }
+/**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+bool jit_anni_enable__hash_link(JitCompContext* cc) { if (cc._ann._insn__hash_link_enabled) return true; if (cc._ann._insn_capacity > 0 && ((cc._ann._insn__hash_link = jit_calloc(cc._ann._insn_capacity * (JitInsn*).sizeof)) == 0)) { jit_set_last_error(cc, "anni enable " ~ "_hash_link" ~ "failed"); return false; } cc._ann._insn__hash_link_enabled = 1; return true; }
+/**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Defining instruction of registers satisfying SSA property.  */
+bool jit_annr_enable_def_insn(JitCompContext* cc) { uint k = void; if (cc._ann._reg_def_insn_enabled) return true; for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++) if (cc._ann._reg_capacity[k] > 0 && ((cc._ann._reg_def_insn[k] = jit_calloc( cc._ann._reg_capacity[k] * (JitInsn*).sizeof)) == 0)) { jit_set_last_error(cc, "annr enable " ~ "def_insn" ~ "failed"); jit_annr_disable_def_insn(cc); return false; } cc._ann._reg_def_insn_enabled = 1; return true; }
+/*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+/**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+/**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+/* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
+
+
+/* conversion. will extend or truncate */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
+
+
+
+
+/* Arithmetic and bitwise instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Select instruction: */
+
+
+
+
+
+
+
+
+
+
+/* Memory access instructions: */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Control instructions */
+
+
+
+
+
+
+
+
+
+
+
+
+/* Call and return instructions */
+
+
+
+
+/**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Basic Block of a label.  */
+void jit_annl_disable_basic_block(JitCompContext* cc) { jit_free(cc._ann._label_basic_block); cc._ann._label_basic_block = null; cc._ann._label_basic_block_enabled = 0; }
+/* Predecessor number of the block that is only used in
+   jit_cc_update_cfg for updating the CFG.  */
+void jit_annl_disable_pred_num(JitCompContext* cc) { jit_free(cc._ann._label_pred_num); cc._ann._label_pred_num = null; cc._ann._label_pred_num_enabled = 0; }
+/* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+void jit_annl_disable_freq(JitCompContext* cc) { jit_free(cc._ann._label_freq); cc._ann._label_freq = null; cc._ann._label_freq_enabled = 0; }
+/* Begin bytecode instruction pointer of the block.  */
+void jit_annl_disable_begin_bcip(JitCompContext* cc) { jit_free(cc._ann._label_begin_bcip); cc._ann._label_begin_bcip = null; cc._ann._label_begin_bcip_enabled = 0; }
+/* End bytecode instruction pointer of the block.  */
+void jit_annl_disable_end_bcip(JitCompContext* cc) { jit_free(cc._ann._label_end_bcip); cc._ann._label_end_bcip = null; cc._ann._label_end_bcip_enabled = 0; }
+/* Stack pointer offset at the end of the block.  */
+void jit_annl_disable_end_sp(JitCompContext* cc) { jit_free(cc._ann._label_end_sp); cc._ann._label_end_sp = null; cc._ann._label_end_sp_enabled = 0; }
+/* The label of the next physically adjacent block.  */
+void jit_annl_disable_next_label(JitCompContext* cc) { jit_free(cc._ann._label_next_label); cc._ann._label_next_label = null; cc._ann._label_next_label_enabled = 0; }
+/* Compiled code address of the block.  */
+void jit_annl_disable_jitted_addr(JitCompContext* cc) { jit_free(cc._ann._label_jitted_addr); cc._ann._label_jitted_addr = null; cc._ann._label_jitted_addr_enabled = 0; }
+/**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+void jit_anni_disable__hash_link(JitCompContext* cc) { jit_free(cc._ann._insn__hash_link); cc._ann._insn__hash_link = null; cc._ann._insn__hash_link_enabled = 0; }
+/**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+/* Defining instruction of registers satisfying SSA property.  */
+void jit_annr_disable_def_insn(JitCompContext* cc) { uint k = void; for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++) { jit_free(cc._ann._reg_def_insn[k]); cc._ann._reg_def_insn[k] = null; } cc._ann._reg_def_insn_enabled = 0; }

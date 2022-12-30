@@ -1,4 +1,4 @@
-module bh_hashmap;
+module tagion.iwasm.share.utils.bh_hashmap;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,19 +6,13 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-#ifndef WASM_HASHMAP_H
-version = WASM_HASHMAP_H;
 
-public import bh_platform;
+import tagion.iwasm.app_framework.base.app.bh_platform;
 
-#ifdef __cplusplus
-extern "C" {
-//! #endif
 
 /* Maximum initial size of hash map */
 enum HASH_MAP_MAX_SIZE = 65536;
 
-struct HashMap;;
 
 
 /* Hash function: to get the hash value of key. */
@@ -148,9 +142,6 @@ uint bh_hash_map_get_elem_struct_size();
  */
 bool bh_hash_map_traverse(HashMap* map, TraverseCallbackFunc callback, void* user_data);
 
-version (none) {
-}
-}
 
 //! #endif /* endof WASM_HASHMAP_H */
 /*
@@ -158,7 +149,6 @@ version (none) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_hashmap;
 
 struct HashMapElem {
     void* key;
@@ -196,7 +186,7 @@ HashMap* bh_hash_map_create(uint size, bool use_lock, HashFunc hash_func, KeyEqu
     }
 
     total_size = HashMap.elements.offsetof
-                 + sizeofcast(HashMapElem*) * cast(ulong)size
+                 + (HashMapElem*).sizeof * cast(ulong)size
                  + (use_lock ? korp_mutex.sizeof : 0);
 
     if (total_size >= UINT32_MAX || ((map = BH_MALLOC(cast(uint)total_size)) == 0)) {
