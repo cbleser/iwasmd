@@ -1,4 +1,4 @@
-module wasm_runtime;
+module tagion.iwasm.interpreter.wasm_runtime;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,27 +6,26 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import wasm_runtime;
-public import wasm_loader;
-public import wasm_interp;
+import tagion.iwasm.interpreter.wasm_loader;
+import tagion.iwasm.interpreter.wasm_interp;
 public import bh_common;
 public import bh_log;
 public import mem_alloc;
-public import ...common.wasm_runtime_common;
+public import tagion.iwasm.common.wasm_runtime_common;
 static if (WASM_ENABLE_SHARED_MEMORY != 0) {
-public import ...common.wasm_shared_memory;
+public import tagion.iwasm.common.wasm_shared_memory;
 }
 static if (WASM_ENABLE_THREAD_MGR != 0) {
-public import ...libraries.thread-mgr.thread_manager;
+public import tagion.iwasm.libraries.thread_mgr.thread_manager;
 }
 static if (WASM_ENABLE_DEBUG_INTERP != 0) {
-public import ...libraries.debug-engine.debug_engine;
+public import tagion.iwasm.libraries.debug_engine.debug_engine;
 }
 static if (WASM_ENABLE_FAST_JIT != 0) {
-public import ...fast-jit.jit_compiler;
+public import tagion.iwasm.fast_jit.jit_compiler;
 }
 static if (WASM_ENABLE_JIT != 0) {
-public import ...aot.aot_runtime;
+public import tagion.iwasm.aot.aot_runtime;
 }
 
 private void set_error_buf(char* error_buf, uint error_buf_size, const(char)* string) {
@@ -50,10 +49,8 @@ private void set_error_buf_v(char* error_buf, uint error_buf_size, const(char)* 
 }
 
 WASMModule* wasm_load(ubyte* buf, uint size, char* error_buf, uint error_buf_size) {
-    return wasm_loader_load(buf, size,
-#if WASM_ENABLE_MULTI_MODULE != 0
-                            true,
-#endif
+	return wasm_loader_load(buf, size,
+(WASM_ENABLE_MULTI_MODULE != 0),
                             error_buf, error_buf_size);
 }
 
@@ -178,8 +175,8 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
     }
 } /* end of WASM_ENABLE_SHARED_MEMORY */
 
-    if (heap_size > 0 && module_inst.module_.malloc_function != (uint32)-1
-        && module_inst.module_.free_function != (uint32)-1) {
+    if (heap_size > 0 && module_inst.module_.malloc_function != cast(uint)-1
+        && module_inst.module_.free_function != cast(uint)-1) {
         /* Disable app heap, use malloc/free function exported
            by wasm app to allocate/free memory instead */
         heap_size = 0;
@@ -206,7 +203,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
             heap_offset = 0;
             inc_page_count = 1;
         }
-        else if (module_.aux_heap_base_global_index != (uint32)-1
+        else if (module_.aux_heap_base_global_index != cast(uint)-1
                  && module_.aux_heap_base
                         < num_bytes_per_page * init_page_count) {
             /* Insert app heap before __heap_base */
@@ -428,8 +425,7 @@ private WASMMemoryInstance** memories_instantiate(const(WASMModule)* module_, WA
         uint flags = import_.u.memory.flags;
         uint actual_heap_size = heap_size;
 
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        if (import_.u.memory.import_module != null) {
+        if ((WASM_ENABLE_MULTI_MODULE != 0) && (import_.u.memory.import_module != null)) {
             WASMModuleInstance* module_inst_linked = void;
 
             if (((module_inst_linked = get_sub_module_inst(
@@ -447,7 +443,6 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
             }
         }
         else
-}
         {
             if (((memories[mem_index++] = memory_instantiate(
                       module_inst, memory, num_bytes_per_page, init_page_count,
@@ -523,8 +518,8 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
 static if (WASM_ENABLE_MULTI_MODULE != 0) {
         WASMTableInstance* table_inst_linked = null;
         WASMModuleInstance* module_inst_linked = null;
-
-        if (import_.u.table.import_module) {
+		}
+        if ((WASM_ENABLE_MULTI_MODULE != 0) && import_.u.table.import_module) {
             if (((module_inst_linked = get_sub_module_inst(
                       module_inst, import_.u.table.import_module)) == 0)) {
                 set_error_buf(error_buf, error_buf_size, "unknown table");
@@ -540,7 +535,6 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
             total_size = WASMTableInstance.elems.offsetof;
         }
         else
-}
         {
             /* in order to save memory, alloc resource as few as possible */
             max_size_fixed = import_.u.table.possible_grow
@@ -559,12 +553,12 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
 
 static if (WASM_ENABLE_MULTI_MODULE != 0) {
         *table_linked = table_inst_linked;
-        if (table_inst_linked != null) {
+		}
+        if ((WASM_ENABLE_MULTI_MODULE != 0) && table_inst_linked != null) {
             table.cur_size = table_inst_linked.cur_size;
             table.max_size = table_inst_linked.max_size;
         }
         else
-}
         {
             table.cur_size = import_.u.table.init_size;
             table.max_size = max_size_fixed;
@@ -589,7 +583,7 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
                              ? module_.tables[i].max_size
                              : module_.tables[i].init_size;
 }
-        total_size += sizeof(uint32) * cast(ulong)max_size_fixed;
+        total_size += uint.sizeof * cast(ulong)max_size_fixed;
 
         tables[table_index++] = table;
 
@@ -704,7 +698,7 @@ static if (WASM_ENABLE_FAST_JIT != 0) {
     module_inst.fast_jit_func_ptrs = module_.fast_jit_func_ptrs;
 }
 
-    bh_assert((uint32)(function_ - functions) == function_count);
+    bh_assert(cast(uint)(function_ - functions) == function_count);
     cast(void)module_inst;
     return functions;
 }
@@ -762,8 +756,7 @@ private WASMGlobalInstance* globals_instantiate(const(WASMModule)* module_, WASM
         WASMGlobalImport* global_import = &import_.u.global;
         global.type = global_import.type;
         global.is_mutable = global_import.is_mutable;
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        if (global_import.import_module) {
+        if ((WASM_ENABLE_MULTI_MODULE != 0) && global_import.import_module) {
             if (((global.import_module_inst = get_sub_module_inst(
                       module_inst, global_import.import_module)) == 0)) {
                 set_error_buf(error_buf, error_buf_size, "unknown global");
@@ -783,7 +776,6 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
                         WASMValue.sizeof);
         }
         else
-}
         {
             /* native globals share their initial_values in one module */
             bh_memcpy_s(&(global.initial_value), WASMValue.sizeof,
@@ -822,11 +814,9 @@ static if (WASM_ENABLE_FAST_JIT != 0) {
                 &(globals[init_expr.u.global_index].initial_value),
                 typeof(globals[init_expr.u.global_index].initial_value).sizeof);
         }
-static if (WASM_ENABLE_REF_TYPES != 0) {
-        else if(init_expr INIT_EXPR_TYPE_REFNULL_CONST) {
+			        else if ((WASM_ENABLE_REF_TYPES != 0) && init_expr.init_expr_type == INIT_EXPR_TYPE_REFNULL_CONST) {
             global.initial_value.u32 = cast(uint)NULL_REF;
         }
-}
         else {
             bh_memcpy_s(&(global.initial_value), WASMValue.sizeof,
                         &(init_expr.u), typeof(init_expr.u).sizeof);
@@ -834,7 +824,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
         global++;
     }
 
-    bh_assert((uint32)(global - globals) == global_count);
+    bh_assert(cast(uint)(global - globals) == global_count);
     bh_assert(global_data_offset == module_.global_data_size);
     cast(void)module_inst;
     return globals;
@@ -886,7 +876,7 @@ private WASMExportFuncInstance* export_functions_instantiate(const(WASMModule)* 
             export_func++;
         }
 
-    bh_assert((uint32)(export_func - export_funcs) == export_func_count);
+    bh_assert(cast(uint)(export_func - export_funcs) == export_func_count);
     return export_funcs;
 }
 
@@ -914,7 +904,7 @@ private WASMExportGlobInstance* export_globals_instantiate(const(WASMModule)* mo
             export_global++;
         }
 
-    bh_assert((uint32)(export_global - export_globals) == export_glob_count);
+    bh_assert(cast(uint)(export_global - export_globals) == export_glob_count);
     return export_globals;
 }
 }
@@ -1007,8 +997,7 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
         argc = 2;
     }
 
-version (OS_ENABLE_HW_BOUND_CHECK) {
-    if (exec_env_tls != null) {
+    if ((OS_ENABLE_HW_BOUND_CHECK) && exec_env_tls != null) {
         bh_assert(exec_env_tls.module_inst
                   == cast(WASMModuleInstanceCommon*)module_inst);
         ret = wasm_call_function(exec_env_tls, malloc_func, argc, argv.ptr);
@@ -1018,7 +1007,6 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
         }
     }
     else
-}
     {
         ret = wasm_create_exec_env_and_call_function(module_inst, malloc_func,
                                                      argc, argv.ptr);
@@ -1041,14 +1029,12 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
     uint[2] argv = void;
 
     argv[0] = offset;
-version (OS_ENABLE_HW_BOUND_CHECK) {
-    if (exec_env_tls != null) {
+    if ((OS_ENABLE_HW_BOUND_CHECK) && exec_env_tls != null) {
         bh_assert(exec_env_tls.module_inst
                   == cast(WASMModuleInstanceCommon*)module_inst);
         return wasm_call_function(exec_env_tls, free_func, 1, argv.ptr);
     }
     else
-}
     {
         return wasm_create_exec_env_and_call_function(module_inst, free_func, 1,
                                                       argv.ptr);
@@ -1146,10 +1132,9 @@ private bool check_linked_symbol(WASMModuleInstance* module_inst, char* error_bu
 
     for (i = 0; i < module_.import_function_count; i++) {
         WASMFunctionImport* func = &((module_.import_functions + i).u.function_);
-        if (!func.func_ptr_linked
-#if WASM_ENABLE_MULTI_MODULE != 0
+        if (!func.func_ptr_linked &&
+(WASM_ENABLE_MULTI_MODULE != 0)
             && !func.import_func_linked
-#endif
         ) {
 static if (WASM_ENABLE_WAMR_COMPILER == 0) {
             LOG_WARNING("warning: failed to link import function (%s, %s)",
@@ -1222,7 +1207,7 @@ private uint get_smallest_type_idx(WASMModule* module_, WASMType* func_type) {
 
 private bool init_func_type_indexes(WASMModuleInstance* module_inst, char* error_buf, uint error_buf_size) {
     uint i = void;
-    ulong total_size = cast(ulong)sizeof(uint32) * module_inst.e.function_count;
+    ulong total_size = uint.sizeof * module_inst.e.function_count;
 
     /* Allocate memory */
     if (((module_inst.func_type_indexes =
@@ -1291,9 +1276,9 @@ static if (WASM_ENABLE_JIT != 0) {
         WASMTableImport* import_table = &module_.import_tables[i].u.table;
         table_size += WASMTableInstance.elems.offsetof;
 static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        table_size += cast(ulong)sizeof(uint32) * import_table.max_size;
+        table_size += uint.sizeof * import_table.max_size;
 } else {
-        table_size += cast(ulong)sizeof(uint32)
+        table_size += uint.sizeof
                       * (import_table.possible_grow ? import_table.max_size
                                                      : import_table.init_size);
 }
@@ -1302,17 +1287,17 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
         WASMTable* table = module_.tables + i;
         table_size += WASMTableInstance.elems.offsetof;
 static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        table_size += cast(ulong)sizeof(uint32) * table.max_size;
+        table_size += uint.sizeof * table.max_size;
 } else {
         table_size +=
-            cast(ulong)sizeof(uint32)
+            uint.sizeof
             * (table.possible_grow ? table.max_size : table.init_size);
 }
     }
     total_size += table_size;
 
     /* The offset of WASMModuleInstanceExtra, make it 8-byte aligned */
-    total_size = (total_size + 7LL) & ~7LL;
+    total_size = (total_size + 7L) & ~7L;
     extra_info_offset = cast(uint)total_size;
     total_size += WASMModuleInstanceExtra.sizeof;
 
@@ -1402,20 +1387,20 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
             && ((module_inst.export_functions = export_functions_instantiate(
                      module_, module_inst, module_inst.export_func_count,
                      error_buf, error_buf_size)) == 0))
-#if WASM_ENABLE_MULTI_MODULE != 0
-        || (module_inst.export_global_count > 0
+|| (( WASM_ENABLE_MULTI_MODULE != 0)
+        && (module_inst.export_global_count > 0
             && ((module_inst.export_globals = export_globals_instantiate(
                      module_, module_inst, module_inst.export_global_count,
                      error_buf, error_buf_size)) == 0))
-#endif
-#if WASM_ENABLE_JIT != 0
-        || (module_inst.e.function_count > 0
+)
+|| ((WASM_ENABLE_JIT != 0)
+        && (module_inst.e.function_count > 0
             && !init_func_ptrs(module_inst, module_, error_buf, error_buf_size))
-#endif
-#if WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0
-        || (module_inst.e.function_count > 0
+)
+|| ((WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0)
+        && (module_inst.e.function_count > 0
             && !init_func_type_indexes(module_inst, error_buf, error_buf_size))
-#endif
+)
     ) {
         goto fail;
     }
@@ -1439,7 +1424,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 case VALUE_TYPE_I64:
                 case VALUE_TYPE_F64:
                     bh_memcpy_s(global_data,
-                                (uint32)(global_data_end - global_data),
+                                cast(uint)(global_data_end - global_data),
                                 &global.initial_value.i64, int64.sizeof);
                     global_data += int64.sizeof;
                     break;
@@ -1661,9 +1646,9 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
          */
         bh_memcpy_s(
             table_data + table_seg.base_offset.u.i32,
-            (uint32)((table.cur_size - cast(uint)table_seg.base_offset.u.i32)
+            cast(uint)((table.cur_size - cast(uint)table_seg.base_offset.u.i32)
                      * uint32.sizeof),
-            table_seg.func_indexes, (uint32)(length * uint32.sizeof));
+            table_seg.func_indexes, cast(uint)(length * uint32.sizeof));
     }
 
     /* Initialize the thread related data */
@@ -1675,17 +1660,17 @@ static if (WASM_ENABLE_SPEC_TEST != 0) {
 }
     module_inst.default_wasm_stack_size = stack_size;
 
-    if (module_.malloc_function != (uint32)-1) {
+    if (module_.malloc_function != cast(uint)-1) {
         module_inst.e.malloc_function =
             &module_inst.e.functions[module_.malloc_function];
     }
 
-    if (module_.free_function != (uint32)-1) {
+    if (module_.free_function != cast(uint)-1) {
         module_inst.e.free_function =
             &module_inst.e.functions[module_.free_function];
     }
 
-    if (module_.retain_function != (uint32)-1) {
+    if (module_.retain_function != cast(uint)-1) {
         module_inst.e.retain_function =
             &module_inst.e.functions[module_.retain_function];
     }
@@ -1709,8 +1694,8 @@ static if (WASM_ENABLE_LIBC_WASI != 0) {
     }
 }
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0                         \
-    || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 \
+static if (WASM_ENABLE_DEBUG_INTERP != 0                         
+    || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 
         && WASM_ENABLE_LAZY_JIT != 0)) {
     if (!is_sub_inst) {
         /* Add module instance into module's instance list */
@@ -1722,7 +1707,7 @@ static if (WASM_ENABLE_DEBUG_INTERP != 0) {
                 ~ "may cause unexpected behaviour during debugging");
         }
 }
-static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 \
+static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 
     && WASM_ENABLE_LAZY_JIT != 0) {
         /* Copy llvm func ptrs again in case that they were updated
            after the module instance was created */
@@ -1736,7 +1721,7 @@ static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 \
     }
 }
 
-    if (module_.start_function != (uint32)-1) {
+    if (module_.start_function != cast(uint)-1) {
         /* TODO: fix start function can be import function issue */
         if (module_.start_function >= module_.import_function_count)
             module_inst.e.start_function =
@@ -2146,7 +2131,7 @@ uint wasm_module_malloc(WASMModuleInstance* module_inst, uint size, void** p_nat
     if (p_native_addr)
         *p_native_addr = addr;
 
-    return (uint32)(addr - memory.memory_data);
+    return cast(uint)(addr - memory.memory_data);
 }
 
 uint wasm_module_realloc(WASMModuleInstance* module_inst, uint ptr, uint size, void** p_native_addr) {
@@ -2178,7 +2163,7 @@ uint wasm_module_realloc(WASMModuleInstance* module_inst, uint ptr, uint size, v
     if (p_native_addr)
         *p_native_addr = addr;
 
-    return (uint32)(addr - memory.memory_data);
+    return cast(uint)(addr - memory.memory_data);
 }
 
 void wasm_module_free(WASMModuleInstance* module_inst, uint ptr) {
@@ -2328,7 +2313,7 @@ bool wasm_set_aux_stack(WASMExecEnv* exec_env, uint start_offset, uint size) {
         || ((!is_stack_before_data) && (start_offset - data_end < size)))
         return false;
 
-    if (stack_top_idx != (uint32)-1) {
+    if (stack_top_idx != cast(uint)-1) {
         /* The aux stack top is a wasm global,
             set the initial value for the global */
         ubyte* global_addr = module_inst.global_data
@@ -2390,7 +2375,7 @@ void wasm_get_module_mem_consumption(const(WASMModule)* module_, WASMModuleMemCo
                + sizeof(uint16) * (type.param_count + func.local_count);
 static if (WASM_ENABLE_FAST_INTERP != 0) {
         size +=
-            func.code_compiled_size + sizeof(uint32) * func.const_cell_num;
+            func.code_compiled_size + sizeofcast(uint) * func.const_cell_num;
 }
         mem_conspn.functions_size += size;
     }
@@ -2404,7 +2389,7 @@ static if (WASM_ENABLE_FAST_INTERP != 0) {
         sizeof(WASMTableSeg) * module_.table_seg_count;
     for (i = 0; i < module_.table_seg_count; i++) {
         WASMTableSeg* table_seg = &module_.table_segments[i];
-        mem_conspn.tables_size += sizeof(uint32) * table_seg.function_count;
+        mem_conspn.tables_size += sizeofcast(uint) * table_seg.function_count;
     }
 
     mem_conspn.data_segs_size = (WASMDataSeg*).sizeof * module_.data_seg_count;
@@ -2521,14 +2506,14 @@ bool wasm_interp_create_call_stack(WASMExecEnv* exec_env) {
         /* place holder, will overwrite it in wasm_c_api */
         frame.instance = module_inst;
         frame.module_offset = 0;
-        frame.func_index = (uint32)(func_inst - module_inst.e.functions);
+        frame.func_index = cast(uint)(func_inst - module_inst.e.functions);
 
         func_code_base = wasm_get_func_code(func_inst);
         if (!cur_frame.ip || !func_code_base) {
             frame.func_offset = 0;
         }
         else {
-            frame.func_offset = (uint32)(cur_frame.ip - func_code_base);
+            frame.func_offset = cast(uint)(cur_frame.ip - func_code_base);
         }
 
         /* look for the function name */
@@ -2855,9 +2840,9 @@ static if (WASM_ENABLE_JIT != 0) {
 
     bh_memcpy_s(cast(ubyte*)tbl_inst + WASMTableInstance.elems.offsetof
                     + dst_offset * uint32.sizeof,
-                cast(uint)sizeof(uint32) * (tbl_inst.cur_size - dst_offset),
+                cast(uint)sizeofcast(uint) * (tbl_inst.cur_size - dst_offset),
                 tbl_seg.func_indexes + src_offset,
-                (uint32)(length * uint32.sizeof));
+                cast(uint)(length * uint32.sizeof));
 }
 
 void llvm_jit_table_copy(WASMModuleInstance* module_inst, uint src_tbl_idx, uint dst_tbl_idx, uint length, uint src_offset, uint dst_offset) {
@@ -2887,11 +2872,11 @@ static if (WASM_ENABLE_JIT != 0) {
     /* if src_offset < dst_offset, copy from back to front */
     /* merge all together */
     bh_memmove_s(cast(ubyte*)dst_tbl_inst + WASMTableInstance.elems.offsetof
-                     + sizeof(uint32) * dst_offset,
-                 cast(uint)sizeof(uint32) * (dst_tbl_inst.cur_size - dst_offset),
+                     + sizeofcast(uint) * dst_offset,
+                 cast(uint)sizeofcast(uint) * (dst_tbl_inst.cur_size - dst_offset),
                  cast(ubyte*)src_tbl_inst + WASMTableInstance.elems.offsetof
-                     + sizeof(uint32) * src_offset,
-                 cast(uint)sizeof(uint32) * length);
+                     + sizeofcast(uint) * src_offset,
+                 cast(uint)sizeofcast(uint) * length);
 }
 
 void llvm_jit_table_fill(WASMModuleInstance* module_inst, uint tbl_idx, uint length, uint val, uint data_offset) {
@@ -2929,7 +2914,7 @@ static if (WASM_ENABLE_JIT != 0) {
 
     tbl_inst = wasm_get_table_inst(module_inst, tbl_idx);
     if (!tbl_inst) {
-        return (uint32)-1;
+        return cast(uint)-1;
     }
 
     orig_size = tbl_inst.cur_size;
@@ -2939,12 +2924,12 @@ static if (WASM_ENABLE_JIT != 0) {
     }
 
     if (tbl_inst.cur_size > UINT32_MAX - inc_size) { /* integer overflow */
-        return (uint32)-1;
+        return cast(uint)-1;
     }
 
     total_size = tbl_inst.cur_size + inc_size;
     if (total_size > tbl_inst.max_size) {
-        return (uint32)-1;
+        return cast(uint)-1;
     }
 
     /* fill in */
