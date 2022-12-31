@@ -1735,8 +1735,8 @@ static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0
         goto fail;
     }
 
-#if WASM_ENABLE_BULK_MEMORY != 0
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (WASM_ENABLE_BULK_MEMORY != 0 &&
+WASM_ENABLE_LIBC_WASI != 0) {
     if (!module_.import_wasi_api) {
 //! #endif
         /* Only execute the memory init function for main instance because
@@ -1749,8 +1749,6 @@ static if (WASM_ENABLE_LIBC_WASI != 0) {
                 goto fail;
             }
         }
-static if (WASM_ENABLE_LIBC_WASI != 0) {
-    }
 }
 }
 
@@ -1827,8 +1825,8 @@ static if (WASM_ENABLE_DUMP_CALL_STACK != 0) {
     }
 }
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0                         \
-    || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 \
+static if (WASM_ENABLE_DEBUG_INTERP != 0                         
+    || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0 
         && WASM_ENABLE_LAZY_JIT != 0)) {
     if (!is_sub_inst) {
         WASMModule* module_ = module_inst.module_;
@@ -1954,12 +1952,14 @@ version (BH_PLATFORM_WINDOWS) {
 
     wasm_runtime_set_exec_env_tls(exec_env);
     if (os_setjmp(jmpbuf_node.jmpbuf) == 0) {
-version (BH_PLATFORM_WINDOWS) {} else {
+//version (BH_PLATFORM_WINDOWS) {} else {
         wasm_interp_call_wasm(module_inst, exec_env, function_, argc, argv);
-} version (BH_PLATFORM_WINDOWS) {
+/+
+	} version (BH_PLATFORM_WINDOWS) {
         __try {
             wasm_interp_call_wasm(module_inst, exec_env, function_, argc, argv);
-        } __except (wasm_get_exception(module_inst)
+        } __except
+(wasm_get_exception(module_inst)
                         ? EXCEPTION_EXECUTE_HANDLER
                         : EXCEPTION_CONTINUE_SEARCH) {
             /* exception was thrown in wasm_exception_handler */
@@ -1972,7 +1972,7 @@ version (BH_PLATFORM_WINDOWS) {} else {
             result = _resetstkoflw();
             bh_assert(result != 0);
         }
-}
++/
     }
     else {
         /* Exception has been set in signal handler before calling longjmp */
@@ -2062,11 +2062,9 @@ void wasm_dump_perf_profiling(const(WASMModuleInstance)* module_inst) {
         if (func_inst.is_import_func) {
             func_name = func_inst.u.func_import.field_name;
         }
-static if (WASM_ENABLE_CUSTOM_NAME_SECTION != 0) {
-        else if(func_inst field_name) {
+        else if((WASM_ENABLE_CUSTOM_NAME_SECTION != 0) && func_inst.u.func.field_name) {
             func_name = func_inst.u.func.field_name;
         }
-}
         else func_name = null;
             for (j = 0; j < module_inst.export_func_count; j++) {
                 export_func = module_inst.export_functions + j;
