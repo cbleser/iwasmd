@@ -7,6 +7,7 @@ __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import tagion.iwasm.basic;
 public import tagion.iwasm.app_framework.base.app.bh_platform;
 public import tagion.iwasm.share.utils.bh_hashmap;
 public import tagion.iwasm.share.utils.bh_assert;
@@ -59,7 +60,7 @@ enum SECTION_TYPE_START = 8;
 enum SECTION_TYPE_ELEM = 9;
 enum SECTION_TYPE_CODE = 10;
 enum SECTION_TYPE_DATA = 11;
-static if (WASM_ENABLE_BULK_MEMORY != 0) {
+version (WASM_ENABLE_BULK_MEMORY) {
     enum SECTION_TYPE_DATACOUNT = 12;
 }
 
@@ -87,8 +88,8 @@ union V128 {
     short[8] i16x8;
     int[4] i32x8;
     long[2] i64x2;
-    float32[4] f32x4;
-    float64[2] f64x2;
+    float[4] f32x4;
+    double[2] f64x2;
 }
 
 union WASMValue {
@@ -98,8 +99,8 @@ union WASMValue {
     uint ref_index;
     long i64;
     ulong u64;
-    float32 f32;
-    float64 f64;
+    float f32;
+    double f64;
     uintptr_t addr;
     V128 v128;
 }
@@ -117,8 +118,8 @@ struct WASMType {
     ushort param_cell_num;
     ushort ret_cell_num;
     ushort ref_count;
-    static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0
-            && WASM_ENABLE_LAZY_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT && ver.WASM_ENABLE_JIT
+            && ver.WASM_ENABLE_LAZY_JIT) {
         /* Code block to call llvm jit functions of this
        kind of function type from fast jit jitted code */
         void* call_to_llvm_jit_from_fast_jit;
@@ -152,7 +153,7 @@ struct WASMTableImport {
     /* specified if (flags & 1), else it is 0x10000 */
     uint max_size;
     bool possible_grow;
-    static if (WASM_ENABLE_MULTI_MODULE != 0) {
+    static if (ver.WASM_ENABLE_MULTI_MODULE) {
         WASMModule* import_module;
         WASMTable* import_table_linked;
     }
@@ -165,7 +166,7 @@ struct WASMMemoryImport {
     uint num_bytes_per_page;
     uint init_page_count;
     uint max_page_count;
-    static if (WASM_ENABLE_MULTI_MODULE != 0) {
+    static if (ver.WASM_ENABLE_MULTI_MODULE) {
         WASMModule* import_module;
         WASMMemory* import_memory_linked;
     }
@@ -183,7 +184,7 @@ struct WASMFunctionImport {
     /* attachment */
     void* attachment;
     bool call_conv_raw;
-    static if (WASM_ENABLE_MULTI_MODULE != 0) {
+    static if (ver.WASM_ENABLE_MULTI_MODULE) {
         WASMModule* import_module;
         WASMFunction* import_func_linked;
     }
@@ -198,13 +199,13 @@ struct WASMGlobalImport {
     /* global data after linked */
     WASMValue global_data_linked;
     bool is_linked;
-    static if (WASM_ENABLE_MULTI_MODULE != 0) {
+    static if (ver.WASM_ENABLE_MULTI_MODULE) {
         /* imported function pointer after linked */
         /* TODO: remove if not needed */
         WASMModule* import_module;
         WASMGlobal* import_global_linked;
     }
-    static if (WASM_ENABLE_FAST_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT) {
         /* The data offset of current global in global data */
         uint data_offset;
     }
@@ -229,7 +230,7 @@ struct WASMImport {
 }
 
 struct WASMFunction {
-    static if (WASM_ENABLE_CUSTOM_NAME_SECTION != 0) {
+    static if (ver.WASM_ENABLE_CUSTOM_NAME_SECTION) {
         char* field_name;
     }
     /* the type of function */
@@ -251,21 +252,21 @@ struct WASMFunction {
     uint max_block_num;
     uint code_size;
     ubyte* code;
-    static if (WASM_ENABLE_FAST_INTERP != 0) {
+    static if (ver.WASM_ENABLE_FAST_INTERP) {
         uint code_compiled_size;
         ubyte* code_compiled;
         ubyte* consts;
         uint const_cell_num;
     }
 
-    static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0
-            || WASM_ENABLE_WAMR_COMPILER != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT
+            || ver.WASM_ENABLE_WAMR_COMPILER) {
         /* Whether function has opcode memory.grow */
         bool has_op_memory_grow;
         /* Whether function has opcode call or call_indirect */
         bool has_op_func_call;
     }
-    static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
+    static if (ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_WAMR_COMPILER) {
         /* Whether function has memory operation opcodes */
         bool has_memory_operations;
         /* Whether function has opcode call_indirect */
@@ -274,9 +275,9 @@ struct WASMFunction {
         bool has_op_set_global_aux_stack;
     }
 
-    static if (WASM_ENABLE_FAST_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT) {
         void* fast_jit_jitted_code;
-        static if (WASM_ENABLE_JIT != 0 && WASM_ENABLE_LAZY_JIT != 0) {
+        static if (ver.WASM_ENABLE_JIT && ver.WASM_ENABLE_LAZY_JIT) {
             void* llvm_jit_func_ptr;
         }
     }
@@ -286,7 +287,7 @@ struct WASMGlobal {
     ubyte type;
     bool is_mutable;
     InitializerExpression init_expr;
-    static if (WASM_ENABLE_FAST_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT) {
         /* The data offset of current global in global data */
         uint data_offset;
     }
@@ -315,7 +316,7 @@ struct WASMDataSeg {
     uint memory_index;
     InitializerExpression base_offset;
     uint data_length;
-    static if (WASM_ENABLE_BULK_MEMORY != 0) {
+    static if (ver.WASM_ENABLE_BULK_MEMORY) {
         bool is_passive;
     }
     ubyte* data;
@@ -327,7 +328,7 @@ struct BlockAddr {
     ubyte* end_addr;
 }
 
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (ver.WASM_ENABLE_LIBC_WASI) {
     struct WASIArguments {
         const(char)** dir_list;
         uint dir_count;
@@ -361,7 +362,7 @@ struct BrTableCache {
     uint[1] br_depths;
 }
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
     struct WASMFastOPCodeNode {
         WASMFastOPCodeNode* next;
         ulong offset;
@@ -369,7 +370,7 @@ static if (WASM_ENABLE_DEBUG_INTERP != 0) {
     }
 }
 
-static if (WASM_ENABLE_LOAD_CUSTOM_SECTION != 0) {
+static if (ver.WASM_ENABLE_LOAD_CUSTOM_SECTION) {
     struct WASMCustomSection {
         WASMCustomSection* next;
         /* Start address of the section name */
@@ -382,13 +383,13 @@ static if (WASM_ENABLE_LOAD_CUSTOM_SECTION != 0) {
     }
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT) {
     struct AOTCompData;
     struct AOTCompContext;
 
     /* Orc JIT thread arguments */
     struct OrcJitThreadArg {
-        static if (WASM_ENABLE_JIT != 0) {
+        static if (ver.WASM_ENABLE_JIT) {
             AOTCompContext* comp_ctx;
         }
         WASMModule* module_;
@@ -416,7 +417,7 @@ struct WASMModule {
     uint table_seg_count;
     /* data seg count read from data segment section */
     uint data_seg_count;
-    static if (WASM_ENABLE_BULK_MEMORY != 0) {
+    static if (ver.WASM_ENABLE_BULK_MEMORY) {
         /* data count read from datacount section */
         uint data_seg_count1;
     }
@@ -483,30 +484,30 @@ struct WASMModule {
         bh_list* br_table_cache_list;
     }
 
-    static if (WASM_ENABLE_LIBC_WASI != 0) {
+    static if (ver.WASM_ENABLE_LIBC_WASI) {
         WASIArguments wasi_args;
         bool import_wasi_api;
     }
 
-    static if (WASM_ENABLE_MULTI_MODULE != 0) {
+    static if (ver.WASM_ENABLE_MULTI_MODULE) {
         /* TODO: add mutex for mutli-thread? */
         bh_list import_module_list_head;
         bh_list* import_module_list;
     }
-    static if (WASM_ENABLE_DEBUG_INTERP != 0 || WASM_ENABLE_DEBUG_AOT != 0) {
+    static if (ver.WASM_ENABLE_DEBUG_INTERP || ver.WASM_ENABLE_DEBUG_AOT) {
         bh_list fast_opcode_list;
         ubyte* buf_code;
         ulong buf_code_size;
     }
-    static if (WASM_ENABLE_DEBUG_INTERP != 0 || WASM_ENABLE_DEBUG_AOT != 0
-            || WASM_ENABLE_FAST_JIT != 0) {
+    static if (ver.WASM_ENABLE_DEBUG_INTERP || ver.WASM_ENABLE_DEBUG_AOT
+            || ver.WASM_ENABLE_FAST_JIT) {
         ubyte* load_addr;
         ulong load_size;
     }
 
-    static if (WASM_ENABLE_DEBUG_INTERP != 0
-            || (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT
-                && WASM_ENABLE_LAZY_JIT != 0)) {
+    static if (ver.WASM_ENABLE_DEBUG_INTERP
+            || (ver.WASM_ENABLE_FAST_JIT && WASM_ENABLE_JIT
+                && ver.WASM_ENABLE_LAZY_JIT)) {
         /**
      * List of instances referred to this module. When source debugging
      * feature is enabled, the debugger may modify the code section of
@@ -522,16 +523,16 @@ struct WASMModule {
         korp_mutex instance_list_lock;
     }
 
-    static if (WASM_ENABLE_CUSTOM_NAME_SECTION != 0) {
+    static if (ver.WASM_ENABLE_CUSTOM_NAME_SECTION) {
         const(ubyte)* name_section_buf;
         const(ubyte)* name_section_buf_end;
     }
 
-    static if (WASM_ENABLE_LOAD_CUSTOM_SECTION != 0) {
+    static if (ver.WASM_ENABLE_LOAD_CUSTOM_SECTION) {
         WASMCustomSection* custom_section_list;
     }
 
-    static if (WASM_ENABLE_FAST_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT) {
         /* func pointers of Fast JITed (un-imported) functions */
         void** fast_jit_func_ptrs;
         /* locks for Fast JIT lazy compilation */
@@ -539,7 +540,7 @@ struct WASMModule {
         bool[WASM_ORC_JIT_BACKEND_THREAD_NUM] fast_jit_thread_locks_inited;
     }
 
-    static if (WASM_ENABLE_JIT != 0) {
+    static if (ver.WASM_ENABLE_JIT) {
         AOTCompData* comp_data;
         AOTCompContext* comp_ctx;
         /* func pointers of LLVM JITed (un-imported) functions */
@@ -548,7 +549,7 @@ struct WASMModule {
         bool* func_ptrs_compiled;
     }
 
-    static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT) {
         /* backend compilation threads */
         korp_tid[WASM_ORC_JIT_BACKEND_THREAD_NUM] orcjit_threads;
         /* backend thread arguments */
@@ -557,8 +558,8 @@ struct WASMModule {
         bool orcjit_stop_compiling;
     }
 
-    static if (WASM_ENABLE_FAST_JIT != 0 && WASM_ENABLE_JIT != 0
-            && WASM_ENABLE_LAZY_JIT != 0) {
+    static if (ver.WASM_ENABLE_FAST_JIT && ver.WASM_ENABLE_JIT
+            && ver.WASM_ENABLE_LAZY_JIT) {
         /* wait lock/cond for the synchronization of
        the llvm jit initialization */
         korp_mutex tierup_wait_lock;
@@ -633,7 +634,7 @@ pragma(inline, true) private uint wasm_value_type_size(ubyte value_type) {
     switch (value_type) {
     case VALUE_TYPE_I32:
     case VALUE_TYPE_F32:
-        static if (WASM_ENABLE_REF_TYPES != 0) {
+        static if (ver.WASM_ENABLE_REF_TYPES) {
     case VALUE_TYPE_FUNCREF:
     case VALUE_TYPE_EXTERNREF:
         }
@@ -641,7 +642,7 @@ pragma(inline, true) private uint wasm_value_type_size(ubyte value_type) {
     case VALUE_TYPE_I64:
     case VALUE_TYPE_F64:
         return int64.sizeof;
-        static if (WASM_ENABLE_SIMD != 0) {
+        static if (ver.WASM_ENABLE_SIMD) {
     case VALUE_TYPE_V128:
             return sizeof(int64) * 2;
         }
@@ -665,7 +666,7 @@ pragma(inline, true) private uint wasm_get_cell_num(const(ubyte)* types, uint ty
     return cell_num;
 }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     pragma(inline, true) private ushort wasm_value_type_cell_num_outside(ubyte value_type) {
         if (VALUE_TYPE_EXTERNREF == value_type) {
             return uintptr_t.sizeof / uint32.sizeof;

@@ -1,4 +1,4 @@
-module wasm_memory;
+module tagion.iwasm.common.wasm_memory;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,10 +6,12 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import wasm_runtime_common;
-public import ...interpreter.wasm_runtime;
-public import bh_platform;
-public import mem_alloc;
+public import tagion.iwasm.common.wasm_runtime_common;
+public import tagion.iwasm.interpreter.wasm_runtime;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
+public import tagion.iwasm.include.wasm_export;
+public import tagion.iwasm.share.utils.bh_common;
+public import tagion.iwasm.share.mem_alloc.mem_alloc;
 
 enum Memory_Mode {
     MEMORY_MODE_UNKNOWN = 0,
@@ -153,27 +155,28 @@ static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
     }
 }
 
-pragma(inline, true) private void* wasm_runtime_realloc_internal(void* ptr, uint size) {
+private void* wasm_runtime_realloc_internal(void* ptr, uint size) {
     if (memory_mode == MEMORY_MODE_UNKNOWN) {
         LOG_WARNING(
             "wasm_runtime_realloc failed: memory hasn't been initialize.\n");
         return null;
     }
-    else if (memory_mode == MEMORY_MODE_POOL) {
+    if (memory_mode == MEMORY_MODE_POOL) {
         return mem_allocator_realloc(pool_allocator, ptr, size);
     }
-    else if (memory_mode == MEMORY_MODE_ALLOCATOR) {
-        if (realloc_func)
+    if (memory_mode == MEMORY_MODE_ALLOCATOR) {
+        if (realloc_func) {
 static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
             return realloc_func(allocator_user_data, ptr, size);
 } else {
             return realloc_func(ptr, size);
 }
-        else return = void;
+		}
+        else {
+		return  null;
+		}
     }
-    else {
         return os_realloc(ptr, size);
-    }
 }
 
 pragma(inline, true) private void wasm_runtime_free_internal(void* ptr) {
@@ -346,7 +349,7 @@ uint wasm_runtime_addr_native_to_app(WASMModuleInstanceCommon* module_inst_comm,
     }
 
     if (memory_inst.memory_data <= addr && addr < memory_inst.memory_data_end)
-        return (uint32)(addr - memory_inst.memory_data);
+        return cast(uint)(addr - memory_inst.memory_data);
 
     return 0;
 }
@@ -464,7 +467,7 @@ bool wasm_enlarge_memory(WASMModuleInstance* module_, uint inc_page_count) {
         return false;
 
     heap_data_old = memory.heap_data;
-    heap_size = (uint32)(memory.heap_data_end - memory.heap_data);
+    heap_size = cast(uint)(memory.heap_data_end - memory.heap_data);
 
     memory_data_old = memory.memory_data;
     total_size_old = memory.memory_data_size;
@@ -646,21 +649,12 @@ static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 || WASM_ENABLE_AOT 
  */
 
  
-public import bh_common;
-public import ...include.wasm_export;
 
-version (none) {
-extern "C" {
-//! #endif
 
 bool wasm_runtime_memory_init(mem_alloc_type_t mem_alloc_type, const(MemAllocOption)* alloc_option);
 
 void wasm_runtime_memory_destroy();
 
 uint wasm_runtime_memory_pool_size();
-
-version (none) {}
-}
-}
 
  /* end of _WASM_MEMORY_H */

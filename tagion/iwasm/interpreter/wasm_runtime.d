@@ -8,9 +8,9 @@ extern(C): __gshared:
 
 import tagion.iwasm.interpreter.wasm_loader;
 import tagion.iwasm.interpreter.wasm_interp;
-public import bh_common;
-public import bh_log;
-public import mem_alloc;
+public import tagion.iwasm.share.utils.bh_common;
+public import tagion.iwasm.share.utils.bh_log;
+public import tagion.iwasm.share.mem_alloc.mem_alloc;
 public import tagion.iwasm.common.wasm_runtime_common;
 
 private void set_error_buf(char* error_buf, uint error_buf_size, const(char)* string_) {
@@ -2992,8 +2992,8 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
  */
 
 
-public import wasm;
-public import bh_hashmap;
+public import tagion.iwasm.interpreter.wasm;
+public import tagion.iwasm.share.utils.bh_hashmap;
 public import tagion.iwasm.common.wasm_runtime_common;
 public import tagion.iwasm.common.wasm_exec_env;
 

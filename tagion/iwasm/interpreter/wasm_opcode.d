@@ -1,4 +1,4 @@
-module wasm_opcode;
+module tagion.iwasm.interpreter.wasm_opcode;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -9,9 +9,6 @@ extern(C): __gshared:
  
 public import wasm;
 
-version (none) {
-extern "C" {
-//! #endif
 
 enum WASMOpcode {
     /* control instructions */
@@ -269,9 +266,7 @@ enum WASMOpcode {
     EXT_OP_IF = 0xd5,             /* if with blocktype */
     EXT_OP_BR_TABLE_CACHE = 0xd6, /* br_table from cache */
 
-#if WASM_ENABLE_DEBUG_INTERP != 0
     DEBUG_OP_BREAK = 0xd7, /* debug break point */
-}
 
     /* Post-MVP extend op prefix */
     WASM_OP_MISC_PREFIX = 0xfc,
@@ -1466,8 +1461,3 @@ enum string DEFINE_GOTO_TABLE(string type, string _name) = `                    
         DEF_DEBUG_BREAK_HANDLE(_name)                           \
     } while (0)`;
 
-version (none) {}
-}
-}
-
- /* end of _WASM_OPCODE_H */

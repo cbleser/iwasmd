@@ -8,24 +8,8 @@ extern(C): __gshared:
 
  
 public import core.stdc.stdint;
-public import stdbool;
-public import lib_export;
+public import tagion.iwasm.include.lib_export;
 
-version (WASM_RUNTIME_API_EXTERN) {} else {
-version (_MSC_BUILD) {
-version (COMPILING_WASM_RUNTIME_API) {
-enum WASM_RUNTIME_API_EXTERN = __declspec(dllexport);
-} else {
-enum WASM_RUNTIME_API_EXTERN = __declspec(dllimport);
-}
-} else {
-version = WASM_RUNTIME_API_EXTERN;
-}
-}
-
-version (none) {
-extern "C" {
-//! #endif
 
 /* clang-format off */
 
@@ -146,7 +130,7 @@ struct RuntimeInitArgs {
     uint max_thread_num;
 
     /* Debug settings, only used when
-       WASM_ENABLE_DEBUG_INTERP != 0 */
+       ver.WASM_ENABLE_DEBUG_INTERP */
     char[128] ip_addr = 0;
     int unused; /* was platform_port */
     int instance_port;
@@ -196,7 +180,7 @@ struct wasm_val_t {
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_init();
+//WASM_RUNTIME_API_EXTERN wasm_runtime_init();
 
 /**
  * Initialize the WASM runtime environment, and also initialize
@@ -207,12 +191,12 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_init();
  *
  * @return return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_full_init(RuntimeInitArgs* init_args);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_full_init(RuntimeInitArgs* init_args);
 
 /**
  * Destroy the WASM runtime environment.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_destroy();
+//WASM_RUNTIME_API_EXTERN wasm_runtime_destroy();
 
 /**
  * Allocate memory from runtime memory environment.
@@ -221,7 +205,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_destroy();
  *
  * @return the pointer to memory allocated
  */
-WASM_RUNTIME_API_EXTERN* wasm_runtime_malloc(uint size);
+//WASM_RUNTIME_API_EXTERN* wasm_runtime_malloc(uint size);
 
 /**
  * Reallocate memory from runtime memory environment
@@ -231,17 +215,17 @@ WASM_RUNTIME_API_EXTERN* wasm_runtime_malloc(uint size);
  *
  * @return the pointer to memory reallocated
  */
-WASM_RUNTIME_API_EXTERN* wasm_runtime_realloc(void* ptr, uint size);
+//WASM_RUNTIME_API_EXTERN* wasm_runtime_realloc(void* ptr, uint size);
 
 /*
  * Free memory to runtime memory environment.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_free(void* ptr);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_free(void* ptr);
 
 /*
  * Get memory info, only pool mode is supported now.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_mem_alloc_info(mem_alloc_info_t* mem_alloc_info);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_mem_alloc_info(mem_alloc_info_t* mem_alloc_info);
 
 /**
  * Get the package type of a buffer.
@@ -251,7 +235,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_mem_alloc_info(mem_alloc_info_t* mem_al
  *
  * @return the package type, return Package_Type_Unknown if the type is unknown
  */
-WASM_RUNTIME_API_EXTERN get_package_type(const(ubyte)* buf, uint size);
+//WASM_RUNTIME_API_EXTERN get_package_type(const(ubyte)* buf, uint size);
 
 /**
  * Check whether a file is an AOT XIP (Execution In Place) file
@@ -261,7 +245,7 @@ WASM_RUNTIME_API_EXTERN get_package_type(const(ubyte)* buf, uint size);
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_is_xip_file(const(ubyte)* buf, uint size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_is_xip_file(const(ubyte)* buf, uint size);
 
 /**
  * Callback to load a module file into a buffer in multi-module feature
@@ -279,7 +263,7 @@ alias module_destroyer = void function(ubyte* buffer, uint size);
  * @param reader a callback to read a module file into a buffer
  * @param destroyer a callback to release above buffer
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_module_reader(const(module_reader) reader, const(module_destroyer) destroyer);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_module_reader(const(module_reader) reader, const(module_destroyer) destroyer);
 /**
  * Give the "module" a name "module_name".
  * Can not assign a new name to a module if it already has a name
@@ -291,7 +275,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_set_module_reader(const(module_reader) read
  *
  * @return true means success, false means failed
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_register_module(const(char)* module_name, wasm_module_t module_, char* error_buf, uint error_buf_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_register_module(const(char)* module_name, wasm_module_t module_, char* error_buf, uint error_buf_size);
 
 /**
  * Check if there is already a loaded module named module_name in the
@@ -301,7 +285,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_register_module(const(char)* module_name, w
  *
  * @return return WASM module loaded, NULL if failed
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_find_module_registered(const(char)* module_name);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_find_module_registered(const(char)* module_name);
 
 /**
  * Load a WASM module from a specified byte buffer. The byte buffer can be
@@ -324,7 +308,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_find_module_registered(const(char)* module_
  *
  * @return return WASM module loaded, NULL if failed
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_load(ubyte* buf, uint size, char* error_buf, uint error_buf_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_load(ubyte* buf, uint size, char* error_buf, uint error_buf_size);
 
 /**
  * Load a WASM module from a specified WASM or AOT section list.
@@ -336,14 +320,14 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_load(ubyte* buf, uint size, char* error_buf
  *
  * @return return WASM module loaded, NULL if failed
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_load_from_sections(wasm_section_list_t section_list, bool is_aot, char* error_buf, uint error_buf_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_load_from_sections(wasm_section_list_t section_list, bool is_aot, char* error_buf, uint error_buf_size);
 
 /**
  * Unload a WASM module.
  *
  * @param module the module to be unloaded
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_unload(wasm_module_t module_);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_unload(wasm_module_t module_);
 
 /**
  * Get the module hash of a WASM module, currently only available on
@@ -381,7 +365,7 @@ char* wasm_runtime_get_module_hash(wasm_module_t module_);
  * @param stderrfd      The host file descriptor to back WASI STDERR_FILENO.
  *                      If -1 is specified, STDERR_FILENO is used.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_args_ex(wasm_module_t module_, const(char)** dir_list, uint dir_count, const(char)** map_dir_list, uint map_dir_count, const(char)** env, uint env_count, char** argv, int argc, int stdinfd, int stdoutfd, int stderrfd);
+//	WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_args_ex(wasm_module_t module_, const(char)** dir_list, uint dir_count, const(char)** map_dir_list, uint map_dir_count, const(char)** env, uint env_count, char** argv, int argc, int stdinfd, int stdoutfd, int stderrfd);
 
 /**
  * Set WASI parameters.
@@ -1123,8 +1107,3 @@ const(WASM_RUNTIME_API_EXTERN)* wasm_runtime_get_custom_section(const(wasm_modul
 WASM_RUNTIME_API_EXTERN wasm_runtime_get_version(uint* major, uint* minor, uint* patch);
 /* clang-format on */
 
-version (none) {}
-}
-}
-
- /* end of _WASM_EXPORT_H */

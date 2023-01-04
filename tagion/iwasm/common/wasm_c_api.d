@@ -1,4 +1,4 @@
-module wasm_c_api;
+module tagion.iwasm.common.wasm_c_api;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,7 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import wasm_c_api_internal;
+public import tagion.iwasm.include.wasm_c_api_internal;
 
 public import bh_assert;
 public import wasm_export;

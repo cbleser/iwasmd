@@ -49,6 +49,7 @@ extern(C): __gshared:
 //#include "bh_platform.h"
 //#include "../interpreter/wasm.h"
 //#include "jit_utils.h"
+import tagion.iwasm.common.wasm_runtime_common;
 /**
  * Register (operand) representation of JIT IR.
  *

@@ -9,9 +9,6 @@ extern(C): __gshared:
  
 public import core.stdc.stdint;
 
-version (none) {
-extern "C" {
-//! #endif
 
 struct NativeSymbol {
     const(char)* symbol;
@@ -48,8 +45,3 @@ enum string EXPORT_WASM_API_WITH_ATT2(string symbol, string signature, string at
  */
 uint get_base_lib_export_apis(NativeSymbol** p_base_lib_apis);
 
-version (none) {}
-}
-}
-
- /* end of _LIB_EXPORT_H_ */

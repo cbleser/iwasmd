@@ -1,4 +1,4 @@
-module wasm_exec_env;
+module tagion.iwasm.common.wasm_exec_env;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,23 +6,19 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import wasm_exec_env;
-public import wasm_runtime_common;
+public import tagion.iwasm.common.wasm_runtime_common;
 static if (WASM_ENABLE_INTERP != 0) {
-public import ...interpreter.wasm_runtime;
+public import tagion.iwasm.interpreter.wasm_runtime;
 }
 static if (WASM_ENABLE_AOT != 0) {
-public import ...aot.aot_runtime;
+public import tagion.aot.aot.aot_runtime;
 }
 
-static if (WASM_ENABLE_AOT != 0) {
-public import aot_runtime;
-}
 
 static if (WASM_ENABLE_THREAD_MGR != 0) {
-public import ...libraries.thread-mgr.thread_manager;
+public import tagion.iwasm.libraries.thread_mgr.thread_manager;
 static if (WASM_ENABLE_DEBUG_INTERP != 0) {
-public import ...libraries.debug-engine.debug_engine;
+public import tagion.iwasm.libraries.debug_engine.debug_engine;
 }
 }
 
@@ -37,7 +33,7 @@ WASMExecEnv* wasm_exec_env_create_internal(WASMModuleInstanceCommon* module_inst
     memset(exec_env, 0, cast(uint)total_size);
 
 static if (WASM_ENABLE_AOT != 0) {
-    if (((exec_env.argv_buf = wasm_runtime_malloc(sizeof(uint32) * 64)) == 0)) {
+    if (((exec_env.argv_buf = wasm_runtime_malloc(uint.sizeof * 64)) == 0)) {
         goto fail1;
     }
 }
@@ -226,24 +222,11 @@ WASMJmpBuf* wasm_exec_env_pop_jmpbuf(WASMExecEnv* exec_env) {
  */
 
  
-public import bh_assert;
+public import tagion.iwasm.share.utils.bh_assert;
 static if (WASM_ENABLE_INTERP != 0) {
-public import ...interpreter.wasm;
+public import tagion.iwasm.interpreter.wasm;
 }
 
-version (none) {
-extern "C" {
-//! #endif
-
-struct WASMModuleInstanceCommon;;
-struct WASMInterpFrame;;
-
-static if (WASM_ENABLE_THREAD_MGR != 0) {
-
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
-
-}
-}
 
 version (OS_ENABLE_HW_BOUND_CHECK) {
 struct WASMJmpBuf {
@@ -414,7 +397,7 @@ pragma(inline, true) private void* wasm_exec_env_alloc_wasm_frame(WASMExecEnv* e
        frame size, we should check again before putting the function arguments
        into the outs area. */
     if (size * 2
-        > (uint32)(uintptr_t)(exec_env.wasm_stack.s.top_boundary - addr)) {
+        > cast(uint)cast(uintptr_t)(exec_env.wasm_stack.s.top_boundary - addr)) {
         /* WASM stack overflow. */
         return null;
     }
@@ -486,8 +469,3 @@ void wasm_exec_env_push_jmpbuf(WASMExecEnv* exec_env, WASMJmpBuf* jmpbuf);
 WASMJmpBuf* wasm_exec_env_pop_jmpbuf(WASMExecEnv* exec_env);
 }
 
-version (none) {}
-}
-}
-
- /* end of _WASM_EXEC_ENV_H */

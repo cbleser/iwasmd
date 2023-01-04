@@ -1,4 +1,4 @@
-module wasm_interp;
+module tagion.iwasm.interpreter.wasm_interp;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -7,15 +7,8 @@ extern(C): __gshared:
  */
 
  
-public import wasm;
+public import tagion.iwasm.interpreter.wasm;
 
-version (none) {
-extern "C" {
-//! #endif
-
-struct WASMModuleInstance;;
-struct WASMFunctionInstance;;
-struct WASMExecEnv;;
 
 struct WASMInterpFrame {
     /* The frame of the caller that are calling the current function. */
@@ -84,8 +77,3 @@ static if (WASM_ENABLE_FAST_INTERP == 0) {
 
 void wasm_interp_call_wasm(WASMModuleInstance* module_inst, WASMExecEnv* exec_env, WASMFunctionInstance* function_, uint argc, uint* argv);
 
-version (none) {}
-}
-}
-
- /* end of _WASM_INTERP_H */

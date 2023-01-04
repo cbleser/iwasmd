@@ -1,4 +1,4 @@
-module wasm_native;
+module tagion.iwasm.common.wasm_native;
 @nogc nothrow:
 extern(C): __gshared:
 
@@ -11,14 +11,14 @@ import core.stdc.config: c_long, c_ulong;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import wasm_native;
-public import wasm_runtime_common;
-public import bh_log;
+public import tagion.iwasm.common.wasm_runtime_common;
+public import tagion.iwasm.share.utils.bh_log;
 
-static if (!HasVersion!"BH_PLATFORM_ZEPHYR" && !HasVersion!"BH_PLATFORM_ALIOS_THINGS" \
+static if (!HasVersion!"BH_PLATFORM_ZEPHYR" && !HasVersion!"BH_PLATFORM_ALIOS_THINGS" 
     && !HasVersion!"BH_PLATFORM_OPENRTOS" && !HasVersion!"BH_PLATFORM_ESP_IDF") {
 enum ENABLE_QUICKSORT = 1;
-} else {
+} 
+else {
 enum ENABLE_QUICKSORT = 0;
 }
 
@@ -86,7 +86,7 @@ private bool check_symbol_signature(const(WASMType)* type, const(char)* signatur
     if (*p++ != '(')
         return false;
 
-    if ((uint32)(p_end - p) < (uint32)(type.param_count + 1))
+    if (cast(uint)(p_end - p) < cast(uint)(type.param_count + 1))
         /* signatures of parameters, and ')' */
         return false;
 
@@ -343,10 +343,10 @@ bool wasm_native_unregister_natives(const(char)* module_name, NativeSymbol* nati
 }
 
 bool wasm_native_init() {
-static if (WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     \
-    || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      \
-    || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        \
-    || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 \
+static if (WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     
+    || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      
+    || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        
+    || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 
     || WASM_ENABLE_LIB_PTHREAD != 0) {
     NativeSymbol* native_symbols = void;
     uint n_native_symbols = void;
@@ -426,10 +426,10 @@ static if (WASM_ENABLE_WASI_NN != 0) {
 }
 
     return true;
-static if (WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     \
-    || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      \
-    || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        \
-    || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 \
+static if (WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     
+    || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      
+    || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        
+    || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 
     || WASM_ENABLE_LIB_PTHREAD != 0) {
 fail:
     wasm_native_destroy();
@@ -459,13 +459,10 @@ static if (WASM_ENABLE_LIB_PTHREAD != 0) {
  */
 
  
-public import bh_common;
-public import ...include.wasm_export;
-public import ...interpreter.wasm;
+public import tagion.iwasm.share.utils.bh_common;
+public import tagion.iwasm.include.wasm_export;
+public import tagion.iwasm.interpreter.wasm;
 
-version (none) {
-extern "C" {
-//! #endif
 
 struct NativeSymbolsNode {
     NativeSymbolsNode* next;
@@ -511,8 +508,4 @@ bool wasm_native_init();
 
 void wasm_native_destroy();
 
-version (none) {}
-}
-}
 
- /* end of _WASM_NATIVE_H */

@@ -21,11 +21,11 @@ alias int32 = int;
 // all wasm-app<->native shared source files should use WA_MALLOC/WA_FREE.
 // they will be mapped to different implementations in each side
 version (WA_MALLOC) {} else {
-enum WA_MALLOC = malloc;
+alias WA_MALLOC = malloc;
 }
 
 version (WA_FREE) {} else {
-enum WA_FREE = free;
+alias WA_FREE = free;
 }
 
 uint htonl(uint value);

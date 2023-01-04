@@ -1,4 +1,4 @@
-module wasm_c_api_internal;
+module tagion.wasm.common.wasm_c_api_internal;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,11 +6,8 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-#ifndef _WASM_C_API_INTERNAL_H
-version = _WASM_C_API_INTERNAL_H;
-
-public import ...include.wasm_c_api;
-public import wasm_runtime_common;
+public import tagion.iwasm.include.wasm_c_api;
+public import tagion.iwasm.common.wasm_runtime_common;
 
  
 
@@ -21,9 +18,9 @@ public import wasm_runtime_common;
 /* caller needs to take care resource for the vector itself */
 enum DEFAULT_VECTOR_INIT_LENGTH = (64);
 
-WASM_DECLARE_VEC(instance, *)
-WASM_DECLARE_VEC(module_, *)
-WASM_DECLARE_VEC(store, *)
+//WASM_DECLARE_VEC(instance, *)
+//WASM_DECLARE_VEC(module_, *)
+//WASM_DECLARE_VEC(store, *)
 
 /* Runtime Environment */
 struct wasm_engine_t {
@@ -74,7 +71,7 @@ struct wasm_memorytype_t {
 struct wasm_externtype_t {
     uint32 extern_kind;
     /* reservered space */
-    uint8 data[1];
+    uint8[1] data;
 };
 
 struct wasm_importtype_t {
@@ -99,13 +96,13 @@ enum wasm_reference_kind {
 
 struct wasm_host_info {
     void *info;
-    void (*finalizer)(void *);
+    void function(void *)finalizer;
 };
 
 struct wasm_ref_t {
     wasm_store_t *store;
     enum wasm_reference_kind kind;
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     uint32 ref_idx_rt;
     WASMModuleInstanceCommon *inst_comm_rt;
 };
@@ -118,7 +115,7 @@ struct wasm_trap_t {
 struct wasm_foreign_t {
     wasm_store_t *store;
     enum wasm_reference_kind kind;
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     int32 ref_cnt;
     uint32 foreign_idx_rt;
     WASMModuleInstanceCommon *inst_comm_rt;
@@ -130,18 +127,20 @@ struct wasm_func_t {
     wasm_name_t *name;
     uint16 kind;
 
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     wasm_functype_t *type;
 
     bool with_env;
-    union {
+    union U {
         wasm_func_callback_t cb;
         struct callback_ext {
             void *env;
             wasm_func_callback_with_env_t cb;
-            void (*finalizer)(void *);
-        } cb_env;
-    } u;
+            void function(void *)finalizer;
+        } 
+callback_ext cb_env;
+    } 
+U u;
     /*
      * an index in both functions runtime instance lists
      * of interpreter mode and aot mode
@@ -157,7 +156,7 @@ struct wasm_global_t {
     wasm_name_t *name;
     uint16 kind;
 
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     wasm_globaltype_t *type;
     wasm_val_t *init;
     /*
@@ -174,7 +173,7 @@ struct wasm_memory_t {
     wasm_name_t *name;
     uint16 kind;
 
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     wasm_memorytype_t *type;
     /*
      * an index in both memory runtime instance lists
@@ -190,7 +189,7 @@ struct wasm_table_t {
     wasm_name_t *name;
     uint16 kind;
 
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     wasm_tabletype_t *type;
     /*
      * an index in both table runtime instance lists
@@ -206,18 +205,18 @@ struct wasm_extern_t {
     wasm_name_t *name;
     wasm_externkind_t kind;
     /* reservered space */
-    uint8 data[1];
+    uint8[1] data;
 };
 
 struct wasm_instance_t {
     wasm_store_t *store;
     wasm_extern_vec_t *exports;
-    struct wasm_host_info host_info;
+    wasm_host_info host_info;
     WASMModuleInstanceCommon *inst_comm_rt;
 };
 
-wasm_ref_t *
-wasm_ref_new_internal(wasm_store_t *store, enum wasm_reference_kind kind,
+wasm_ref_t*
+wasm_ref_new_internal(wasm_store_t *store, wasm_reference_kind kind,
                       uint32 obj_idx_rt,
                       WASMModuleInstanceCommon *inst_comm_rt);
 
@@ -240,4 +239,3 @@ wasm_memory_new_internal(wasm_store_t *store, uint16 memory_idx_rt,
 wasm_table_t *
 wasm_table_new_internal(wasm_store_t *store, uint16 table_idx_rt,
                         WASMModuleInstanceCommon *inst_comm_rt);
-} /* _WASM_C_API_INTERNAL_H */

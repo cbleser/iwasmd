@@ -12,7 +12,7 @@ private template HasVersion(string versionId) {
 
  
 
-static if (BH_DEBUG != 0) {
+version (BH_DEBUG) {
 void bh_assert_internal(int v, const(char)* file_name, int line_number, const(char)* expr_string);
 enum string bh_assert(string expr) = ` \
     bh_assert_internal((int)(uintptr_t)(expr), __FILE__, __LINE__, #expr)`;
@@ -24,14 +24,6 @@ static if (!HasVersion!"__has_extension") {
 enum string __has_extension(string a) = ` 0`;
 }
 
-static if (__STDC_VERSION__ >= 201112L                                          
-    || (HasVersion!"__GNUC__" && __GNUC__ * 0x100 + __GNUC_MINOR__ >= 0x406) 
-    || __has_extension(c_static_assert)) {
-
-enum string bh_static_assert(string expr) = ` _Static_assert(expr, #expr)`;
-} else {
-//#define bh_static_assert(expr) /* nothing */
-}
 
 
  /* end of _BH_ASSERT_H */

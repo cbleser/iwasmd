@@ -325,12 +325,6 @@ bool jit_pass_update_cfg(JitCompContext* cc) {
  */
 
  
-public import jit_compiler;
-
-version (none) {
-extern (C) {
-//! #endif
-
 /**
  * Dump a register.
  *
@@ -362,8 +356,3 @@ void jit_dump_block(JitCompContext* cc, JitBlock* block);
  */
 void jit_dump_cc(JitCompContext* cc);
 
-version (none) {}
-}
-}
-
- /* end of _JIT_DUMP_H_ */
