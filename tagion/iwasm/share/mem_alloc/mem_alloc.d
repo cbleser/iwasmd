@@ -6,6 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import tagion.iwasm.basic;
 
 alias mem_allocator_t = void*;
 
@@ -16,7 +17,7 @@ alias mem_allocator_t = void*;
 
 static if (DEFAULT_MEM_ALLOCATOR == MEM_ALLOCATOR_EMS) {
 
-public import ems.ems_gc;
+public import tagion.iwasm.share.mem_alloc.ems.ems_gc;
 
 mem_allocator_t mem_allocator_create(void* mem, uint size) {
     return gc_init_with_pool(cast(char*)mem, size);

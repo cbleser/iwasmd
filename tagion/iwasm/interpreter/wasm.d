@@ -7,10 +7,12 @@ __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import core.stdc.stdint : uintptr_t;
 import tagion.iwasm.basic;
 public import tagion.iwasm.app_framework.base.app.bh_platform;
 public import tagion.iwasm.share.utils.bh_hashmap;
 public import tagion.iwasm.share.utils.bh_assert;
+import tagion.iwasm.share.utils.bh_list;
 
 /** Value Type */
 enum VALUE_TYPE_I32 = 0x7F;
@@ -60,9 +62,9 @@ enum SECTION_TYPE_START = 8;
 enum SECTION_TYPE_ELEM = 9;
 enum SECTION_TYPE_CODE = 10;
 enum SECTION_TYPE_DATA = 11;
-version (WASM_ENABLE_BULK_MEMORY) {
+//version (WASM_ENABLE_BULK_MEMORY) {
     enum SECTION_TYPE_DATACOUNT = 12;
-}
+//}
 
 enum SUB_SECTION_TYPE_MODULE = 0;
 enum SUB_SECTION_TYPE_FUNC = 1;
@@ -397,7 +399,6 @@ static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT) {
     }
 }
 
-struct WASMModuleInstance;
 
 struct WASMModule {
     /* Module type, for module loaded from WASM bytecode binary,
@@ -479,7 +480,7 @@ struct WASMModule {
     bool possible_memory_grow;
 
     StringList const_str_list;
-    static if (WASM_ENABLE_FAST_INTERP == 0) {
+    static if (!ver.WASM_ENABLE_FAST_INTERP) {
         bh_list br_table_cache_list_head;
         bh_list* br_table_cache_list;
     }
@@ -499,11 +500,11 @@ struct WASMModule {
         ubyte* buf_code;
         ulong buf_code_size;
     }
-    static if (ver.WASM_ENABLE_DEBUG_INTERP || ver.WASM_ENABLE_DEBUG_AOT
-            || ver.WASM_ENABLE_FAST_JIT) {
+//    static if (ver.WASM_ENABLE_DEBUG_INTERP || ver.WASM_ENABLE_DEBUG_AOT
+//            || ver.WASM_ENABLE_FAST_JIT) {
         ubyte* load_addr;
         ulong load_size;
-    }
+//    }
 
     static if (ver.WASM_ENABLE_DEBUG_INTERP
             || (ver.WASM_ENABLE_FAST_JIT && WASM_ENABLE_JIT

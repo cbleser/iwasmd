@@ -5,7 +5,7 @@ extern(C): __gshared:
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.jit_ir;
 import tagion.iwasm.fast_jit.jit_codecache;
 import tagion.iwasm.interpreter.wasm;
@@ -18,19 +18,19 @@ struct JitCompilerPass {
 }
 
 /* clang-format off */
-JitCompilerPass[] compiler_passes = {
+JitCompilerPass[] compiler_passes = [ 
     { name: null, run:null },
-    JitCompilerPass(dump.stringof.ptr, &dump),
-    JitCompilerPass(update_cfg.stringof.ptr, &update_cfg),
-    JitCompilerPass(frontend.stringof.ptr),
-    JitCompilerPass(lower_cg.strionof.ptr, &lower_cg),
-    JitCompilerPass(regalloc.stringof.ptr, &regalloc),
-    JitCompilerPass(codegen.stringof.ptr, &codegen),
-    JitCompilerPass(register_jitted_code.stringof.ptr, &register_jitted)
-};
+    JitCompilerPass("dump".ptr, &jit_pass_dump),
+    JitCompilerPass("update_cfg", &jit_pass_update_cfg),
+    JitCompilerPass("frontend".ptr, &jit_pass_frontend),
+    JitCompilerPass("lower_cg".ptr, &jit_pass_lower_cg),
+    JitCompilerPass("regalloc".ptr, &jit_pass_regalloc),
+    JitCompilerPass("codegen".ptr, &jit_pass_codegen),
+    JitCompilerPass("register_jitted_code".ptr, &jit_pass_register_jitted_code)
+];
 
 /* Number of compiler passes */
-enum COMPILER_PASS_NUM = (sizeof(compiler_passes) / sizeof(compiler_passes[0]));
+alias COMPILER_PASS_NUM = compiler_passes.length;
 
 version(WASM_ENABLE_FAST_JIT_DUMP ) {
 private const(ubyte)[6] compiler_passes_without_dump = [
@@ -55,6 +55,7 @@ version(WASM_ENABLE_LAZY_JIT) {
 JitGlobals jit_globals;
 
 //const x=jit_globals.return_to_interp_from_jitted;
+version(none)
 static this() {
 jit_globals.x=10;
 jit_globals.return_to_interp_from_jitted= null;
@@ -206,7 +207,7 @@ static if (WASM_ENABLE_LAZY_JIT == 0) {
 }
 }
 
-static if (WASM_ENABLE_LAZY_JIT != 0 && WASM_ENABLE_JIT != 0) {
+static if (ver.WASM_ENABLE_LAZY_JIT && ver.WASM_ENABLE_JIT) {
 bool jit_compiler_set_call_to_llvm_jit(WASMModule* module_, uint func_idx) {
     uint i = func_idx - module_.import_function_count;
     uint j = i % WASM_ORC_JIT_BACKEND_THREAD_NUM;
@@ -260,7 +261,7 @@ void jit_compiler_set_llvm_jit_func_ptr(WASMModule* module_, uint func_idx, void
     }
     os_mutex_unlock(&module_.instance_list_lock);
 }
-} /* end of WASM_ENABLE_LAZY_JIT != 0 && WASM_ENABLE_JIT != 0 */
+} /* end of ver.WASM_ENABLE_LAZY_JIT && ver.WASM_ENABLE_JIT */
 
 int jit_interp_switch_to_jitted(void* exec_env, JitInterpSwitchInfo* info, uint func_idx, void* pc) {
     return jit_codegen_interp_jitted_glue(exec_env, info, func_idx, pc);
@@ -348,7 +349,7 @@ struct JitCompOptions {
 
 bool jit_compiler_is_compiled(const(WASMModule)* module_, uint func_idx);
 
-static if (WASM_ENABLE_LAZY_JIT != 0 && WASM_ENABLE_JIT != 0) {
+static if (ver.WASM_ENABLE_LAZY_JIT && ver.WASM_ENABLE_JIT) {
 bool jit_compiler_set_call_to_llvm_jit(WASMModule* module_, uint func_idx);
 
 bool jit_compiler_set_call_to_fast_jit(WASMModule* module_, uint func_idx);

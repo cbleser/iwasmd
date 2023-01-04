@@ -7,7 +7,8 @@ extern(C): __gshared:
  */
 
  
-public import wasm;
+import tagion.iwasm.basic;
+public import tagion.iwasm.interpreter.wasm;
 
 
 enum WASMOpcode {
@@ -1223,7 +1224,7 @@ alias WASM_OP_ATOMIC_RMW_I64_CMPXCHG16_U = WASMAtomicEXTOpcode.WASM_OP_ATOMIC_RM
 alias WASM_OP_ATOMIC_RMW_I64_CMPXCHG32_U = WASMAtomicEXTOpcode.WASM_OP_ATOMIC_RMW_I64_CMPXCHG32_U;
 
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
 enum string DEF_DEBUG_BREAK_HANDLE(string _name) = ` \
     _name[DEBUG_OP_BREAK] = HANDLE_OPCODE(DEBUG_OP_BREAK); /* 0xd7 */`;
 } else {

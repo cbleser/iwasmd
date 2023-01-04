@@ -1,6 +1,7 @@
-module wasm_c_api;
+module tagion.iwasm.include.wasm_c_api;
 @nogc nothrow:
 extern(C): __gshared:
+import tagion.iwasm.common.wasm_c_api_internal;
 alias byte_t = char;
 alias float32_t = float;
 alias float64_t = double;
@@ -42,8 +43,8 @@ pragma(inline, true) private void wasm_name_new_from_string_nt(wasm_name_t* out_
 ///////////////////////////////////////////////////////////////////////////////
 // Runtime Environment
 // Configuration
- void wasm_config_delete(wasm_config_t*);
- wasm_config_t* wasm_config_new();
+ //void wasm_config_delete(wasm_config_t*);
+ //wasm_config_t* wasm_config_new();
 // Embedders may provide custom functions for manipulating configs.
 // Engine
  void wasm_engine_delete(wasm_engine_t*);
@@ -61,34 +62,8 @@ pragma(inline, true) private void wasm_name_new_from_string_nt(wasm_name_t* out_
  * functions.
  */
  wasm_engine_t* wasm_engine_new();
- wasm_engine_t* wasm_engine_new_with_config(wasm_config_t*);
+ //wasm_engine_t* wasm_engine_new_with_config(wasm_config_t*);
 /* same definition from wasm_export.h */
-/* Memory allocator type */
-enum _Mem_alloc_type_t {
-    /* pool mode, allocate memory from user defined heap buffer */
-    Alloc_With_Pool = 0,
-    /* user allocator mode, allocate memory from user defined
-       malloc function */
-    Alloc_With_Allocator,
-    /* system allocator mode, allocate memory from system allocator,
-       or, platform's os_malloc function */
-    Alloc_With_System_Allocator,
-}alias mem_alloc_type_t = _Mem_alloc_type_t;
-/* Memory allocator option */
-union MemAllocOption {
-    struct _Pool {
-        void* heap_buf;
-        uint heap_size;
-    }_Pool pool;
-    struct _Allocator {
-        void* malloc_func;
-        void* realloc_func;
-        void* free_func;
-        /* allocator user data, only used when
-          WASM_MEM_ALLOC_WITH_USER_DATA is defined */
-        void* user_data;
-    }_Allocator allocator;
-}
  wasm_engine_t* wasm_engine_new_with_args(mem_alloc_type_t type, const(MemAllocOption)* opts);
 // Store
  void wasm_store_delete(wasm_store_t*);
@@ -130,16 +105,16 @@ alias WASM_FUNCREF = wasm_valkind_enum.WASM_FUNCREF;
 
  wasm_valtype_t* wasm_valtype_new(wasm_valkind_t);
  wasm_valkind_t wasm_valtype_kind(const(wasm_valtype_t)*);
-pragma(inline, true) private _Bool wasm_valkind_is_num(wasm_valkind_t k) {
+pragma(inline, true) private bool wasm_valkind_is_num(wasm_valkind_t k) {
   return k < WASM_ANYREF;
 }
-pragma(inline, true) private _Bool wasm_valkind_is_ref(wasm_valkind_t k) {
+pragma(inline, true) private bool wasm_valkind_is_ref(wasm_valkind_t k) {
   return k >= WASM_ANYREF;
 }
-pragma(inline, true) private _Bool wasm_valtype_is_num(const(wasm_valtype_t)* t) {
+pragma(inline, true) private bool wasm_valtype_is_num(const(wasm_valtype_t)* t) {
   return wasm_valkind_is_num(wasm_valtype_kind(t));
 }
-pragma(inline, true) private _Bool wasm_valtype_is_ref(const(wasm_valtype_t)* t) {
+pragma(inline, true) private bool wasm_valtype_is_ref(const(wasm_valtype_t)* t) {
   return wasm_valkind_is_ref(wasm_valtype_kind(t));
 }
 // Function Types
@@ -207,6 +182,7 @@ alias WASM_EXTERN_MEMORY = wasm_externkind_enum.WASM_EXTERN_MEMORY;
 // Runtime Objects
 // Values
 struct wasm_ref_t;
+version(none) // Redeclared in wasm_export
 struct wasm_val_t {
   wasm_valkind_t kind;
   union _Of {
@@ -221,7 +197,7 @@ struct wasm_val_t {
  void wasm_val_copy(wasm_val_t* out_, const(wasm_val_t)*);
 struct wasm_val_vec_t { size_t size; wasm_val_t* data; size_t num_elems; size_t size_of_elem; void* lock; } void wasm_val_vec_new_empty(wasm_val_vec_t* out_); void wasm_val_vec_new_uninitialized(wasm_val_vec_t* out_, size_t); void wasm_val_vec_new(wasm_val_vec_t* out_, size_t, const(wasm_val_t)); void wasm_val_vec_copy(wasm_val_vec_t* out_, const(wasm_val_vec_t)*); void wasm_val_vec_delete(wasm_val_vec_t*);
 // References
- void wasm_ref_delete(wasm_ref_t*); wasm_ref_t* wasm_ref_copy(const(wasm_ref_t)*); _Bool wasm_ref_same(const(wasm_ref_t)*, const(wasm_ref_t)*); void* wasm_ref_get_host_info(const(wasm_ref_t)*); void wasm_ref_set_host_info(wasm_ref_t*, void*); void wasm_ref_set_host_info_with_finalizer(wasm_ref_t*, void*, void function(void*));
+ void wasm_ref_delete(wasm_ref_t*); wasm_ref_t* wasm_ref_copy(const(wasm_ref_t)*); bool wasm_ref_same(const(wasm_ref_t)*, const(wasm_ref_t)*); void* wasm_ref_get_host_info(const(wasm_ref_t)*); void wasm_ref_set_host_info(wasm_ref_t*, void*); void wasm_ref_set_host_info_with_finalizer(wasm_ref_t*, void*, void function(void*));
 // Frames
  void wasm_frame_delete(wasm_frame_t*);
 struct wasm_frame_vec_t { size_t size; wasm_frame_t** data; size_t num_elems; size_t size_of_elem; void* lock; } void wasm_frame_vec_new_empty(wasm_frame_vec_t* out_); void wasm_frame_vec_new_uninitialized(wasm_frame_vec_t* out_, size_t); void wasm_frame_vec_new(wasm_frame_vec_t* out_, size_t, wasm_frame_t*); void wasm_frame_vec_copy(wasm_frame_vec_t* out_, const(wasm_frame_vec_t)*); void wasm_frame_vec_delete(wasm_frame_vec_t*);
@@ -232,21 +208,19 @@ struct wasm_frame_vec_t { size_t size; wasm_frame_t** data; size_t num_elems; si
  size_t wasm_frame_module_offset(const(wasm_frame_t)*);
 // Traps
 alias wasm_message_t = wasm_name_t; // null terminated
- void wasm_trap_delete(wasm_trap_t*); wasm_trap_t* wasm_trap_copy(const(wasm_trap_t)*); _Bool wasm_trap_same(const(wasm_trap_t)*, const(wasm_trap_t)*); void* wasm_trap_get_host_info(const(wasm_trap_t)*); void wasm_trap_set_host_info(wasm_trap_t*, void*); void wasm_trap_set_host_info_with_finalizer(wasm_trap_t*, void*, void function(void*)); wasm_ref_t* wasm_trap_as_ref(wasm_trap_t*); wasm_trap_t* wasm_ref_as_trap(wasm_ref_t*); const(wasm_ref_t)* wasm_trap_as_ref_const(const(wasm_trap_t)*); const(wasm_trap_t)* wasm_ref_as_trap_const(const(wasm_ref_t)*);
+ void wasm_trap_delete(wasm_trap_t*); wasm_trap_t* wasm_trap_copy(const(wasm_trap_t)*); bool wasm_trap_same(const(wasm_trap_t)*, const(wasm_trap_t)*); void* wasm_trap_get_host_info(const(wasm_trap_t)*); void wasm_trap_set_host_info(wasm_trap_t*, void*); void wasm_trap_set_host_info_with_finalizer(wasm_trap_t*, void*, void function(void*)); wasm_ref_t* wasm_trap_as_ref(wasm_trap_t*); wasm_trap_t* wasm_ref_as_trap(wasm_ref_t*); const(wasm_ref_t)* wasm_trap_as_ref_const(const(wasm_trap_t)*); const(wasm_trap_t)* wasm_ref_as_trap_const(const(wasm_ref_t)*);
  wasm_trap_t* wasm_trap_new(wasm_store_t* store, const(wasm_message_t)*);
  void wasm_trap_message(const(wasm_trap_t)*, wasm_message_t* out_);
  wasm_frame_t* wasm_trap_origin(const(wasm_trap_t)*);
  void wasm_trap_trace(const(wasm_trap_t)*, wasm_frame_vec_t* out_);
 // Foreign Objects
- void wasm_foreign_delete(wasm_foreign_t*); wasm_foreign_t* wasm_foreign_copy(const(wasm_foreign_t)*); _Bool wasm_foreign_same(const(wasm_foreign_t)*, const(wasm_foreign_t)*); void* wasm_foreign_get_host_info(const(wasm_foreign_t)*); void wasm_foreign_set_host_info(wasm_foreign_t*, void*); void wasm_foreign_set_host_info_with_finalizer(wasm_foreign_t*, void*, void function(void*)); wasm_ref_t* wasm_foreign_as_ref(wasm_foreign_t*); wasm_foreign_t* wasm_ref_as_foreign(wasm_ref_t*); const(wasm_ref_t)* wasm_foreign_as_ref_const(const(wasm_foreign_t)*); const(wasm_foreign_t)* wasm_ref_as_foreign_const(const(wasm_ref_t)*);
+ void wasm_foreign_delete(wasm_foreign_t*); wasm_foreign_t* wasm_foreign_copy(const(wasm_foreign_t)*); bool wasm_foreign_same(const(wasm_foreign_t)*, const(wasm_foreign_t)*); void* wasm_foreign_get_host_info(const(wasm_foreign_t)*); void wasm_foreign_set_host_info(wasm_foreign_t*, void*); void wasm_foreign_set_host_info_with_finalizer(wasm_foreign_t*, void*, void function(void*)); wasm_ref_t* wasm_foreign_as_ref(wasm_foreign_t*); wasm_foreign_t* wasm_ref_as_foreign(wasm_ref_t*); const(wasm_ref_t)* wasm_foreign_as_ref_const(const(wasm_foreign_t)*); const(wasm_foreign_t)* wasm_ref_as_foreign_const(const(wasm_ref_t)*);
  wasm_foreign_t* wasm_foreign_new(wasm_store_t*);
 // Modules
 // WASM_DECLARE_SHARABLE_REF(module)
-struct WASMModuleCommon;
-alias wasm_module_t = WASMModuleCommon*;
  wasm_module_t* wasm_module_new(wasm_store_t*, const(wasm_byte_vec_t)* binary);
  void wasm_module_delete(wasm_module_t*);
- _Bool wasm_module_validate(wasm_store_t*, const(wasm_byte_vec_t)* binary);
+ bool wasm_module_validate(wasm_store_t*, const(wasm_byte_vec_t)* binary);
  void wasm_module_imports(const(wasm_module_t)*, wasm_importtype_vec_t* out_);
  void wasm_module_exports(const(wasm_module_t)*, wasm_exporttype_vec_t* out_);
  void wasm_module_serialize(wasm_module_t*, wasm_byte_vec_t* out_);
@@ -256,7 +230,7 @@ alias wasm_shared_module_t = wasm_module_t;
  wasm_module_t* wasm_module_obtain(wasm_store_t*, wasm_shared_module_t*);
  void wasm_shared_module_delete(wasm_shared_module_t*);
 // Function Instances
- void wasm_func_delete(wasm_func_t*); wasm_func_t* wasm_func_copy(const(wasm_func_t)*); _Bool wasm_func_same(const(wasm_func_t)*, const(wasm_func_t)*); void* wasm_func_get_host_info(const(wasm_func_t)*); void wasm_func_set_host_info(wasm_func_t*, void*); void wasm_func_set_host_info_with_finalizer(wasm_func_t*, void*, void function(void*)); wasm_ref_t* wasm_func_as_ref(wasm_func_t*); wasm_func_t* wasm_ref_as_func(wasm_ref_t*); const(wasm_ref_t)* wasm_func_as_ref_const(const(wasm_func_t)*); const(wasm_func_t)* wasm_ref_as_func_const(const(wasm_ref_t)*);
+ void wasm_func_delete(wasm_func_t*); wasm_func_t* wasm_func_copy(const(wasm_func_t)*); bool wasm_func_same(const(wasm_func_t)*, const(wasm_func_t)*); void* wasm_func_get_host_info(const(wasm_func_t)*); void wasm_func_set_host_info(wasm_func_t*, void*); void wasm_func_set_host_info_with_finalizer(wasm_func_t*, void*, void function(void*)); wasm_ref_t* wasm_func_as_ref(wasm_func_t*); wasm_func_t* wasm_ref_as_func(wasm_ref_t*); const(wasm_ref_t)* wasm_func_as_ref_const(const(wasm_func_t)*); const(wasm_func_t)* wasm_ref_as_func_const(const(wasm_ref_t)*);
 alias wasm_func_callback_t = wasm_trap_t* function(const(wasm_val_vec_t)* args, wasm_val_vec_t* results);
 alias wasm_func_callback_with_env_t = wasm_trap_t* function(void* env, const(wasm_val_vec_t)* args, wasm_val_vec_t* results);
  wasm_func_t* wasm_func_new(wasm_store_t*, const(wasm_functype_t)*, wasm_func_callback_t);
@@ -266,22 +240,22 @@ alias wasm_func_callback_with_env_t = wasm_trap_t* function(void* env, const(was
  size_t wasm_func_result_arity(const(wasm_func_t)*);
  wasm_trap_t* wasm_func_call(const(wasm_func_t)*, const(wasm_val_vec_t)* args, wasm_val_vec_t* results);
 // Global Instances
- void wasm_global_delete(wasm_global_t*); wasm_global_t* wasm_global_copy(const(wasm_global_t)*); _Bool wasm_global_same(const(wasm_global_t)*, const(wasm_global_t)*); void* wasm_global_get_host_info(const(wasm_global_t)*); void wasm_global_set_host_info(wasm_global_t*, void*); void wasm_global_set_host_info_with_finalizer(wasm_global_t*, void*, void function(void*)); wasm_ref_t* wasm_global_as_ref(wasm_global_t*); wasm_global_t* wasm_ref_as_global(wasm_ref_t*); const(wasm_ref_t)* wasm_global_as_ref_const(const(wasm_global_t)*); const(wasm_global_t)* wasm_ref_as_global_const(const(wasm_ref_t)*);
+ void wasm_global_delete(wasm_global_t*); wasm_global_t* wasm_global_copy(const(wasm_global_t)*); bool wasm_global_same(const(wasm_global_t)*, const(wasm_global_t)*); void* wasm_global_get_host_info(const(wasm_global_t)*); void wasm_global_set_host_info(wasm_global_t*, void*); void wasm_global_set_host_info_with_finalizer(wasm_global_t*, void*, void function(void*)); wasm_ref_t* wasm_global_as_ref(wasm_global_t*); wasm_global_t* wasm_ref_as_global(wasm_ref_t*); const(wasm_ref_t)* wasm_global_as_ref_const(const(wasm_global_t)*); const(wasm_global_t)* wasm_ref_as_global_const(const(wasm_ref_t)*);
  wasm_global_t* wasm_global_new(wasm_store_t*, const(wasm_globaltype_t)*, const(wasm_val_t)*);
  wasm_globaltype_t* wasm_global_type(const(wasm_global_t)*);
  void wasm_global_get(const(wasm_global_t)*, wasm_val_t* out_);
  void wasm_global_set(wasm_global_t*, const(wasm_val_t)*);
 // Table Instances
- void wasm_table_delete(wasm_table_t*); wasm_table_t* wasm_table_copy(const(wasm_table_t)*); _Bool wasm_table_same(const(wasm_table_t)*, const(wasm_table_t)*); void* wasm_table_get_host_info(const(wasm_table_t)*); void wasm_table_set_host_info(wasm_table_t*, void*); void wasm_table_set_host_info_with_finalizer(wasm_table_t*, void*, void function(void*)); wasm_ref_t* wasm_table_as_ref(wasm_table_t*); wasm_table_t* wasm_ref_as_table(wasm_ref_t*); const(wasm_ref_t)* wasm_table_as_ref_const(const(wasm_table_t)*); const(wasm_table_t)* wasm_ref_as_table_const(const(wasm_ref_t)*);
+ void wasm_table_delete(wasm_table_t*); wasm_table_t* wasm_table_copy(const(wasm_table_t)*); bool wasm_table_same(const(wasm_table_t)*, const(wasm_table_t)*); void* wasm_table_get_host_info(const(wasm_table_t)*); void wasm_table_set_host_info(wasm_table_t*, void*); void wasm_table_set_host_info_with_finalizer(wasm_table_t*, void*, void function(void*)); wasm_ref_t* wasm_table_as_ref(wasm_table_t*); wasm_table_t* wasm_ref_as_table(wasm_ref_t*); const(wasm_ref_t)* wasm_table_as_ref_const(const(wasm_table_t)*); const(wasm_table_t)* wasm_ref_as_table_const(const(wasm_ref_t)*);
 alias wasm_table_size_t = uint;
  wasm_table_t* wasm_table_new(wasm_store_t*, const(wasm_tabletype_t)*, wasm_ref_t* init);
  wasm_tabletype_t* wasm_table_type(const(wasm_table_t)*);
  wasm_ref_t* wasm_table_get(const(wasm_table_t)*, wasm_table_size_t index);
- _Bool wasm_table_set(wasm_table_t*, wasm_table_size_t index, wasm_ref_t*);
+ bool wasm_table_set(wasm_table_t*, wasm_table_size_t index, wasm_ref_t*);
  wasm_table_size_t wasm_table_size(const(wasm_table_t)*);
- _Bool wasm_table_grow(wasm_table_t*, wasm_table_size_t delta, wasm_ref_t* init);
+ bool wasm_table_grow(wasm_table_t*, wasm_table_size_t delta, wasm_ref_t* init);
 // Memory Instances
- void wasm_memory_delete(wasm_memory_t*); wasm_memory_t* wasm_memory_copy(const(wasm_memory_t)*); _Bool wasm_memory_same(const(wasm_memory_t)*, const(wasm_memory_t)*); void* wasm_memory_get_host_info(const(wasm_memory_t)*); void wasm_memory_set_host_info(wasm_memory_t*, void*); void wasm_memory_set_host_info_with_finalizer(wasm_memory_t*, void*, void function(void*)); wasm_ref_t* wasm_memory_as_ref(wasm_memory_t*); wasm_memory_t* wasm_ref_as_memory(wasm_ref_t*); const(wasm_ref_t)* wasm_memory_as_ref_const(const(wasm_memory_t)*); const(wasm_memory_t)* wasm_ref_as_memory_const(const(wasm_ref_t)*);
+ void wasm_memory_delete(wasm_memory_t*); wasm_memory_t* wasm_memory_copy(const(wasm_memory_t)*); bool wasm_memory_same(const(wasm_memory_t)*, const(wasm_memory_t)*); void* wasm_memory_get_host_info(const(wasm_memory_t)*); void wasm_memory_set_host_info(wasm_memory_t*, void*); void wasm_memory_set_host_info_with_finalizer(wasm_memory_t*, void*, void function(void*)); wasm_ref_t* wasm_memory_as_ref(wasm_memory_t*); wasm_memory_t* wasm_ref_as_memory(wasm_ref_t*); const(wasm_ref_t)* wasm_memory_as_ref_const(const(wasm_memory_t)*); const(wasm_memory_t)* wasm_ref_as_memory_const(const(wasm_ref_t)*);
 alias wasm_memory_pages_t = uint;
 private const(size_t) MEMORY_PAGE_SIZE = 0x10000;
  wasm_memory_t* wasm_memory_new(wasm_store_t*, const(wasm_memorytype_t)*);
@@ -289,9 +263,9 @@ private const(size_t) MEMORY_PAGE_SIZE = 0x10000;
  byte_t* wasm_memory_data(wasm_memory_t*);
  size_t wasm_memory_data_size(const(wasm_memory_t)*);
  wasm_memory_pages_t wasm_memory_size(const(wasm_memory_t)*);
- _Bool wasm_memory_grow(wasm_memory_t*, wasm_memory_pages_t delta);
+ bool wasm_memory_grow(wasm_memory_t*, wasm_memory_pages_t delta);
 // Externals
- void wasm_extern_delete(wasm_extern_t*); wasm_extern_t* wasm_extern_copy(const(wasm_extern_t)*); _Bool wasm_extern_same(const(wasm_extern_t)*, const(wasm_extern_t)*); void* wasm_extern_get_host_info(const(wasm_extern_t)*); void wasm_extern_set_host_info(wasm_extern_t*, void*); void wasm_extern_set_host_info_with_finalizer(wasm_extern_t*, void*, void function(void*)); wasm_ref_t* wasm_extern_as_ref(wasm_extern_t*); wasm_extern_t* wasm_ref_as_extern(wasm_ref_t*); const(wasm_ref_t)* wasm_extern_as_ref_const(const(wasm_extern_t)*); const(wasm_extern_t)* wasm_ref_as_extern_const(const(wasm_ref_t)*);
+ void wasm_extern_delete(wasm_extern_t*); wasm_extern_t* wasm_extern_copy(const(wasm_extern_t)*); bool wasm_extern_same(const(wasm_extern_t)*, const(wasm_extern_t)*); void* wasm_extern_get_host_info(const(wasm_extern_t)*); void wasm_extern_set_host_info(wasm_extern_t*, void*); void wasm_extern_set_host_info_with_finalizer(wasm_extern_t*, void*, void function(void*)); wasm_ref_t* wasm_extern_as_ref(wasm_extern_t*); wasm_extern_t* wasm_ref_as_extern(wasm_ref_t*); const(wasm_ref_t)* wasm_extern_as_ref_const(const(wasm_extern_t)*); const(wasm_extern_t)* wasm_ref_as_extern_const(const(wasm_ref_t)*);
 struct wasm_extern_vec_t { size_t size; wasm_extern_t** data; size_t num_elems; size_t size_of_elem; void* lock; } void wasm_extern_vec_new_empty(wasm_extern_vec_t* out_); void wasm_extern_vec_new_uninitialized(wasm_extern_vec_t* out_, size_t); void wasm_extern_vec_new(wasm_extern_vec_t* out_, size_t, wasm_extern_t*); void wasm_extern_vec_copy(wasm_extern_vec_t* out_, const(wasm_extern_vec_t)*); void wasm_extern_vec_delete(wasm_extern_vec_t*);
  wasm_externkind_t wasm_extern_kind(const(wasm_extern_t)*);
  wasm_externtype_t* wasm_extern_type(const(wasm_extern_t)*);
@@ -312,7 +286,7 @@ struct wasm_extern_vec_t { size_t size; wasm_extern_t** data; size_t num_elems; 
  const(wasm_table_t)* wasm_extern_as_table_const(const(wasm_extern_t)*);
  const(wasm_memory_t)* wasm_extern_as_memory_const(const(wasm_extern_t)*);
 // Module Instances
- void wasm_instance_delete(wasm_instance_t*); wasm_instance_t* wasm_instance_copy(const(wasm_instance_t)*); _Bool wasm_instance_same(const(wasm_instance_t)*, const(wasm_instance_t)*); void* wasm_instance_get_host_info(const(wasm_instance_t)*); void wasm_instance_set_host_info(wasm_instance_t*, void*); void wasm_instance_set_host_info_with_finalizer(wasm_instance_t*, void*, void function(void*)); wasm_ref_t* wasm_instance_as_ref(wasm_instance_t*); wasm_instance_t* wasm_ref_as_instance(wasm_ref_t*); const(wasm_ref_t)* wasm_instance_as_ref_const(const(wasm_instance_t)*); const(wasm_instance_t)* wasm_ref_as_instance_const(const(wasm_ref_t)*);
+ void wasm_instance_delete(wasm_instance_t*); wasm_instance_t* wasm_instance_copy(const(wasm_instance_t)*); bool wasm_instance_same(const(wasm_instance_t)*, const(wasm_instance_t)*); void* wasm_instance_get_host_info(const(wasm_instance_t)*); void wasm_instance_set_host_info(wasm_instance_t*, void*); void wasm_instance_set_host_info_with_finalizer(wasm_instance_t*, void*, void function(void*)); wasm_ref_t* wasm_instance_as_ref(wasm_instance_t*); wasm_instance_t* wasm_ref_as_instance(wasm_ref_t*); const(wasm_ref_t)* wasm_instance_as_ref_const(const(wasm_instance_t)*); const(wasm_instance_t)* wasm_ref_as_instance_const(const(wasm_ref_t)*);
  wasm_instance_t* wasm_instance_new(wasm_store_t*, const(wasm_module_t)*, const(wasm_extern_vec_t)* imports, wasm_trap_t** trap);
 // please refer to wasm_runtime_instantiate(...) in core/iwasm/include/wasm_export.h
  wasm_instance_t* wasm_instance_new_with_args(wasm_store_t*, const(wasm_module_t)*, const(wasm_extern_vec_t)* imports, wasm_trap_t** trap, const(uint) stack_size, const(uint) heap_size);

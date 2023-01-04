@@ -24,14 +24,14 @@ extern(C): __gshared:
 
 import tagion.iwasm.app_framework.base.app.bh_platform;
 
-enum _LogLevel {
+enum LogLevel {
     BH_LOG_LEVEL_FATAL = 0,
     BH_LOG_LEVEL_ERROR = 1,
     BH_LOG_LEVEL_WARNING = 2,
     BH_LOG_LEVEL_DEBUG = 3,
     BH_LOG_LEVEL_VERBOSE = 4
 }
-alias LogLevel = _LogLevel;
+//alias LogLevel = _LogLevel;
 
 //void bh_log_set_verbose_level(uint level);
 
@@ -88,7 +88,7 @@ string LOG_PROC_MEM(Args...)(Args args, string func=__FUNCTION__, size_t line=__
  * The verbose level of the log system.  Only those verbose logs whose
  * levels are less than or equal to this value are outputed.
  */
-private uint log_verbose_level = BH_LOG_LEVEL_WARNING;
+private uint log_verbose_level = LogLevel.BH_LOG_LEVEL_WARNING;
 
 void bh_log_set_verbose_level(uint level) {
     log_verbose_level = level;

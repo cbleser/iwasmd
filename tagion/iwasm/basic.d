@@ -1,5 +1,15 @@
 module tagion.iwasm.basic;
 
+enum DEFAULT_MEM_ALLOCATOR=0;
+enum  MEM_ALLOCATOR_EMS=0;
+
+import core.sys.posix.pthread;
+alias korp_tid=pthread_t;
+alias korp_mutex=pthread_mutex_t;
+
+import core.stdc.stdio;
+alias os_printf=printf;
+
 import std.format;
 struct ver {
     template opDispatch(string M) {

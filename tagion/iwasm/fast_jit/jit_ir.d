@@ -137,27 +137,27 @@ alias JitReg = uint;
  * of JitCompContext).
  */
 enum JitRegKind {
-    JIT_REG_KIND_VOID = 0x00, /* void type */
-    JIT_REG_KIND_I32 = 0x01, /* 32-bit signed or unsigned integer */
-    JIT_REG_KIND_I64 = 0x02, /* 64-bit signed or unsigned integer */
-    JIT_REG_KIND_F32 = 0x03, /* 32-bit floating point */
-    JIT_REG_KIND_F64 = 0x04, /* 64-bit floating point */
-    JIT_REG_KIND_V64 = 0x05, /* 64-bit vector */
-    JIT_REG_KIND_V128 = 0x06, /* 128-bit vector */
-    JIT_REG_KIND_V256 = 0x07, /* 256-bit vector */
-    JIT_REG_KIND_L32 = 0x08, /* 32-bit label address */
-    JIT_REG_KIND_NUM /* number of register kinds */
+    VOID = 0x00, /* void type */
+    I32 = 0x01, /* 32-bit signed or unsigned integer */
+    I64 = 0x02, /* 64-bit signed or unsigned integer */
+    F32 = 0x03, /* 32-bit floating point */
+    F64 = 0x04, /* 64-bit floating point */
+    V64 = 0x05, /* 64-bit vector */
+    V128 = 0x06, /* 128-bit vector */
+    V256 = 0x07, /* 256-bit vector */
+    L32 = 0x08, /* 32-bit label address */
+    NUM /* number of register kinds */
 }
-alias JIT_REG_KIND_VOID = JitRegKind.JIT_REG_KIND_VOID;
-alias JIT_REG_KIND_I32 = JitRegKind.JIT_REG_KIND_I32;
-alias JIT_REG_KIND_I64 = JitRegKind.JIT_REG_KIND_I64;
-alias JIT_REG_KIND_F32 = JitRegKind.JIT_REG_KIND_F32;
-alias JIT_REG_KIND_F64 = JitRegKind.JIT_REG_KIND_F64;
-alias JIT_REG_KIND_V64 = JitRegKind.JIT_REG_KIND_V64;
-alias JIT_REG_KIND_V128 = JitRegKind.JIT_REG_KIND_V128;
-alias JIT_REG_KIND_V256 = JitRegKind.JIT_REG_KIND_V256;
-alias JIT_REG_KIND_L32 = JitRegKind.JIT_REG_KIND_L32;
-alias JIT_REG_KIND_NUM = JitRegKind.JIT_REG_KIND_NUM;
+alias JIT_REG_KIND_VOID = JitRegKind.VOID;
+alias JIT_REG_KIND_I32 = JitRegKind.I32;
+alias JIT_REG_KIND_I64 = JitRegKind.I64;
+alias JIT_REG_KIND_F32 = JitRegKind.F32;
+alias JIT_REG_KIND_F64 = JitRegKind.F64;
+alias JIT_REG_KIND_V64 = JitRegKind.V64;
+alias JIT_REG_KIND_V128 = JitRegKind.V128;
+alias JIT_REG_KIND_V256 = JitRegKind.V256;
+alias JIT_REG_KIND_L32 = JitRegKind.L32;
+alias JIT_REG_KIND_NUM = JitRegKind.NUM;
 
 /**
  * Construct a new JIT IR register from the kind and no.
@@ -177,7 +177,7 @@ pragma(inline, true) private JitReg jit_reg_new(uint reg_kind, uint reg_no) {
  *
  * @return the register kind of register r
  */
-pragma(inline, true) private int jit_reg_kind(JitReg r) {
+pragma(inline, true) int jit_reg_kind(JitReg r) {
     return (r & _JIT_REG_KIND_MASK) >> _JIT_REG_KIND_SHIFT;
 }
 /**
@@ -187,7 +187,7 @@ pragma(inline, true) private int jit_reg_kind(JitReg r) {
  *
  * @return the register no. of register r
  */
-pragma(inline, true) private int jit_reg_no(JitReg r) {
+pragma(inline, true) int jit_reg_no(JitReg r) {
     return r & _JIT_REG_NO_MASK;
 }
 /**
@@ -197,7 +197,7 @@ pragma(inline, true) private int jit_reg_no(JitReg r) {
  *
  * @return true iff the register is a normal value register
  */
-pragma(inline, true) private bool jit_reg_is_value(JitReg r) {
+pragma(inline, true) bool jit_reg_is_value(JitReg r) {
     uint kind = jit_reg_kind(r);
     return kind > JIT_REG_KIND_VOID && kind < JIT_REG_KIND_L32;
 }
@@ -229,7 +229,7 @@ pragma(inline, true) private bool jit_reg_is_const_idx(JitReg r) {
  *
  * @return true iff register r is a constant
  */
-pragma(inline, true) private bool jit_reg_is_const(JitReg r) {
+pragma(inline, true) bool jit_reg_is_const(JitReg r) {
     return (jit_reg_is_value(r)
             && (r & (_JIT_REG_CONST_VAL_FLAG | _JIT_REG_CONST_IDX_FLAG)));
 }
@@ -1011,7 +1011,7 @@ bool _jit_insn_check_opnd_access_LookupSwitch(const(JitInsn)* insn);
  *
  * @return pointer to the n-th operand
  */
-pragma(inline, true) private JitReg* jit_insn_opnd(JitInsn* insn, int n) {
+pragma(inline, true) JitReg* jit_insn_opnd(JitInsn* insn, int n) {
     bh_assert(_jit_insn_check_opnd_access_Reg(insn, n));
     return &insn._opnd._opnd_Reg[n];
 }
@@ -1024,7 +1024,7 @@ pragma(inline, true) private JitReg* jit_insn_opnd(JitInsn* insn, int n) {
  *
  * @return pointer to the n-th operand
  */
-pragma(inline, true) private JitReg* jit_insn_opndv(JitInsn* insn, int n) {
+pragma(inline, true) JitReg* jit_insn_opndv(JitInsn* insn, int n) {
     bh_assert(_jit_insn_check_opnd_access_VReg(insn, n));
     return &insn._opnd._opnd_VReg._reg[n];
 }
@@ -1036,7 +1036,7 @@ pragma(inline, true) private JitReg* jit_insn_opndv(JitInsn* insn, int n) {
  *
  * @return operand number of the instruction
  */
-pragma(inline, true) private uint jit_insn_opndv_num(const(JitInsn)* insn) {
+pragma(inline, true) uint jit_insn_opndv_num(const(JitInsn)* insn) {
     bh_assert(_jit_insn_check_opnd_access_VReg(insn, 0));
     return insn._opnd._opnd_VReg._reg_num;
 }
@@ -1048,7 +1048,7 @@ pragma(inline, true) private uint jit_insn_opndv_num(const(JitInsn)* insn) {
  *
  * @return pointer to the operand
  */
-pragma(inline, true) private JitOpndLookupSwitch* jit_insn_opndls(JitInsn* insn) {
+pragma(inline, true) JitOpndLookupSwitch* jit_insn_opndls(JitInsn* insn) {
     bh_assert(_jit_insn_check_opnd_access_LookupSwitch(insn));
     return &insn._opnd._opnd_LookupSwitch;
 }
@@ -1187,7 +1187,7 @@ void jit_basic_block_delete(JitBasicBlock* block);
  *
  * @return the label of the basic block
  */
-pragma(inline, true) private JitReg jit_basic_block_label(JitBasicBlock* block) {
+pragma(inline, true) JitReg jit_basic_block_label(JitBasicBlock* block) {
     return *(jit_insn_opndv(block, 0));
 }
 /**
@@ -1197,7 +1197,7 @@ pragma(inline, true) private JitReg jit_basic_block_label(JitBasicBlock* block) 
  *
  * @return the first instruction of the basic block
  */
-pragma(inline, true) private JitInsn* jit_basic_block_first_insn(JitBasicBlock* block) {
+pragma(inline, true) JitInsn* jit_basic_block_first_insn(JitBasicBlock* block) {
     return block.next;
 }
 /**
@@ -1218,7 +1218,7 @@ pragma(inline, true) private JitInsn* jit_basic_block_last_insn(JitBasicBlock* b
  *
  * @return the end of instruction list of the basic block
  */
-pragma(inline, true) private JitInsn* jit_basic_block_end_insn(JitBasicBlock* block) {
+pragma(inline, true) JitInsn* jit_basic_block_end_insn(JitBasicBlock* block) {
     return block;
 }
 /**
@@ -2277,23 +2277,23 @@ uint _reg_def_insn_enabled;/*: 1 !!*/
  * is enabled
  */
 /* Basic Block of a label.  */
-pragma(inline, true) private JitBasicBlock** jit_annl_basic_block(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_basic_block_enabled); return &cc._ann._label_basic_block[idx]; }
+pragma(inline, true) JitBasicBlock** jit_annl_basic_block(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_basic_block_enabled); return &cc._ann._label_basic_block[idx]; }
 /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
-pragma(inline, true) private ushort* jit_annl_pred_num(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_pred_num_enabled); return &cc._ann._label_pred_num[idx]; }
+pragma(inline, true) ushort* jit_annl_pred_num(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_pred_num_enabled); return &cc._ann._label_pred_num[idx]; }
 /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
-pragma(inline, true) private ushort* jit_annl_freq(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_freq_enabled); return &cc._ann._label_freq[idx]; }
+pragma(inline, true) ushort* jit_annl_freq(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_freq_enabled); return &cc._ann._label_freq[idx]; }
 /* Begin bytecode instruction pointer of the block.  */
-pragma(inline, true) private ubyte** jit_annl_begin_bcip(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_begin_bcip_enabled); return &cc._ann._label_begin_bcip[idx]; }
+pragma(inline, true) ubyte** jit_annl_begin_bcip(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_begin_bcip_enabled); return &cc._ann._label_begin_bcip[idx]; }
 /* End bytecode instruction pointer of the block.  */
-pragma(inline, true) private ubyte** jit_annl_end_bcip(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_end_bcip_enabled); return &cc._ann._label_end_bcip[idx]; }
+pragma(inline, true) ubyte** jit_annl_end_bcip(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_end_bcip_enabled); return &cc._ann._label_end_bcip[idx]; }
 /* Stack pointer offset at the end of the block.  */
-pragma(inline, true) private ushort* jit_annl_end_sp(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_end_sp_enabled); return &cc._ann._label_end_sp[idx]; }
+pragma(inline, true) ushort* jit_annl_end_sp(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_end_sp_enabled); return &cc._ann._label_end_sp[idx]; }
 /* The label of the next physically adjacent block.  */
-pragma(inline, true) private JitReg* jit_annl_next_label(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_next_label_enabled); return &cc._ann._label_next_label[idx]; }
+pragma(inline, true) JitReg* jit_annl_next_label(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_next_label_enabled); return &cc._ann._label_next_label[idx]; }
 /* Compiled code address of the block.  */
-pragma(inline, true) private void** jit_annl_jitted_addr(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_jitted_addr_enabled); return &cc._ann._label_jitted_addr[idx]; }
+pragma(inline, true) void** jit_annl_jitted_addr(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_jitted_addr_enabled); return &cc._ann._label_jitted_addr[idx]; }
 /**
  * @def ANN_INSN (TYPE, NAME)
  *
@@ -3079,23 +3079,23 @@ void jit_annr_disable_def_insn(JitCompContext* cc);
  * is enabled
  */
 /* Basic Block of a label.  */
-pragma(inline, true) private bool jit_annl_is_enabled_basic_block(JitCompContext* cc) { return !!cc._ann._label_basic_block_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_basic_block(JitCompContext* cc) { return !!cc._ann._label_basic_block_enabled; }
 /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
-pragma(inline, true) private bool jit_annl_is_enabled_pred_num(JitCompContext* cc) { return !!cc._ann._label_pred_num_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_pred_num(JitCompContext* cc) { return !!cc._ann._label_pred_num_enabled; }
 /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
-pragma(inline, true) private bool jit_annl_is_enabled_freq(JitCompContext* cc) { return !!cc._ann._label_freq_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_freq(JitCompContext* cc) { return !!cc._ann._label_freq_enabled; }
 /* Begin bytecode instruction pointer of the block.  */
-pragma(inline, true) private bool jit_annl_is_enabled_begin_bcip(JitCompContext* cc) { return !!cc._ann._label_begin_bcip_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_begin_bcip(JitCompContext* cc) { return !!cc._ann._label_begin_bcip_enabled; }
 /* End bytecode instruction pointer of the block.  */
-pragma(inline, true) private bool jit_annl_is_enabled_end_bcip(JitCompContext* cc) { return !!cc._ann._label_end_bcip_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_end_bcip(JitCompContext* cc) { return !!cc._ann._label_end_bcip_enabled; }
 /* Stack pointer offset at the end of the block.  */
-pragma(inline, true) private bool jit_annl_is_enabled_end_sp(JitCompContext* cc) { return !!cc._ann._label_end_sp_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_end_sp(JitCompContext* cc) { return !!cc._ann._label_end_sp_enabled; }
 /* The label of the next physically adjacent block.  */
-pragma(inline, true) private bool jit_annl_is_enabled_next_label(JitCompContext* cc) { return !!cc._ann._label_next_label_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_next_label(JitCompContext* cc) { return !!cc._ann._label_next_label_enabled; }
 /* Compiled code address of the block.  */
-pragma(inline, true) private bool jit_annl_is_enabled_jitted_addr(JitCompContext* cc) { return !!cc._ann._label_jitted_addr_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_jitted_addr(JitCompContext* cc) { return !!cc._ann._label_jitted_addr_enabled; }
 /**
  * @def ANN_INSN (TYPE, NAME)
  *
@@ -3274,7 +3274,7 @@ double jit_cc_get_const_F64(JitCompContext* cc, JitReg reg);
  *
  * @return the number of total created labels
  */
-pragma(inline, true) private uint jit_cc_label_num(JitCompContext* cc) {
+pragma(inline, true) uint jit_cc_label_num(JitCompContext* cc) {
     return cc._ann._label_num;
 }
 /**
@@ -3284,7 +3284,7 @@ pragma(inline, true) private uint jit_cc_label_num(JitCompContext* cc) {
  *
  * @return the number of total created instructions
  */
-pragma(inline, true) private uint jit_cc_insn_num(JitCompContext* cc) {
+pragma(inline, true) uint jit_cc_insn_num(JitCompContext* cc) {
     return cc._ann._insn_num;
 }
 /**
@@ -3295,7 +3295,7 @@ pragma(inline, true) private uint jit_cc_insn_num(JitCompContext* cc) {
  *
  * @return the number of total created registers
  */
-pragma(inline, true) private uint jit_cc_reg_num(JitCompContext* cc, uint kind) {
+pragma(inline, true) uint jit_cc_reg_num(JitCompContext* cc, uint kind) {
     bh_assert(kind < JIT_REG_KIND_L32);
     return cc._ann._reg_num[kind];
 }
@@ -3529,7 +3529,7 @@ pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_jitted(JitCompCont
  *
  * @return the entry block of the compilation context
  */
-pragma(inline, true) private JitBasicBlock* jit_cc_entry_basic_block(JitCompContext* cc) {
+pragma(inline, true) JitBasicBlock* jit_cc_entry_basic_block(JitCompContext* cc) {
     return *(jit_annl_basic_block(cc, cc.entry_label));
 }
 /**
@@ -3539,7 +3539,7 @@ pragma(inline, true) private JitBasicBlock* jit_cc_entry_basic_block(JitCompCont
  *
  * @return the exit block of the compilation context
  */
-pragma(inline, true) private JitBasicBlock* jit_cc_exit_basic_block(JitCompContext* cc) {
+pragma(inline, true) JitBasicBlock* jit_cc_exit_basic_block(JitCompContext* cc) {
     return *(jit_annl_basic_block(cc, cc.exit_label));
 }
 void jit_value_stack_push(JitValueStack* stack, JitValue* value);

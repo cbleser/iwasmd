@@ -6,9 +6,9 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
- 
+import tagion.iwasm.basic; 
 public import tagion.iwasm.interpreter.wasm;
-
+import tagion.iwasm.interpreter.wasm_runtime;
 
 struct WASMInterpFrame {
     /* The frame of the caller that are calling the current function. */
@@ -20,15 +20,15 @@ struct WASMInterpFrame {
     /* Instruction pointer of the bytecode array.  */
     ubyte* ip;
 
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
     ubyte* jitted_return_addr;
 }
 
-static if (WASM_ENABLE_PERF_PROFILING != 0) {
+static if (ver.WASM_ENABLE_PERF_PROFILING) {
     ulong time_started;
 }
 
-static if (WASM_ENABLE_FAST_INTERP != 0) {
+static if (ver.WASM_ENABLE_FAST_INTERP) {
     /* Return offset of the first return value of current frame,
        the callee will put return values here continuously */
     uint ret_offset;

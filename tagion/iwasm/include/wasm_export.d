@@ -9,7 +9,7 @@ extern(C): __gshared:
  
 public import core.stdc.stdint;
 public import tagion.iwasm.include.lib_export;
-
+import tagion.iwasm.common.wasm_runtime_common : WASMModuleCommon;
 
 /* clang-format off */
 
@@ -43,12 +43,10 @@ enum string native_raw_set_return(string val) = ` *raw_ret = (val)`;
  
 /* Uninstantiated WASM module loaded from WASM binary file
    or AoT binary file*/
-struct WASMModuleCommon;
 alias wasm_module_t = WASMModuleCommon*;
 
 
 /* Instantiated WASM module */
-struct WASMModuleInstanceCommon;;
 alias wasm_module_inst_t = WASMModuleInstanceCommon*;
 
 /* Function instance */
@@ -69,7 +67,6 @@ alias wasm_section_list_t = wasm_section_t*;
 alias aot_section_list_t = wasm_section_t*;
 
 /* Execution environment, e.g. stack info */
-struct WASMExecEnv;;
 alias wasm_exec_env_t = WASMExecEnv*;
 
 /* Package Type */
@@ -77,7 +74,8 @@ enum _Package_type_t {
     Wasm_Module_Bytecode = 0,
     Wasm_Module_AoT,
     Package_Type_Unknown = 0xFFFF
-}alias package_type_t = _Package_type_t;
+}
+alias package_type_t = _Package_type_t;
 
  
 /* Memory allocator type */
@@ -90,14 +88,16 @@ enum _Mem_alloc_type_t {
     /* system allocator mode, allocate memory from system allocator,
        or, platform's os_malloc function */
     Alloc_With_System_Allocator,
-}alias mem_alloc_type_t = _Mem_alloc_type_t;
+}
+alias mem_alloc_type_t = _Mem_alloc_type_t;
 
 /* Memory allocator option */
 union MemAllocOption {
     struct _Pool {
         void* heap_buf;
         uint heap_size;
-    }_Pool pool;
+    }
+_Pool pool;
     struct _Allocator {
         void* malloc_func;
         void* realloc_func;
@@ -105,7 +105,8 @@ union MemAllocOption {
         /* allocator user data, only used when
             WASM_MEM_ALLOC_WITH_USER_DATA is defined */
         void* user_data;
-    }_Allocator allocator;
+    }
+_Allocator allocator;
 }
 
 
@@ -161,15 +162,16 @@ alias WASM_FUNCREF = wasm_valkind_enum.WASM_FUNCREF;
  
 struct wasm_val_t {
     wasm_valkind_t kind;
-    union _Of {
+    union Of {
         /* also represent a function index */
         int i32;
         long i64;
-        float f32 = 0;
-        double f64 = 0;
+        float f32;
+        double f64;
         /* represent a foreign object, aka externref in .wat */
         uintptr_t foreign;
-    }_Of of;
+    }
+	Of of;
 }
 
 
@@ -373,11 +375,11 @@ char* wasm_runtime_get_module_hash(wasm_module_t module_);
  * Same as wasm_runtime_set_wasi_args_ex with stdinfd = -1, stdoutfd = -1,
  * stderrfd = -1.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_args(wasm_module_t module_, const(char)** dir_list, uint dir_count, const(char)** map_dir_list, uint map_dir_count, const(char)** env, uint env_count, char** argv, int argc);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_args(wasm_module_t module_, const(char)** dir_list, uint dir_count, const(char)** map_dir_list, uint map_dir_count, const(char)** env, uint env_count, char** argv, int argc);
 
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_addr_pool(wasm_module_t module_, const(char)** addr_pool, uint addr_pool_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_addr_pool(wasm_module_t module_, const(char)** addr_pool, uint addr_pool_size);
 
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_ns_lookup_pool(wasm_module_t module_, const(char)** ns_lookup_pool, uint ns_lookup_pool_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_ns_lookup_pool(wasm_module_t module_, const(char)** ns_lookup_pool, uint ns_lookup_pool_size);
 
 /**
  * Instantiate a WASM module.
@@ -398,14 +400,14 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_set_wasi_ns_lookup_pool(wasm_module_t modul
  *
  * @return return the instantiated WASM module instance, NULL if failed
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_instantiate(const(wasm_module_t) module_, uint stack_size, uint heap_size, char* error_buf, uint error_buf_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_instantiate(const(wasm_module_t) module_, uint stack_size, uint heap_size, char* error_buf, uint error_buf_size);
 
 /**
  * Deinstantiate a WASM module instance, destroy the resources.
  *
  * @param module_inst the WASM module instance to destroy
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_deinstantiate(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_deinstantiate(wasm_module_inst_t module_inst);
 
 /**
  * Get WASM module from WASM module instance
@@ -414,11 +416,11 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_deinstantiate(wasm_module_inst_t module_ins
  *
  * @return the WASM module
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_module(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_module(wasm_module_inst_t module_inst);
 
-WASM_RUNTIME_API_EXTERN wasm_runtime_is_wasi_mode(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_is_wasi_mode(wasm_module_inst_t module_inst);
 
-WASM_RUNTIME_API_EXTERN wasm_runtime_lookup_wasi_start_function(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_lookup_wasi_start_function(wasm_module_inst_t module_inst);
 
 /**
  * Get WASI exit code.
@@ -429,7 +431,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_lookup_wasi_start_function(wasm_module_inst
  *
  * @param module_inst the module instance
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_wasi_exit_code(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_wasi_exit_code(wasm_module_inst_t module_inst);
 
 /**
  * Lookup an exported function in the WASM module instance.
@@ -440,7 +442,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_wasi_exit_code(wasm_module_inst_t modul
  *
  * @return the function instance found, NULL if not found
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_lookup_function(const(wasm_module_inst_t) module_inst, const(char)* name, const(char)* signature);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_lookup_function(const(wasm_module_inst_t) module_inst, const(char)* name, const(char)* signature);
 
 /**
  * Get parameter count of the function instance
@@ -450,7 +452,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_lookup_function(const(wasm_module_inst_t) m
  *
  * @return the parameter count of the function instance
  */
-WASM_RUNTIME_API_EXTERN wasm_func_get_param_count(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_func_get_param_count(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst);
 
 /**
  * Get result count of the function instance
@@ -460,7 +462,7 @@ WASM_RUNTIME_API_EXTERN wasm_func_get_param_count(const(wasm_function_inst_t) fu
  *
  * @return the result count of the function instance
  */
-WASM_RUNTIME_API_EXTERN wasm_func_get_result_count(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_func_get_result_count(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst);
 
 /**
  * Get parameter types of the function instance
@@ -469,7 +471,7 @@ WASM_RUNTIME_API_EXTERN wasm_func_get_result_count(const(wasm_function_inst_t) f
  * @param module_inst the module instance the function instance belongs to
  * @param param_types the parameter types returned
  */
-WASM_RUNTIME_API_EXTERN wasm_func_get_param_types(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst, wasm_valkind_t* param_types);
+//WASM_RUNTIME_API_EXTERN wasm_func_get_param_types(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst, wasm_valkind_t* param_types);
 
 /**
  * Get result types of the function instance
@@ -478,7 +480,7 @@ WASM_RUNTIME_API_EXTERN wasm_func_get_param_types(const(wasm_function_inst_t) fu
  * @param module_inst the module instance the function instance belongs to
  * @param result_types the result types returned
  */
-WASM_RUNTIME_API_EXTERN wasm_func_get_result_types(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst, wasm_valkind_t* result_types);
+//WASM_RUNTIME_API_EXTERN wasm_func_get_result_types(const(wasm_function_inst_t) func_inst, const(wasm_module_inst_t) module_inst, wasm_valkind_t* result_types);
 
 /**
  * Create execution environment for a WASM module instance.
@@ -489,14 +491,14 @@ WASM_RUNTIME_API_EXTERN wasm_func_get_result_types(const(wasm_function_inst_t) f
  * @return the execution environment, NULL if failed, e.g. invalid
  *         stack size is passed
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_create_exec_env(wasm_module_inst_t module_inst, uint stack_size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_create_exec_env(wasm_module_inst_t module_inst, uint stack_size);
 
 /**
  * Destroy the execution environment.
  *
  * @param exec_env the execution environment to destroy
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_exec_env(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_exec_env(wasm_exec_env_t exec_env);
 
 /**
  * Get the singleton execution environment for the instance.
@@ -512,7 +514,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_exec_env(wasm_exec_env_t exec_env);
  *
  * @return exec_env the execution environment to destroy
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_exec_env_singleton(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_exec_env_singleton(wasm_module_inst_t module_inst);
 
 /**
  * Start debug instance based on given execution environment.
@@ -534,12 +536,12 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_exec_env_singleton(wasm_module_inst_t m
  *
  * @return debug port if success, 0 otherwise.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_start_debug_instance_with_port(wasm_exec_env_t exec_env, int port);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_start_debug_instance_with_port(wasm_exec_env_t exec_env, int port);
 
 /**
  * Same as wasm_runtime_start_debug_instance_with_port(env, -1).
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_start_debug_instance(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_start_debug_instance(wasm_exec_env_t exec_env);
 
 /**
  * Initialize the thread environment.
@@ -553,17 +555,17 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_start_debug_instance(wasm_exec_env_t exec_e
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_init_thread_env();
+//WASM_RUNTIME_API_EXTERN wasm_runtime_init_thread_env();
 
 /**
  * Destroy the thread environment
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_thread_env();
+//WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_thread_env();
 
 /**
  * Whether the thread environment is initialized
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_thread_env_inited();
+//WASM_RUNTIME_API_EXTERN wasm_runtime_thread_env_inited();
 
 /**
  * Get WASM module instance from execution environment
@@ -572,7 +574,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_thread_env_inited();
  *
  * @return the WASM module instance
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_module_inst(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_module_inst(wasm_exec_env_t exec_env);
 
 /**
  * Set WASM module instance of execution environment
@@ -585,7 +587,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_module_inst(wasm_exec_env_t exec_env);
  * @param exec_env the execution environment
  * @param module_inst the WASM module instance to set
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_module_inst(wasm_exec_env_t exec_env, const(wasm_module_inst_t) module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_module_inst(wasm_exec_env_t exec_env, const(wasm_module_inst_t) module_inst);
 
 /**
  * Call the given WASM function of a WASM module instance with
@@ -607,7 +609,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_set_module_inst(wasm_exec_env_t exec_env, c
  *   the caller can call wasm_runtime_get_exception to get the exception
  *   info.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm(wasm_exec_env_t exec_env, wasm_function_inst_t function_, uint argc, uint* argv);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm(wasm_exec_env_t exec_env, wasm_function_inst_t function_, uint argc, uint* argv);
 
 /**
  * Call the given WASM function of a WASM module instance with
@@ -625,7 +627,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm(wasm_exec_env_t exec_env, wasm_fu
  *   the caller can call wasm_runtime_get_exception to get the exception
  *   info.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm_a(wasm_exec_env_t exec_env, wasm_function_inst_t function_, uint num_results, wasm_val_t* results, uint num_args, wasm_val_t* args);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm_a(wasm_exec_env_t exec_env, wasm_function_inst_t function_, uint num_results, wasm_val_t* results, uint num_args, wasm_val_t* args);
 
 /**
  * Call the given WASM function of a WASM module instance with
@@ -643,7 +645,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm_a(wasm_exec_env_t exec_env, wasm_
  *   the caller can call wasm_runtime_get_exception to get the exception
  *   info.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm_v(wasm_exec_env_t exec_env, wasm_function_inst_t function_, uint num_results, wasm_val_t* results, uint num_args, ...);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm_v(wasm_exec_env_t exec_env, wasm_function_inst_t function_, uint num_results, wasm_val_t* results, uint num_args, ...);
 
 /**
  * Find the unique main function from a WASM module instance
@@ -659,7 +661,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_call_wasm_v(wasm_exec_env_t exec_env, wasm_
  *   will be thrown, the caller can call wasm_runtime_get_exception to get
  *   the exception info.
  */
-WASM_RUNTIME_API_EXTERN wasm_application_execute_main(wasm_module_inst_t module_inst, int argc, char** argv);
+//WASM_RUNTIME_API_EXTERN wasm_application_execute_main(wasm_module_inst_t module_inst, int argc, char** argv);
 
 /**
  * Find the specified function in argv[0] from a WASM module instance
@@ -676,7 +678,7 @@ WASM_RUNTIME_API_EXTERN wasm_application_execute_main(wasm_module_inst_t module_
  *   exception will be thrown, the caller can call wasm_runtime_get_exception
  *   to get the exception info.
  */
-WASM_RUNTIME_API_EXTERN wasm_application_execute_func(wasm_module_inst_t module_inst, const(char)* name, int argc, char** argv);
+//WASM_RUNTIME_API_EXTERN wasm_application_execute_func(wasm_module_inst_t module_inst, const(char)* name, int argc, char** argv);
 /**
  * Get exception info of the WASM module instance.
  *
@@ -684,7 +686,7 @@ WASM_RUNTIME_API_EXTERN wasm_application_execute_func(wasm_module_inst_t module_
  *
  * @return the exception string
  */
-const(WASM_RUNTIME_API_EXTERN)* wasm_runtime_get_exception(wasm_module_inst_t module_inst);
+//const(WASM_RUNTIME_API_EXTERN)* wasm_runtime_get_exception(wasm_module_inst_t module_inst);
 
 /**
  * Set exception info of the WASM module instance.
@@ -693,14 +695,14 @@ const(WASM_RUNTIME_API_EXTERN)* wasm_runtime_get_exception(wasm_module_inst_t mo
  *
  * @param exception the exception string
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_exception(wasm_module_inst_t module_inst, const(char)* exception);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_exception(wasm_module_inst_t module_inst, const(char)* exception);
 
 /**
  * Clear exception info of the WASM module instance.
  *
  * @param module_inst the WASM module instance
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_clear_exception(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_clear_exception(wasm_module_inst_t module_inst);
 
 /**
  * Set custom data to WASM module instance.
@@ -711,7 +713,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_clear_exception(wasm_module_inst_t module_i
  * @param module_inst the WASM module instance
  * @param custom_data the custom data to be set
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_custom_data(wasm_module_inst_t module_inst, void* custom_data);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_custom_data(wasm_module_inst_t module_inst, void* custom_data);
 /**
  * Get the custom data within a WASM module instance.
  *
@@ -719,7 +721,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_set_custom_data(wasm_module_inst_t module_i
  *
  * @return the custom data (NULL if not set yet)
  */
-WASM_RUNTIME_API_EXTERN* wasm_runtime_get_custom_data(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN* wasm_runtime_get_custom_data(wasm_module_inst_t module_inst);
 
 /**
  * Allocate memory from the heap of WASM module instance
@@ -740,7 +742,7 @@ WASM_RUNTIME_API_EXTERN* wasm_runtime_get_custom_data(wasm_module_inst_t module_
  *         it is not an absolute address.
  *         Return non-zero if success, zero if failed.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_module_malloc(wasm_module_inst_t module_inst, uint size, void** p_native_addr);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_module_malloc(wasm_module_inst_t module_inst, uint size, void** p_native_addr);
 
 /**
  * Free memory to the heap of WASM module instance
@@ -748,7 +750,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_module_malloc(wasm_module_inst_t module_ins
  * @param module_inst the WASM module instance which contains heap
  * @param ptr the pointer to free
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_module_free(wasm_module_inst_t module_inst, uint ptr);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_module_free(wasm_module_inst_t module_inst, uint ptr);
 
 /**
  * Allocate memory from the heap of WASM module instance and initialize
@@ -763,7 +765,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_module_free(wasm_module_inst_t module_inst,
  *         it is not an absolute address.
  *         Return non-zero if success, zero if failed.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_module_dup_data(wasm_module_inst_t module_inst, const(char)* src, uint size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_module_dup_data(wasm_module_inst_t module_inst, const(char)* src, uint size);
 
 /**
  * Validate the app address, check whether it belongs to WASM module
@@ -776,7 +778,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_module_dup_data(wasm_module_inst_t module_i
  * @return true if success, false otherwise. If failed, an exception will
  *         be thrown.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_validate_app_addr(wasm_module_inst_t module_inst, uint app_offset, uint size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_validate_app_addr(wasm_module_inst_t module_inst, uint app_offset, uint size);
 
 /**
  * Similar to wasm_runtime_validate_app_addr(), except that the size parameter
@@ -796,7 +798,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_validate_app_addr(wasm_module_inst_t module
  * @return true if success, false otherwise. If failed, an exception will
  *         be thrown.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_validate_app_str_addr(wasm_module_inst_t module_inst, uint app_str_offset);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_validate_app_str_addr(wasm_module_inst_t module_inst, uint app_str_offset);
 
 /**
  * Validate the native address, check whether it belongs to WASM module
@@ -810,7 +812,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_validate_app_str_addr(wasm_module_inst_t mo
  * @return true if success, false otherwise. If failed, an exception will
  *         be thrown.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_validate_native_addr(wasm_module_inst_t module_inst, void* native_ptr, uint size);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_validate_native_addr(wasm_module_inst_t module_inst, void* native_ptr, uint size);
 
 /**
  * Convert app address(relative address) to native address(absolute address)
@@ -824,7 +826,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_validate_native_addr(wasm_module_inst_t mod
  *
  * @return the native address converted
  */
-WASM_RUNTIME_API_EXTERN* wasm_runtime_addr_app_to_native(wasm_module_inst_t module_inst, uint app_offset);
+//WASM_RUNTIME_API_EXTERN* wasm_runtime_addr_app_to_native(wasm_module_inst_t module_inst, uint app_offset);
 
 /**
  * Convert native address(absolute address) to app address(relative address)
@@ -834,7 +836,7 @@ WASM_RUNTIME_API_EXTERN* wasm_runtime_addr_app_to_native(wasm_module_inst_t modu
  *
  * @return the app address converted
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_addr_native_to_app(wasm_module_inst_t module_inst, void* native_ptr);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_addr_native_to_app(wasm_module_inst_t module_inst, void* native_ptr);
 
 /**
  * Get the app address range (relative address) that a app address belongs to
@@ -846,7 +848,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_addr_native_to_app(wasm_module_inst_t modul
  *
  * @return true if success, false otherwise.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_app_addr_range(wasm_module_inst_t module_inst, uint app_offset, uint* p_app_start_offset, uint* p_app_end_offset);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_app_addr_range(wasm_module_inst_t module_inst, uint app_offset, uint* p_app_start_offset, uint* p_app_end_offset);
 
 /**
  * Get the native address range (absolute address) that a native address
@@ -861,7 +863,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_app_addr_range(wasm_module_inst_t modul
  *
  * @return true if success, false otherwise.
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_native_addr_range(wasm_module_inst_t module_inst, ubyte* native_ptr, ubyte** p_native_start_addr, ubyte** p_native_end_addr);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_native_addr_range(wasm_module_inst_t module_inst, ubyte* native_ptr, ubyte** p_native_start_addr, ubyte** p_native_end_addr);
 
 /**
  * Register native functions with same module name
@@ -896,7 +898,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_native_addr_range(wasm_module_inst_t mo
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_register_natives(const(char)* module_name, NativeSymbol* native_symbols, uint n_native_symbols);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_register_natives(const(char)* module_name, NativeSymbol* native_symbols, uint n_native_symbols);
 
 /**
  * Register native functions with same module name, similar to
@@ -908,7 +910,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_register_natives(const(char)* module_name, 
  * and write the return value back to args[0] with macro
  *   native_raw_return_type and native_raw_set_return
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_register_natives_raw(const(char)* module_name, NativeSymbol* native_symbols, uint n_native_symbols);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_register_natives_raw(const(char)* module_name, NativeSymbol* native_symbols, uint n_native_symbols);
 
 
 /**
@@ -924,7 +926,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_register_natives_raw(const(char)* module_na
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_unregister_natives(const(char)* module_name, NativeSymbol* native_symbols);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_unregister_natives(const(char)* module_name, NativeSymbol* native_symbols);
 
 /**
  * Get attachment of native function from execution environment
@@ -933,7 +935,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_unregister_natives(const(char)* module_name
  *
  * @return the attachment of native function
  */
-WASM_RUNTIME_API_EXTERN* wasm_runtime_get_function_attachment(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN* wasm_runtime_get_function_attachment(wasm_exec_env_t exec_env);
 
 /**
  * Set user data to execution environment.
@@ -941,7 +943,7 @@ WASM_RUNTIME_API_EXTERN* wasm_runtime_get_function_attachment(wasm_exec_env_t ex
  * @param exec_env the execution environment
  * @param user_data the user data to be set
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_user_data(wasm_exec_env_t exec_env, void* user_data);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_user_data(wasm_exec_env_t exec_env, void* user_data);
 
 /**
  * Get the user data within execution environment.
@@ -950,7 +952,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_set_user_data(wasm_exec_env_t exec_env, voi
  *
  * @return the user data (NULL if not set yet)
  */
-WASM_RUNTIME_API_EXTERN* wasm_runtime_get_user_data(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN* wasm_runtime_get_user_data(wasm_exec_env_t exec_env);
 
 /**
  * Dump runtime memory consumption, including:
@@ -961,14 +963,14 @@ WASM_RUNTIME_API_EXTERN* wasm_runtime_get_user_data(wasm_exec_env_t exec_env);
  *
  * @param exec_env the execution environment
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_dump_mem_consumption(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_dump_mem_consumption(wasm_exec_env_t exec_env);
 
 /**
  * Dump runtime performance profiler data of each function
  *
  * @param module_inst the WASM module instance to profile
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_dump_perf_profiling(wasm_module_inst_t module_inst);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_dump_perf_profiling(wasm_module_inst_t module_inst);
 
 /* wasm thread callback function type */
 alias wasm_thread_callback_t = void* function(wasm_exec_env_t, void*);
@@ -980,7 +982,7 @@ alias wasm_thread_t = uintptr_t;
  *
  * @param num maximum thread num
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_set_max_thread_num(uint num);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_set_max_thread_num(uint num);
 
 /**
  * Spawn a new exec_env, the spawned exec_env
@@ -990,14 +992,14 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_set_max_thread_num(uint num);
  *
  * @return the spawned exec_env if success, NULL otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_spawn_exec_env(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_spawn_exec_env(wasm_exec_env_t exec_env);
 
 /**
  * Destroy the spawned exec_env
  *
  * @param exec_env the spawned exec_env
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_spawned_exec_env(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_spawned_exec_env(wasm_exec_env_t exec_env);
 
 /**
  * Spawn a thread from the given exec_env
@@ -1009,7 +1011,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_destroy_spawned_exec_env(wasm_exec_env_t ex
  *
  * @return 0 if success, -1 otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_spawn_thread(wasm_exec_env_t exec_env, wasm_thread_t* tid, wasm_thread_callback_t callback, void* arg);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_spawn_thread(wasm_exec_env_t exec_env, wasm_thread_t* tid, wasm_thread_callback_t callback, void* arg);
 
 /**
  * Wait a spawned thread to terminate
@@ -1019,7 +1021,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_spawn_thread(wasm_exec_env_t exec_env, wasm
  *
  * @return 0 if success, error number otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_join_thread(wasm_thread_t tid, void** retval);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_join_thread(wasm_thread_t tid, void** retval);
 
 /**
  * Map external object to an internal externref index: if the index
@@ -1032,7 +1034,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_join_thread(wasm_thread_t tid, void** retva
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_externref_obj2ref(wasm_module_inst_t module_inst, void* extern_obj, uint* p_externref_idx);
+//WASM_RUNTIME_API_EXTERN wasm_externref_obj2ref(wasm_module_inst_t module_inst, void* extern_obj, uint* p_externref_idx);
 
 /**
  * Retrieve the external object from an internal externref index
@@ -1043,7 +1045,7 @@ WASM_RUNTIME_API_EXTERN wasm_externref_obj2ref(wasm_module_inst_t module_inst, v
  *
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_externref_ref2obj(uint externref_idx, void** p_extern_obj);
+//WASM_RUNTIME_API_EXTERN wasm_externref_ref2obj(uint externref_idx, void** p_extern_obj);
 
 /**
  * Retain an extern object which is mapped to the internal externref
@@ -1054,14 +1056,14 @@ WASM_RUNTIME_API_EXTERN wasm_externref_ref2obj(uint externref_idx, void** p_exte
  *        to retain
  * @return true if success, false otherwise
  */
-WASM_RUNTIME_API_EXTERN wasm_externref_retain(uint externref_idx);
+//WASM_RUNTIME_API_EXTERN wasm_externref_retain(uint externref_idx);
 
 /**
  * Dump the call stack to stdout
  *
  * @param exec_env the execution environment
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_dump_call_stack(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_dump_call_stack(wasm_exec_env_t exec_env);
 
 /**
  * Get the size required to store the call stack contents, including
@@ -1071,7 +1073,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_dump_call_stack(wasm_exec_env_t exec_env);
  *
  * @return size required to store the contents, 0 means error
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_call_stack_buf_size(wasm_exec_env_t exec_env);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_call_stack_buf_size(wasm_exec_env_t exec_env);
 
 /**
  * Dump the call stack to buffer.
@@ -1086,7 +1088,7 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_get_call_stack_buf_size(wasm_exec_env_t exe
  * @return bytes dumped to the buffer, including the terminating null
  *         byte ('\0'), 0 means error and data in buf may be invalid
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_dump_call_stack_to_buf(wasm_exec_env_t exec_env, char* buf, uint len);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_dump_call_stack_to_buf(wasm_exec_env_t exec_env, char* buf, uint len);
 
 /**
  * Get a custom section by name
@@ -1098,12 +1100,12 @@ WASM_RUNTIME_API_EXTERN wasm_runtime_dump_call_stack_to_buf(wasm_exec_env_t exec
  * @return Custom section content (not including the name length
  *         and name string) if found, NULL otherwise
  */
-const(WASM_RUNTIME_API_EXTERN)* wasm_runtime_get_custom_section(const(wasm_module_t) module_comm, const(char)* name, uint* len);
+//const(WASM_RUNTIME_API_EXTERN)* wasm_runtime_get_custom_section(const(wasm_module_t) module_comm, const(char)* name, uint* len);
 
 
 /**
  * Get WAMR semantic version
  */
-WASM_RUNTIME_API_EXTERN wasm_runtime_get_version(uint* major, uint* minor, uint* patch);
+//WASM_RUNTIME_API_EXTERN wasm_runtime_get_version(uint* major, uint* minor, uint* patch);
 /* clang-format on */
 

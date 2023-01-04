@@ -9,10 +9,11 @@ private template HasVersion(string versionId) {
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic : os_printf;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_codegen;
-
+import tagion.iwasm.fast_jit.jit_ir;
+//import tagion.iwasm.share.utils.bh_assert;
 void jit_dump_reg(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
@@ -61,7 +62,7 @@ void jit_dump_reg(JitCompContext* cc, JitReg reg) {
             break;
 
         default:
-            bh_assert(!"Unsupported register kind.");
+            bh_assert!("Unsupported register kind.");
     }
 }
 
@@ -95,7 +96,7 @@ private void jit_dump_insn_LookupSwitch(JitCompContext* cc, JitInsn* insn, uint 
 
     os_printf(" ");
     jit_dump_reg(cc, opnd.value);
-    os_printf("\n%16s: ", "default");
+    os_printf("\n%16s: ", "default".ptr);
     jit_dump_reg(cc, opnd.default_target);
     os_printf("\n");
 
@@ -135,12 +136,13 @@ void jit_dump_basic_block(JitCompContext* cc, JitBasicBlock* block) {
     jit_dump_reg(cc, label);
     os_printf(":\n    ; PREDS(");
 
-    JIT_REG_VEC_FOREACH(preds, (i, reg)
+    //JIT_REG_VEC_FOREACH(preds, (i, reg)
+    for (i = 0, reg = preds._base; i < preds.num; i++, reg += preds._stride)
     {
         if (i > 0)
             os_printf(" ");
         jit_dump_reg(cc, *reg);
-    });
+    }
 
     os_printf(")\n    ;");
 
@@ -180,18 +182,23 @@ void jit_dump_basic_block(JitCompContext* cc, JitBasicBlock* block) {
     }
     else {
         /* Dump IR.  */
-        JIT_FOREACH_INSN(block, insn); jit_dump_insn(cc, insn);
-    }
+        //JIT_FOREACH_INSN(block, insn); jit_dump_insn(cc, insn);
+        for (insn = jit_basic_block_first_insn(block); insn	 != jit_basic_block_end_insn(block); 
+         insn = insn.next) {
+jit_dump_insn(cc, insn);
+		}
+}
 
     os_printf("    ; SUCCS(");
 
-    JIT_REG_VEC_FOREACH(succs,  (i, reg)
+    //JIT_REG_VEC_FOREACH(succs,  (i, reg)
+    for (i = 0, reg = succs._base; i < succs.num; i++, reg += succs._stride)
     {
         if (i > 0) {
             os_printf(" ");
 		}
         jit_dump_reg(cc, *reg);
-    });
+    }
 
     os_printf(")\n\n");
 }
@@ -283,11 +290,14 @@ pragma(msg, "	public import jit_ir.def");
         jit_dump_basic_block(cc, jit_cc_entry_basic_block(cc));
 
 //        JIT_FOREACH_BLOCK(cc, i, end, block) jit_dump_basic_block(cc, block);
-        JIT_FOREACH_BLOCK(cc, end, 
-		(cc, block) =>jit_dump_basic_block(cc, block));
+     for (i = 2, end = cc._ann._label_num; i < end; i++) { 
+        if ((block = cc._ann._label_basic_block[i]) !is null) {
+		jit_dump_basic_block(cc, block);
+        
+		}
+		}
 
-        jit_dump_basic_block(cc, jit_cc_exit_basic_block(cc));
-    }
+   }
 }
 
 void jit_dump_cc(JitCompContext* cc) {

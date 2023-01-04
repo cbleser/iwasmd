@@ -5,6 +5,7 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.basic;
 
 public import tagion.iwasm.common.wasm_runtime_common;
 public import tagion.iwasm.interpreter.wasm_runtime;
@@ -29,7 +30,7 @@ private Memory_Mode memory_mode = MEMORY_MODE_UNKNOWN;
 
 private mem_allocator_t pool_allocator = null;
 
-static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
+static if (ver.WASM_MEM_ALLOC_WITH_USER_DATA) {
 private void* allocator_user_data = null;
 private void* function(void* user_data, uint size) malloc_func = null;
 private void* function(void* user_data, void* ptr, uint size) realloc_func = null;
@@ -55,7 +56,7 @@ private bool wasm_memory_init_with_pool(void* mem, uint bytes) {
     return false;
 }
 
-static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
+static if (ver.WASM_MEM_ALLOC_WITH_USER_DATA) {
 private bool wasm_memory_init_with_allocator(void* _user_data, void* _malloc_func, void* _realloc_func, void* _free_func) {
     if (_malloc_func && _free_func && _malloc_func != _free_func) {
         memory_mode = MEMORY_MODE_ALLOCATOR;
@@ -90,7 +91,7 @@ bool wasm_runtime_memory_init(mem_alloc_type_t mem_alloc_type, const(MemAllocOpt
                                           alloc_option.pool.heap_size);
     }
     else if (mem_alloc_type == Alloc_With_Allocator) {
-static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
+static if (ver.WASM_MEM_ALLOC_WITH_USER_DATA) {
         return wasm_memory_init_with_allocator(
             alloc_option.allocator.user_data,
             alloc_option.allocator.malloc_func,
@@ -144,7 +145,7 @@ pragma(inline, true) private void* wasm_runtime_malloc_internal(uint size) {
         return mem_allocator_malloc(pool_allocator, size);
     }
     else if (memory_mode == MEMORY_MODE_ALLOCATOR) {
-static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
+static if (ver.WASM_MEM_ALLOC_WITH_USER_DATA) {
         return malloc_func(allocator_user_data, size);
 } else {
         return malloc_func(size);
@@ -166,7 +167,7 @@ private void* wasm_runtime_realloc_internal(void* ptr, uint size) {
     }
     if (memory_mode == MEMORY_MODE_ALLOCATOR) {
         if (realloc_func) {
-static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
+static if (ver.WASM_MEM_ALLOC_WITH_USER_DATA) {
             return realloc_func(allocator_user_data, ptr, size);
 } else {
             return realloc_func(ptr, size);
@@ -196,7 +197,7 @@ static if (BH_ENABLE_GC_VERIFY != 0) {
         mem_allocator_free(pool_allocator, ptr);
     }
     else if (memory_mode == MEMORY_MODE_ALLOCATOR) {
-static if (WASM_MEM_ALLOC_WITH_USER_DATA != 0) {
+static if (ver.WASM_MEM_ALLOC_WITH_USER_DATA) {
         free_func(allocator_user_data, ptr);
 } else {
         free_func(ptr);
@@ -495,7 +496,7 @@ bool wasm_enlarge_memory(WASMModuleInstance* module_, uint inc_page_count) {
         total_size_new = UINT32_MAX;
     }
 
-static if (WASM_ENABLE_SHARED_MEMORY != 0) {
+static if (ver.WASM_ENABLE_SHARED_MEMORY) {
     if (memory.is_shared) {
         memory.num_bytes_per_page = num_bytes_per_page;
         memory.cur_page_count = total_page_count;
@@ -552,7 +553,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
     memory.memory_data = memory_data_new;
     memory.memory_data_end = memory_data_new + cast(uint)total_size_new;
 
-static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 || WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_AOT) {
 static if (UINTPTR_MAX == UINT64_MAX) {
     memory.mem_bound_check_1byte.u64 = total_size_new - 1;
     memory.mem_bound_check_2bytes.u64 = total_size_new - 2;
@@ -632,7 +633,7 @@ version (BH_PLATFORM_WINDOWS) {
     memory.memory_data_size = cast(uint)total_size_new;
     memory.memory_data_end = memory.memory_data + cast(uint)total_size_new;
 
-static if (WASM_ENABLE_FAST_JIT != 0 || WASM_ENABLE_JIT != 0 || WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_AOT) {
     memory.mem_bound_check_1byte.u64 = total_size_new - 1;
     memory.mem_bound_check_2bytes.u64 = total_size_new - 2;
     memory.mem_bound_check_4bytes.u64 = total_size_new - 4;

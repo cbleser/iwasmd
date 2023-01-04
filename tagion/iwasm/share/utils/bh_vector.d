@@ -1,4 +1,4 @@
-module bh_vector;
+module tagion.iwasm.share.utils.bh_vector;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,14 +6,9 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-#ifndef _WASM_VECTOR_H
-version = _WASM_VECTOR_H;
 
-public import bh_platform;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
 
-#ifdef __cplusplus
-extern "C" {
-//! #endif
 
 enum DEFAULT_VECTOR_INIT_SIZE = 8;
 
@@ -113,9 +108,6 @@ size_t bh_vector_size(const(Vector)* vector);
  */
 bool bh_vector_destroy(Vector* vector);
 
-version (none) {
-}
-}
 
 //! #endif /* endof _WASM_VECTOR_H */
 /*
@@ -123,7 +115,7 @@ version (none) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_vector;
+public import tagion.iwasm.share.utils.bh_vector;
 
 private ubyte* alloc_vector_data(size_t length, size_t size_elem) {
     ulong total_size = (cast(ulong)size_elem) * length;
@@ -158,8 +150,8 @@ private bool extend_vector(Vector* vector, size_t length) {
         return false;
     }
 
-    bh_memcpy_s(data, (uint32)(vector.size_elem * length), vector.data,
-                (uint32)(vector.size_elem * vector.max_elems));
+    bh_memcpy_s(data, cast(uint)(vector.size_elem * length), vector.data,
+                cast(uint)(vector.size_elem * vector.max_elems));
     BH_FREE(vector.data);
 
     vector.data = data;

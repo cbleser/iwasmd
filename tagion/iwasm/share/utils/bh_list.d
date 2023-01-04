@@ -1,4 +1,4 @@
-module tagion.iwasm.shared.utils.bh_list;
+module tagion.iwasm.share.utils.bh_list;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,14 +6,8 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-#ifndef _BH_LIST_H
-version = _BH_LIST_H;
-
-#ifdef __cplusplus
-extern "C" {
-//! #endif
-
-public import bh_platform;
+import tagion.iwasm.basic;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
 
 /* List user should embedded bh_list_link into list elem data structure
  * definition. And bh_list_link data field should be the first field.
@@ -102,19 +96,13 @@ void* bh_list_first_elem(bh_list* list);
  */
 void* bh_list_elem_next(void* node);
 
-version (none) {
-}
-}
-
 //! #endif /* #ifndef _BH_LIST_H */
 /*
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import bh_list;
-
-static if (BH_DEBUG != 0) {
+static if (ver.BH_DEBUG) {
 /**
  * Test whehter a pointer value has exist in given list.
  *
@@ -189,7 +177,7 @@ void* bh_list_elem_next(void* node) {
     return (node ? (cast(bh_list_link*)node).next : null);
 }
 
-static if (BH_DEBUG != 0) {
+static if (ver.BH_DEBUG) {
 private bool bh_list_is_elem_exist(bh_list* list, void* elem) {
     bh_list_link* p = null;
 

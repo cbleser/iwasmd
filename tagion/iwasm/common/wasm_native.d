@@ -10,6 +10,7 @@ import core.stdc.config: c_long, c_ulong;
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.basic;
 
 public import tagion.iwasm.common.wasm_runtime_common;
 public import tagion.iwasm.share.utils.bh_log;
@@ -32,7 +33,7 @@ private NativeSymbolsList g_native_symbols_list = null;
 
 uint get_libc_builtin_export_apis(NativeSymbol** p_libc_builtin_apis);
 
-static if (WASM_ENABLE_SPEC_TEST != 0) {
+static if (ver.WASM_ENABLE_SPEC_TEST) {
 uint get_spectest_export_apis(NativeSymbol** p_libc_builtin_apis);
 }
 
@@ -44,7 +45,7 @@ uint get_base_lib_export_apis(NativeSymbol** p_base_lib_apis);
 
 uint get_ext_lib_export_apis(NativeSymbol** p_ext_lib_apis);
 
-static if (WASM_ENABLE_LIB_PTHREAD != 0) {
+static if (ver.WASM_ENABLE_LIB_PTHREAD) {
 bool lib_pthread_init();
 
 void lib_pthread_destroy();
@@ -64,7 +65,7 @@ private bool compare_type_with_signautre(ubyte type, const(char) signature) {
         return true;
     }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     if ('r' == signature && type == VALUE_TYPE_EXTERNREF)
         return true;
 }
@@ -282,7 +283,7 @@ static if (ENABLE_SORT_DEBUG != 0) {
 
     if (((node = wasm_runtime_malloc(NativeSymbolsNode.sizeof)) == 0))
         return false;
-static if (WASM_ENABLE_MEMORY_TRACING != 0) {
+static if (ver.WASM_ENABLE_MEMORY_TRACING) {
     os_printf("Register native, size: %u\n", NativeSymbolsNode.sizeof);
 }
 
@@ -343,16 +344,16 @@ bool wasm_native_unregister_natives(const(char)* module_name, NativeSymbol* nati
 }
 
 bool wasm_native_init() {
-static if (WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     
-    || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      
-    || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        
-    || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 
-    || WASM_ENABLE_LIB_PTHREAD != 0) {
+static if (ver.WASM_ENABLE_SPEC_TEST || ver.WASM_ENABLE_LIBC_BUILTIN     
+    || ver.WASM_ENABLE_BASE_LIB || ver.WASM_ENABLE_LIBC_EMCC      
+    || ver.WASM_ENABLE_LIB_RATS || ver.WASM_ENABLE_WASI_NN        
+    || ver.WASM_ENABLE_APP_FRAMEWORK || ver.WASM_ENABLE_LIBC_WASI 
+    || ver.WASM_ENABLE_LIB_PTHREAD) {
     NativeSymbol* native_symbols = void;
     uint n_native_symbols = void;
 }
 
-static if (WASM_ENABLE_LIBC_BUILTIN != 0) {
+static if (ver.WASM_ENABLE_LIBC_BUILTIN) {
     n_native_symbols = get_libc_builtin_export_apis(&native_symbols);
     if (!wasm_native_register_natives("env", native_symbols, n_native_symbols))
         goto fail;
@@ -365,7 +366,7 @@ static if (WASM_ENABLE_SPEC_TEST) {
         goto fail;
 } /* WASM_ENABLE_SPEC_TEST */
 
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (ver.WASM_ENABLE_LIBC_WASI) {
     n_native_symbols = get_libc_wasi_export_apis(&native_symbols);
     if (!wasm_native_register_natives("wasi_unstable", native_symbols,
                                       n_native_symbols))
@@ -375,7 +376,7 @@ static if (WASM_ENABLE_LIBC_WASI != 0) {
         goto fail;
 }
 
-static if (WASM_ENABLE_BASE_LIB != 0) {
+static if (ver.WASM_ENABLE_BASE_LIB) {
     n_native_symbols = get_base_lib_export_apis(&native_symbols);
     if (n_native_symbols > 0
         && !wasm_native_register_natives("env", native_symbols,
@@ -383,7 +384,7 @@ static if (WASM_ENABLE_BASE_LIB != 0) {
         goto fail;
 }
 
-static if (WASM_ENABLE_APP_FRAMEWORK != 0) {
+static if (ver.WASM_ENABLE_APP_FRAMEWORK) {
     n_native_symbols = get_ext_lib_export_apis(&native_symbols);
     if (n_native_symbols > 0
         && !wasm_native_register_natives("env", native_symbols,
@@ -391,7 +392,7 @@ static if (WASM_ENABLE_APP_FRAMEWORK != 0) {
         goto fail;
 }
 
-static if (WASM_ENABLE_LIB_PTHREAD != 0) {
+static if (ver.WASM_ENABLE_LIB_PTHREAD) {
     if (!lib_pthread_init())
         goto fail;
 
@@ -402,7 +403,7 @@ static if (WASM_ENABLE_LIB_PTHREAD != 0) {
         goto fail;
 }
 
-static if (WASM_ENABLE_LIBC_EMCC != 0) {
+static if (ver.WASM_ENABLE_LIBC_EMCC) {
     n_native_symbols = get_libc_emcc_export_apis(&native_symbols);
     if (n_native_symbols > 0
         && !wasm_native_register_natives("env", native_symbols,
@@ -410,7 +411,7 @@ static if (WASM_ENABLE_LIBC_EMCC != 0) {
         goto fail;
 } /* WASM_ENABLE_LIBC_EMCC */
 
-static if (WASM_ENABLE_LIB_RATS != 0) {
+static if (ver.WASM_ENABLE_LIB_RATS) {
     n_native_symbols = get_lib_rats_export_apis(&native_symbols);
     if (n_native_symbols > 0
         && !wasm_native_register_natives("env", native_symbols,
@@ -418,7 +419,7 @@ static if (WASM_ENABLE_LIB_RATS != 0) {
         goto fail;
 } /* WASM_ENABLE_LIB_RATS */
 
-static if (WASM_ENABLE_WASI_NN != 0) {
+static if (ver.WASM_ENABLE_WASI_NN) {
     n_native_symbols = get_wasi_nn_export_apis(&native_symbols);
     if (!wasm_native_register_natives("wasi_nn", native_symbols,
                                       n_native_symbols))
@@ -426,11 +427,11 @@ static if (WASM_ENABLE_WASI_NN != 0) {
 }
 
     return true;
-static if (WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     
-    || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      
-    || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        
-    || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 
-    || WASM_ENABLE_LIB_PTHREAD != 0) {
+static if (ver.WASM_ENABLE_SPEC_TEST || ver.WASM_ENABLE_LIBC_BUILTIN     
+    || ver.WASM_ENABLE_BASE_LIB || ver.WASM_ENABLE_LIBC_EMCC      
+    || ver.WASM_ENABLE_LIB_RATS || ver.WASM_ENABLE_WASI_NN        
+    || ver.WASM_ENABLE_APP_FRAMEWORK || ver.WASM_ENABLE_LIBC_WASI 
+    || ver.WASM_ENABLE_LIB_PTHREAD) {
 fail:
     wasm_native_destroy();
     return false;
@@ -440,7 +441,7 @@ fail:
 void wasm_native_destroy() {
     NativeSymbolsNode* node = void, node_next = void;
 
-static if (WASM_ENABLE_LIB_PTHREAD != 0) {
+static if (ver.WASM_ENABLE_LIB_PTHREAD) {
     lib_pthread_destroy();
 }
 

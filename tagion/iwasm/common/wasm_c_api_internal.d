@@ -8,7 +8,7 @@ extern(C): __gshared:
 
 public import tagion.iwasm.include.wasm_c_api;
 public import tagion.iwasm.common.wasm_runtime_common;
-
+import tagion.iwasm.share.utils.bh_vector;
  
 
 
@@ -30,6 +30,13 @@ struct wasm_engine_t {
     /* list of stores which are classified according to tids */
     Vector stores_by_tid;
 };
+
+import tagion.iwasm.common.wasm_c_api : WASM_DECLARE_VEC;
+alias Module=void; /// Dummy type for now
+alias wasm_module_vec_t = WASM_DECLARE_VEC!(Module);
+
+alias Instance=void; /// Dummy type for now
+alias wasm_instance_vec_t = WASM_DECLARE_VEC!(Instance);
 
 struct wasm_store_t {
     /* maybe should remove the list */
@@ -101,7 +108,7 @@ struct wasm_host_info {
 
 struct wasm_ref_t {
     wasm_store_t *store;
-    enum wasm_reference_kind kind;
+    wasm_reference_kind kind;
     wasm_host_info host_info;
     uint32 ref_idx_rt;
     WASMModuleInstanceCommon *inst_comm_rt;
@@ -114,7 +121,7 @@ struct wasm_trap_t {
 
 struct wasm_foreign_t {
     wasm_store_t *store;
-    enum wasm_reference_kind kind;
+    wasm_reference_kind kind;
     wasm_host_info host_info;
     int32 ref_cnt;
     uint32 foreign_idx_rt;

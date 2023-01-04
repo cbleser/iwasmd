@@ -9,11 +9,12 @@ private template HasVersion(string versionId) {
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 import tagion.iwasm.app_framework.base.app.bh_platform;
 import tagion.iwasm.share.utils.bh_common;
 import tagion.iwasm.share.utils.bh_assert;
 import tagion.iwasm.share.utils.bh_log;
+import tagion.iwasm.share.utils.bh_list;
 import tagion.iwasm.common.wasm_memory;
 version (WASM_ENABLE_INTERP) {
 import tagion.iwasm.interpreter.wasm_runtime;
@@ -36,7 +37,7 @@ import wasm_shared_memory;
 version (WASM_ENABLE_FAST_JIT ) {
 import tagion.iwasm.fast_jit.jit_compiler;
 }
-static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
+static if (ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_WAMR_COMPILER) {
 import tagion.iwasm.compilation.aot_llvm;
 }
 import tagion.iwasm.common.wasm_c_api_internal;
@@ -49,13 +50,13 @@ bool CHECK(string a) {
 	import std.format;
 	mixin(format(q{return SHOULD_BE_%s}, a));
 }
-enum string CHECK1(string a) = ` SHOULD_BE_##a`;
+//enum string CHECK1(string a) = ` SHOULD_BE_##a`;
 
 enum SHOULD_BE_wasm_runtime_malloc = 1;
-static assert(CHECK!"BH_MALLOC");
+//static assert(CHECK!"BH_MALLOC");
 enum SHOULD_BE_wasm_runtime_free = 1;
-static assert (!CHECK!"BH_FREE");
-//static if (WASM_ENABLE_MULTI_MODULE != 0) {
+//static assert (!CHECK!"BH_FREE");
+//static if (ver.WASM_ENABLE_MULTI_MODULE) {
 /**
  * A safety insurance to prevent
  * circular depencies which leads stack overflow
@@ -113,7 +114,7 @@ private void* runtime_malloc(ulong size, WASMModuleInstanceCommon* module_inst, 
     return mem;
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
 private JitCompOptions jit_options = { 0 };
 }
 
@@ -315,7 +316,7 @@ static if (WASM_ENABLE_SHARED_MEMORY) {
     }
 }
 
-static if ((WASM_ENABLE_WAMR_COMPILER == 0) && (WASM_ENABLE_THREAD_MGR != 0)) {
+static if ((WASM_ENABLE_WAMR_COMPILER == 0) && (ver.WASM_ENABLE_THREAD_MGR)) {
     if (!thread_manager_init()) {
         goto fail5;
     }
@@ -327,27 +328,27 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
-static if (WASM_ENABLE_DEBUG_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
+static if (ver.WASM_ENABLE_DEBUG_AOT) {
     if (!jit_debug_engine_init()) {
         goto fail7;
     }
 }
 }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     if (!wasm_externref_map_init()) {
         goto fail8;
     }
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
     if (!jit_compiler_init(&jit_options)) {
         goto fail9;
     }
 }
 
-static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
+static if (ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_WAMR_COMPILER) {
     if (!aot_compiler_init()) {
         goto fail10;
     }
@@ -355,23 +356,23 @@ static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
 
     return true;
 
-static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
+static if (ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_WAMR_COMPILER) {
 fail10:
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
     jit_compiler_destroy();
 }
 }
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
 fail9:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     wasm_externref_map_destroy();
 }
 }
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
 fail8:
 }
-static if (WASM_ENABLE_AOT != 0) {
-static if (WASM_ENABLE_DEBUG_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
+static if (ver.WASM_ENABLE_DEBUG_AOT) {
     jit_debug_engine_destroy();
 fail7:
 }
@@ -380,7 +381,7 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
     runtime_signal_destroy();
 fail6:
 }
-static if ((WASM_ENABLE_WAMR_COMPILER == 0) && (WASM_ENABLE_THREAD_MGR != 0)) {
+static if ((WASM_ENABLE_WAMR_COMPILER == 0) && (ver.WASM_ENABLE_THREAD_MGR)) {
     thread_manager_destroy();
 fail5:
 }
@@ -421,12 +422,12 @@ bool wasm_runtime_init() {
 }
 
 void wasm_runtime_destroy() {
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     wasm_externref_map_destroy();
 }
 
-static if (WASM_ENABLE_AOT != 0) {
-static if (WASM_ENABLE_DEBUG_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
+static if (ver.WASM_ENABLE_DEBUG_AOT) {
     jit_debug_engine_destroy();
 }
 }
@@ -444,7 +445,7 @@ static if (WASM_ENABLE_MULTI_MODULE) {
     os_mutex_destroy(&registered_module_list_lock);
 }
 
-static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
+static if (ver.WASM_ENABLE_JIT || ver.WASM_ENABLE_WAMR_COMPILER) {
     /* Destroy LLVM-JIT compiler after destroying the modules
      * loaded by multi-module feature, since these modules may
      * create backend threads to compile the wasm functions,
@@ -455,7 +456,7 @@ static if (WASM_ENABLE_JIT != 0 || WASM_ENABLE_WAMR_COMPILER != 0) {
     aot_compiler_destroy();
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
     /* Destroy Fast-JIT compiler after destroying the modules
      * loaded by multi-module feature, since the Fast JIT's
      * code cache allocator may be used by these modules.
@@ -467,8 +468,8 @@ static if (WASM_ENABLE_SHARED_MEMORY) {
     wasm_shared_memory_destroy();
 }
 
-static if ((WASM_ENABLE_WAMR_COMPILER == 0) && (WASM_ENABLE_THREAD_MGR != 0)) {
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if ((WASM_ENABLE_WAMR_COMPILER == 0) && (ver.WASM_ENABLE_THREAD_MGR)) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
     wasm_debug_engine_destroy();
 }
     thread_manager_destroy();
@@ -485,7 +486,7 @@ bool wasm_runtime_full_init(RuntimeInitArgs* init_args) {
                                   &init_args.mem_alloc_option))
         return false;
 
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
     jit_options.code_cache_size = init_args.fast_jit_code_cache_size;
 }
 
@@ -494,7 +495,7 @@ static if (WASM_ENABLE_FAST_JIT != 0) {
         return false;
     }
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
     if (strlen(init_args.ip_addr))
         if (!wasm_debug_engine_init(init_args.ip_addr,
                                     init_args.instance_port)) {
@@ -511,7 +512,7 @@ static if (WASM_ENABLE_DEBUG_INTERP != 0) {
         return false;
     }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     wasm_cluster_set_max_thread_num(init_args.max_thread_num);
 }
 
@@ -519,7 +520,7 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
 }
 
 PackageType get_package_type(const(ubyte)* buf, uint size) {
-static if ((WASM_ENABLE_WORD_ALIGN_READ != 0)) {
+static if ((ver.WASM_ENABLE_WORD_ALIGN_READ)) {
     uint buf32 = *cast(uint*)buf;
     buf = cast(const(ubyte)*)&buf32;
 }
@@ -532,7 +533,7 @@ static if ((WASM_ENABLE_WORD_ALIGN_READ != 0)) {
     return Package_Type_Unknown;
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
 private ubyte* align_ptr(const(ubyte)* p, uint b) {
     uintptr_t v = cast(uintptr_t)p;
     uintptr_t m = b - 1;
@@ -592,7 +593,7 @@ bool wasm_runtime_is_xip_file(const(ubyte)* buf, uint size) {
 }
 } /* end of WASM_ENABLE_AOT */
 
-static if ((WASM_ENABLE_THREAD_MGR != 0) && (WASM_ENABLE_DEBUG_INTERP != 0)) {
+static if ((ver.WASM_ENABLE_THREAD_MGR) && (ver.WASM_ENABLE_DEBUG_INTERP)) {
 uint wasm_runtime_start_debug_instance_with_port(WASMExecEnv* exec_env, int port) {
     WASMModuleInstanceCommon* module_inst = wasm_runtime_get_module_inst(exec_env);
     WASMCluster* cluster = wasm_exec_env_get_cluster(exec_env);
@@ -621,7 +622,7 @@ uint wasm_runtime_start_debug_instance(WASMExecEnv* exec_env) {
 }
 }
 
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
 private module_reader reader;
 private module_destroyer destroyer;
 void wasm_runtime_set_module_reader(const(module_reader) reader_cb, const(module_destroyer) destroyer_cb) {
@@ -777,12 +778,12 @@ private void wasm_runtime_destroy_registered_module_list() {
 
         /* now, it is time to release every module in the runtime */
         if (reg_module.module_.module_type == Wasm_Module_Bytecode) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
             wasm_unload(cast(WASMModule*)reg_module.module_);
 }
         }
         else {
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
             aot_unload(cast(AOTModule*)reg_module.module_);
 }
         }
@@ -878,19 +879,19 @@ void wasm_runtime_destroy_loading_module_list() {
 bool wasm_runtime_is_built_in_module(const(char)* module_name) {
     return !strcmp("env", module_name) || !strcmp("wasi_unstable", module_name)
             || !strcmp("wasi_snapshot_preview1", module_name)
-            || ((!WASM_ENABLE_SPEC_TEST != 0) && (strcmp("spectest", module_name)))
+            || ((!ver.WASM_ENABLE_SPEC_TEST) && (strcmp("spectest", module_name)))
             || !strcmp("", module_name);
 }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
 bool wasm_exec_env_set_aux_stack(WASMExecEnv* exec_env, uint start_offset, uint size) {
     WASMModuleInstanceCommon* module_inst = wasm_exec_env_get_module_inst(exec_env);
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         return wasm_set_aux_stack(exec_env, start_offset, size);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         return aot_set_aux_stack(exec_env, start_offset, size);
     }
@@ -900,12 +901,12 @@ static if (WASM_ENABLE_AOT != 0) {
 
 bool wasm_exec_env_get_aux_stack(WASMExecEnv* exec_env, uint* start_offset, uint* size) {
     WASMModuleInstanceCommon* module_inst = wasm_exec_env_get_module_inst(exec_env);
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         return wasm_get_aux_stack(exec_env, start_offset, size);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         return aot_get_aux_stack(exec_env, start_offset, size);
     }
@@ -919,7 +920,7 @@ void wasm_runtime_set_max_thread_num(uint num) {
 } /* end of WASM_ENABLE_THREAD_MGR */
 
 private WASMModuleCommon* register_module_with_null_name(WASMModuleCommon* module_common, char* error_buf, uint error_buf_size) {
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
     if (module_common) {
         if (!wasm_runtime_register_module_internal(null, module_common, null, 0,
                                                    error_buf, error_buf_size)) {
@@ -939,7 +940,7 @@ WASMModuleCommon* wasm_runtime_load(ubyte* buf, uint size, char* error_buf, uint
     WASMModuleCommon* module_common = null;
 
     if (get_package_type(buf, size) == Wasm_Module_Bytecode) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
         module_common =
             cast(WASMModuleCommon*)wasm_load(buf, size, error_buf, error_buf_size);
         return register_module_with_null_name(module_common, error_buf,
@@ -947,7 +948,7 @@ static if (WASM_ENABLE_INTERP != 0) {
 }
     }
     else if (get_package_type(buf, size) == Wasm_Module_AoT) {
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
         module_common = cast(WASMModuleCommon*)aot_load_from_aot_file(
             buf, size, error_buf, error_buf_size);
         return register_module_with_null_name(module_common, error_buf,
@@ -968,7 +969,7 @@ WASMModuleCommon* wasm_runtime_load_from_sections(WASMSection* section_list, boo
     WASMModuleCommon* module_common = void;
 
     if (!is_aot) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
         module_common = cast(WASMModuleCommon*)wasm_load_from_sections(
             section_list, error_buf, error_buf_size);
         return register_module_with_null_name(module_common, error_buf,
@@ -976,7 +977,7 @@ static if (WASM_ENABLE_INTERP != 0) {
 }
     }
     else {
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
         module_common = cast(WASMModuleCommon*)aot_load_from_sections(
             section_list, error_buf, error_buf_size);
         return register_module_with_null_name(module_common, error_buf,
@@ -992,7 +993,7 @@ static if (WASM_ENABLE_INTERP == 0 || WASM_ENABLE_AOT == 0) {
 }
 
 void wasm_runtime_unload(WASMModuleCommon* module_) {
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
     /**
      * since we will unload and free all module when runtime_destroy()
      * we don't want users to unwillingly disrupt it
@@ -1000,14 +1001,14 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
     return;
 }
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_.module_type == Wasm_Module_Bytecode) {
         wasm_unload(cast(WASMModule*)module_);
         return;
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_.module_type == Wasm_Module_AoT) {
         aot_unload(cast(AOTModule*)module_);
         return;
@@ -1016,13 +1017,13 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 WASMModuleInstanceCommon* wasm_runtime_instantiate_internal(WASMModuleCommon* module_, bool is_sub_inst, uint stack_size, uint heap_size, char* error_buf, uint error_buf_size) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_.module_type == Wasm_Module_Bytecode)
         return cast(WASMModuleInstanceCommon*)wasm_instantiate(
             cast(WASMModule*)module_, is_sub_inst, stack_size, heap_size, error_buf,
             error_buf_size);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_.module_type == Wasm_Module_AoT)
         return cast(WASMModuleInstanceCommon*)aot_instantiate(
             cast(AOTModule*)module_, is_sub_inst, stack_size, heap_size, error_buf,
@@ -1039,13 +1040,13 @@ WASMModuleInstanceCommon* wasm_runtime_instantiate(WASMModuleCommon* module_, ui
 }
 
 void wasm_runtime_deinstantiate_internal(WASMModuleInstanceCommon* module_inst, bool is_sub_inst) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         wasm_deinstantiate(cast(WASMModuleInstance*)module_inst, is_sub_inst);
         return;
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         aot_deinstantiate(cast(AOTModuleInstance*)module_inst, is_sub_inst);
         return;
@@ -1103,7 +1104,7 @@ version (BH_PLATFORM_WINDOWS) {
         return false;
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
 version (OS_ENABLE_HW_BOUND_CHECK) {
     if (!os_thread_signal_inited())
         return false;
@@ -1112,16 +1113,16 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
     return true;
 }
 
-static if ((WASM_ENABLE_MEMORY_PROFILING != 0) || (WASM_ENABLE_MEMORY_TRACING != 0)) {
+static if ((ver.WASM_ENABLE_MEMORY_PROFILING) || (ver.WASM_ENABLE_MEMORY_TRACING)) {
 void wasm_runtime_dump_module_mem_consumption(const(WASMModuleCommon)* module_) {
     WASMModuleMemConsumption mem_conspn = { 0 };
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_.module_type == Wasm_Module_Bytecode) {
         wasm_get_module_mem_consumption(cast(WASMModule*)module_, &mem_conspn);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_.module_type == Wasm_Module_AoT) {
         aot_get_module_mem_consumption(cast(AOTModule*)module_, &mem_conspn);
     }
@@ -1140,7 +1141,7 @@ static if (WASM_ENABLE_AOT != 0) {
     os_printf("    table segs size: %u\n", mem_conspn.table_segs_size);
     os_printf("    data segs size: %u\n", mem_conspn.data_segs_size);
     os_printf("    const strings size: %u\n", mem_conspn.const_strs_size);
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     os_printf("    aot code size: %u\n", mem_conspn.aot_code_size);
 }
 }
@@ -1148,13 +1149,13 @@ static if (WASM_ENABLE_AOT != 0) {
 void wasm_runtime_dump_module_inst_mem_consumption(const(WASMModuleInstanceCommon)* module_inst) {
     WASMModuleInstMemConsumption mem_conspn = { 0 };
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         wasm_get_module_inst_mem_consumption(cast(WASMModuleInstance*)module_inst,
                                              &mem_conspn);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         aot_get_module_inst_mem_consumption(cast(AOTModuleInstance*)module_inst,
                                             &mem_conspn);
@@ -1179,7 +1180,7 @@ void wasm_runtime_dump_exec_env_mem_consumption(const(WASMExecEnv)* exec_env) {
     os_printf("Exec env memory consumption, total size: %u\n", total_size);
     os_printf("    exec env struct size: %u\n",
               offsetof(WASMExecEnv, wasm_stack.s.bottom));
-static if (WASM_ENABLE_INTERP != 0 && WASM_ENABLE_FAST_INTERP == 0) {
+static if (ver.WASM_ENABLE_INTERP && WASM_ENABLE_FAST_INTERP == 0) {
     os_printf("        block addr cache size: %u\n",
               typeof(exec_env.block_addr_cache).sizeof);
 }
@@ -1198,7 +1199,7 @@ void wasm_runtime_dump_mem_consumption(WASMExecEnv* exec_env) {
     uint max_aux_stack_used = -1;
 
     module_inst_common = exec_env.module_inst;
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst_common.module_type == Wasm_Module_Bytecode) {
         WASMModuleInstance* wasm_module_inst = cast(WASMModuleInstance*)module_inst_common;
         WASMModule* wasm_module = wasm_module_inst.module_;
@@ -1213,7 +1214,7 @@ static if (WASM_ENABLE_INTERP != 0) {
             max_aux_stack_used = wasm_module_inst.e.max_aux_stack_used;
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst_common.module_type == Wasm_Module_AoT) {
         AOTModuleInstance* aot_module_inst = cast(AOTModuleInstance*)module_inst_common;
         AOTModule* aot_module = cast(AOTModule*)aot_module_inst.module_;
@@ -1255,17 +1256,17 @@ static if (WASM_ENABLE_AOT != 0) {
 
     os_printf("Total app heap used: %u\n", app_heap_peak_size);
 }
-} /* end of (WASM_ENABLE_MEMORY_PROFILING != 0) \
-                 || (WASM_ENABLE_MEMORY_TRACING != 0) */
+} /* end of (ver.WASM_ENABLE_MEMORY_PROFILING) \
+                 || (ver.WASM_ENABLE_MEMORY_TRACING) */
 
-static if (WASM_ENABLE_PERF_PROFILING != 0) {
+static if (ver.WASM_ENABLE_PERF_PROFILING) {
 void wasm_runtime_dump_perf_profiling(WASMModuleInstanceCommon* module_inst) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         wasm_dump_perf_profiling(cast(WASMModuleInstance*)module_inst);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         aot_dump_perf_profiling(cast(AOTModuleInstance*)module_inst);
     }
@@ -1305,14 +1306,14 @@ void wasm_runtime_access_exce_check_guard_page() {
 WASMType* wasm_runtime_get_function_type(const(WASMFunctionInstanceCommon)* function_, uint module_type) {
     WASMType* type = null;
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_type == Wasm_Module_Bytecode) {
         WASMFunctionInstance* wasm_func = cast(WASMFunctionInstance*)function_;
         type = wasm_func.is_import_func ? wasm_func.u.func_import.func_type
                                          : wasm_func.u.func.func_type;
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_type == Wasm_Module_AoT) {
         AOTFunctionInstance* aot_func = cast(AOTFunctionInstance*)function_;
         type = aot_func.is_import_func ? aot_func.u.func_import.func_type
@@ -1324,12 +1325,12 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 WASMFunctionInstanceCommon* wasm_runtime_lookup_function(WASMModuleInstanceCommon* module_inst, const(char)* name, const(char)* signature) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode)
         return cast(WASMFunctionInstanceCommon*)wasm_lookup_function(
             cast(const(WASMModuleInstance)*)module_inst, name, signature);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT)
         return cast(WASMFunctionInstanceCommon*)aot_lookup_function(
             cast(const(AOTModuleInstance)*)module_inst, name, signature);
@@ -1394,7 +1395,7 @@ void wasm_func_get_result_types(WASMFunctionInstanceCommon* func_inst, WASMModul
     }
 }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
 /* (uintptr_t)externref -> cast(uint)index */
 /*   argv               ->   *ret_argv */
 private bool wasm_runtime_prepare_call_function(WASMExecEnv* exec_env, WASMFunctionInstanceCommon* function_, uint* argv, uint argc, uint** ret_argv, uint* ret_argc_param, uint* ret_argc_result) {
@@ -1548,7 +1549,7 @@ static if (UINTPTR_MAX == UINT32_MAX) {
 bool wasm_runtime_call_wasm(WASMExecEnv* exec_env, WASMFunctionInstanceCommon* function_, uint argc, uint* argv) {
     bool ret = false;
     uint* new_argv = null; uint param_argc = void;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     uint result_argc = 0;
 }
 
@@ -1557,7 +1558,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
         return false;
     }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     if (!wasm_runtime_prepare_call_function(exec_env, function_, argv, argc,
                                             &new_argv, &param_argc,
                                             &result_argc)) {
@@ -1570,12 +1571,12 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
     param_argc = argc;
 }
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (exec_env.module_inst.module_type == Wasm_Module_Bytecode)
         ret = wasm_call_function(exec_env, cast(WASMFunctionInstance*)function_,
                                  param_argc, new_argv);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (exec_env.module_inst.module_type == Wasm_Module_AoT)
         ret = aot_call_function(exec_env, cast(AOTFunctionInstance*)function_,
                                 param_argc, new_argv);
@@ -1587,7 +1588,7 @@ static if (WASM_ENABLE_AOT != 0) {
         return false;
     }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     if (!wasm_runtime_finalize_call_function(exec_env, function_, new_argv,
                                              result_argc, argv)) {
         wasm_runtime_set_exception(exec_env.module_inst,
@@ -1631,7 +1632,7 @@ private void parse_args_to_uint32_array(WASMType* type, wasm_val_t* args, uint* 
             case WASM_F64:
             {
                 union _U {
-                    float64 val = void;
+                    double val = void;
                     uint[2] parts = void;
                 }_U u = void;
                 u.val = args[i].of.f64;
@@ -1639,7 +1640,7 @@ private void parse_args_to_uint32_array(WASMType* type, wasm_val_t* args, uint* 
                 out_argv[p++] = u.parts[1];
                 break;
             }
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case WASM_FUNCREF:
             {
                 out_argv[p++] = args[i].of.i32;
@@ -1704,7 +1705,7 @@ private void parse_uint32_array_to_results(WASMType* type, uint* argv, wasm_val_
             case VALUE_TYPE_F64:
             {
                 union _U {
-                    float64 val = void;
+                    double val = void;
                     uint[2] parts = void;
                 }_U u = void;
                 u.parts[0] = argv[p++];
@@ -1713,7 +1714,7 @@ private void parse_uint32_array_to_results(WASMType* type, uint* argv, wasm_val_
                 out_results[i].of.f64 = u.val;
                 break;
             }
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
             {
                 out_results[i].kind = WASM_I32;
@@ -1747,7 +1748,7 @@ static if (UINTPTR_MAX == UINT32_MAX) {
 
 bool wasm_runtime_call_wasm_a(WASMExecEnv* exec_env, WASMFunctionInstanceCommon* function_, uint num_results, wasm_val_t* results, uint num_args, wasm_val_t* args) {
     uint argc = void; uint[16] argv_buf = 0; uint* argv = argv_buf; uint cell_num = void, module_type = void;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     uint i = void, param_size_in_double_world = 0, result_size_in_double_world = 0;
 }
     ulong total_size = void;
@@ -1763,7 +1764,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
         goto fail1;
     }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     for (i = 0; i < type.param_count; i++) {
         param_size_in_double_world +=
             wasm_value_type_cell_num_outside(type.types[i]);
@@ -1814,13 +1815,13 @@ fail1:
     return ret;
 }
 
-bool wasm_runtime_call_wasm_v(WASMExecEnv* exec_env, WASMFunctionInstanceCommon* function_, uint num_results, wasm_val_t* results, uint num_args, ...) {
-    wasm_val_t[8] args_buf = 0; wasm_val_t* args = args_buf;
+bool wasm_runtime_call_wasm_v(Args...)(WASMExecEnv* exec_env, WASMFunctionInstanceCommon* function_, uint num_results, wasm_val_t* results, uint num_args, Args args) {
+    wasm_val_t[Args.length] args_buf = 0; wasm_val_t* args = args_buf;
     WASMType* type = null;
     bool ret = false;
     ulong total_size = void;
     uint i = 0, module_type = void;
-    va_list vargs = void;
+//    va_list vargs = void;
 
     module_type = exec_env.module_inst.module_type;
     type = wasm_runtime_get_function_type(function_, module_type);
@@ -1846,35 +1847,36 @@ bool wasm_runtime_call_wasm_v(WASMExecEnv* exec_env, WASMFunctionInstanceCommon*
     }
 
     va_start(vargs, num_args);
-    for (i = 0; i < num_args; i++) {
+foreach(i, arg; args) {
+	//   for (i = 0; i < num_args; i++) {
         switch (type.types[i]) {
             case VALUE_TYPE_I32:
                 args[i].kind = WASM_I32;
-                args[i].of.i32 = va_arg(vargs, uint32);
+                args[i].of.i32 = cast(uint)arg; //va_arg(vargs, uint32);
                 break;
             case VALUE_TYPE_I64:
                 args[i].kind = WASM_I64;
-                args[i].of.i64 = va_arg(vargs, uint64);
+                args[i].of.i64 = cast(ulong)arg; //va_arg(vargs, uint64);
                 break;
             case VALUE_TYPE_F32:
                 args[i].kind = WASM_F32;
-                args[i].of.f32 = cast(float32)va_arg(vargs, float64);
+                args[i].of.f32 = cast(float32)arg; //va_arg(vargs, double);
                 break;
             case VALUE_TYPE_F64:
                 args[i].kind = WASM_F64;
-                args[i].of.f64 = va_arg(vargs, float64);
+                args[i].of.f64 = cast(double)arg; //va_arg(vargs, double);
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
             {
                 args[i].kind = WASM_FUNCREF;
-                args[i].of.i32 = va_arg(vargs, uint32);
+                args[i].of.i32 = cast(uint)arg; //va_arg(vargs, uint32);
                 break;
             }
             case VALUE_TYPE_EXTERNREF:
             {
                 args[i].kind = WASM_ANYREF;
-                args[i].of.foreign = va_arg(vargs, uintptr_t);
+                args[i].of.foreign = cast(uintptr_t)arg; //va_arg(vargs, uintptr_t);
                 break;
             }
 }
@@ -1883,7 +1885,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
         }
     }
-    va_end(vargs);
+//    va_end(vargs);
 
     ret = wasm_runtime_call_wasm_a(exec_env, function_, num_results, results,
                                    num_args, args);
@@ -2002,7 +2004,7 @@ void wasm_runtime_set_custom_data_internal(WASMModuleInstanceCommon* module_inst
 }
 
 void wasm_runtime_set_custom_data(WASMModuleInstanceCommon* module_inst, void* custom_data) {
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     wasm_cluster_spread_custom_data(module_inst, custom_data);
 } else {
     wasm_runtime_set_custom_data_internal(module_inst, custom_data);
@@ -2018,12 +2020,12 @@ void* wasm_runtime_get_custom_data(WASMModuleInstanceCommon* module_inst_comm) {
 }
 
 uint wasm_runtime_module_malloc(WASMModuleInstanceCommon* module_inst, uint size, void** p_native_addr) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode)
         return wasm_module_malloc(cast(WASMModuleInstance*)module_inst, size,
                                   p_native_addr);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT)
         return aot_module_malloc(cast(AOTModuleInstance*)module_inst, size,
                                  p_native_addr);
@@ -2032,12 +2034,12 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 uint wasm_runtime_module_realloc(WASMModuleInstanceCommon* module_inst, uint ptr, uint size, void** p_native_addr) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode)
         return wasm_module_realloc(cast(WASMModuleInstance*)module_inst, ptr, size,
                                    p_native_addr);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT)
         return aot_module_realloc(cast(AOTModuleInstance*)module_inst, ptr, size,
                                   p_native_addr);
@@ -2046,13 +2048,13 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 void wasm_runtime_module_free(WASMModuleInstanceCommon* module_inst, uint ptr) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         wasm_module_free(cast(WASMModuleInstance*)module_inst, ptr);
         return;
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         aot_module_free(cast(AOTModuleInstance*)module_inst, ptr);
         return;
@@ -2061,13 +2063,13 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 uint wasm_runtime_module_dup_data(WASMModuleInstanceCommon* module_inst, const(char)* src, uint size) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         return wasm_module_dup_data(cast(WASMModuleInstance*)module_inst, src,
                                     size);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         return aot_module_dup_data(cast(AOTModuleInstance*)module_inst, src, size);
     }
@@ -2075,16 +2077,16 @@ static if (WASM_ENABLE_AOT != 0) {
     return 0;
 }
 
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (ver.WASM_ENABLE_LIBC_WASI) {
 
 private WASIArguments* get_wasi_args_from_module(wasm_module_t module_) {
     WASIArguments* wasi_args = null;
 
-static if (WASM_ENABLE_INTERP != 0 || WASM_ENABLE_JIT != 0) {
+static if (ver.WASM_ENABLE_INTERP || ver.WASM_ENABLE_JIT) {
     if (module_.module_type == Wasm_Module_Bytecode)
         wasi_args = &(cast(WASMModule*)module_).wasi_args;
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_.module_type == Wasm_Module_AoT)
         wasi_args = &(cast(AOTModule*)module_).wasi_args;
 }
@@ -2485,12 +2487,12 @@ fail:
 } /* end of WASM_ENABLE_UVWASI */
 
 bool wasm_runtime_is_wasi_mode(WASMModuleInstanceCommon* module_inst) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode
         && (cast(WASMModuleInstance*)module_inst).module_.import_wasi_api)
         return true;
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT
         && (cast(AOTModule*)(cast(AOTModuleInstance*)module_inst).module_)
                .import_wasi_api)
@@ -2502,7 +2504,7 @@ static if (WASM_ENABLE_AOT != 0) {
 WASMFunctionInstanceCommon* wasm_runtime_lookup_wasi_start_function(WASMModuleInstanceCommon* module_inst) {
     uint i = void;
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         WASMModuleInstance* wasm_inst = cast(WASMModuleInstance*)module_inst;
         WASMFunctionInstance* func = void;
@@ -2522,7 +2524,7 @@ static if (WASM_ENABLE_INTERP != 0) {
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         AOTModuleInstance* aot_inst = cast(AOTModuleInstance*)module_inst;
         AOTFunctionInstance* export_funcs = cast(AOTFunctionInstance*)aot_inst.export_functions;
@@ -2624,20 +2626,20 @@ WASMModuleCommon* wasm_exec_env_get_module(WASMExecEnv* exec_env) {
     return cast(WASMModuleCommon*)module_inst.module_;
 }
 
-static if (WASM_ENABLE_LOAD_CUSTOM_SECTION != 0) {
+static if (ver.WASM_ENABLE_LOAD_CUSTOM_SECTION) {
 const(ubyte)* wasm_runtime_get_custom_section(WASMModuleCommon* module_comm, const(char)* name, uint* len) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_comm.module_type == Wasm_Module_Bytecode)
         return wasm_loader_get_custom_section(cast(WASMModule*)module_comm, name,
                                               len);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_comm.module_type == Wasm_Module_AoT)
         return aot_get_custom_section(cast(AOTModule*)module_comm, name, len);
 }
     return null;
 }
-} /* end of WASM_ENABLE_LOAD_CUSTOM_SECTION != 0 */
+} /* end of ver.WASM_ENABLE_LOAD_CUSTOM_SECTION */
 
 union ___ue {
     int a;
@@ -2684,7 +2686,7 @@ bool wasm_runtime_invoke_native_raw(WASMExecEnv* exec_env, void* func_ptr, const
     for (i = 0; i < func_type.param_count; i++, argv_dst++) {
         switch (func_type.types[i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
             {
@@ -2729,7 +2731,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
             case VALUE_TYPE_F32:
                 *cast(float32*)argv_dst = *cast(float32*)argv_src++;
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 uint externref_idx = *argv_src++;
@@ -2757,7 +2759,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
     if (func_type.result_count > 0) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
                 argv_ret[0] = *cast(uint*)argv1;
@@ -2770,7 +2772,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 bh_memcpy_s(argv_ret, uint32.sizeof * 2, argv1,
                             uint64.sizeof);
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 uint externref_idx = void;
@@ -2812,13 +2814,13 @@ static if (HasVersion!"BUILD_TARGET_ARM_VFP" || HasVersion!"BUILD_TARGET_THUMB_V
 alias GenericFunctionPointer = void function();
 void invokeNative(GenericFunctionPointer f, uint* args, uint n_stacks);
 
-alias Float64FuncPtr = float64 function(GenericFunctionPointer, uint*, uint);
+alias doubleFuncPtr = double function(GenericFunctionPointer, uint*, uint);
 alias Float32FuncPtr = float32 function(GenericFunctionPointer, uint*, uint);
 alias Int64FuncPtr = long function(GenericFunctionPointer, uint*, uint);
 alias Int32FuncPtr = int function(GenericFunctionPointer, uint*, uint);
 alias VoidFuncPtr = void function(GenericFunctionPointer, uint*, uint);
 
-private /*volatile*/ Float64FuncPtr invokeNative_Float64 = cast(Float64FuncPtr)cast(uintptr_t)invokeNative;
+private /*volatile*/ doubleFuncPtr invokeNative_double = cast(doubleFuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Float32FuncPtr invokeNative_Float32 = cast(Float32FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Int64FuncPtr invokeNative_Int64 = cast(Int64FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Int32FuncPtr invokeNative_Int32 = cast(Int32FuncPtr)cast(uintptr_t)invokeNative;
@@ -2841,7 +2843,7 @@ bool wasm_runtime_invoke_native(WASMExecEnv* exec_env, void* func_ptr, const(WAS
     uint result_count = func_type.result_count;
     uint ext_ret_count = result_count > 1 ? result_count - 1 : 0;
     bool ret = false;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     bool is_aot_func = (null == signature);
 }
 static if (!HasVersion!"BUILD_TARGET_RISCV32_ILP32" && !HasVersion!"BUILD_TARGET_ARC") {
@@ -2861,7 +2863,7 @@ void value_type(int type)() {
 }
         switch (func_type.types[i]) {
             case VALUE_TYPE_I32:
-//static if (WASM_ENABLE_REF_TYPES != 0) {
+//static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
             case VALUE_TYPE_EXTERNREF:
 //}
@@ -3006,7 +3008,7 @@ static if (HasVersion!"BUILD_TARGET_ARM_VFP" || HasVersion!"BUILD_TARGET_THUMB_V
     for (i = 0; i < func_type.param_count; i++) {
         switch (func_type.types[i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
             {
@@ -3125,7 +3127,7 @@ static if (!HasVersion!"BUILD_TARGET_ARC") {
                         fps[n_fps * 2 + 1] = 0xFFFFFFFF;
                     }
                     else {
-                        *cast(float64*)&fps[n_fps * 2] = *cast(float64*)argv_src;
+                        *cast(double*)&fps[n_fps * 2] = *cast(double*)argv_src;
                         argv_src += 2;
                     }
                     n_fps++;
@@ -3140,7 +3142,7 @@ static if (!HasVersion!"BUILD_TARGET_ARC") {
                     /* use int regs firstly if available */
                     if (n_ints & 1)
                         n_ints++;
-                    *cast(float64*)&ints[n_ints] = *cast(float64*)argv_src;
+                    *cast(double*)&ints[n_ints] = *cast(double*)argv_src;
                     n_ints += 2;
                     argv_src += 2;
                 }
@@ -3156,7 +3158,7 @@ static if (!HasVersion!"BUILD_TARGET_ARC") {
                         stacks[n_stacks + 1] = 0xFFFFFFFF;
                     }
                     else {
-                        *cast(float64*)&stacks[n_stacks] = *cast(float64*)argv_src;
+                        *cast(double*)&stacks[n_stacks] = *cast(double*)argv_src;
                         argv_src += 2;
                     }
                     n_stacks += 2;
@@ -3164,7 +3166,7 @@ static if (!HasVersion!"BUILD_TARGET_ARC") {
                 break;
             }
 } /* BUILD_TARGET_RISCV32_ILP32D */
-//static if (WASM_ENABLE_REF_TYPES != 0) {
+//static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 uint externref_idx = *argv_src++;
@@ -3210,7 +3212,7 @@ static if (!HasVersion!"BUILD_TARGET_ARC") {
     else {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-//static if (WASM_ENABLE_REF_TYPES != 0) {
+//static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 //}
                 argv_ret[0] =
@@ -3226,9 +3228,9 @@ static if (!HasVersion!"BUILD_TARGET_ARC") {
                 break;
             case VALUE_TYPE_F64:
                 PUT_F64_TO_ADDR(
-                    argv_ret, invokeNative_Float64(func_ptr, argv1, n_stacks));
+                    argv_ret, invokeNative_double(func_ptr, argv1, n_stacks));
                 break;
-//static if (WASM_ENABLE_REF_TYPES != 0) {
+//static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 if (is_aot_func) {
@@ -3277,7 +3279,7 @@ static if (HasVersion!"BUILD_TARGET_X86_32" || HasVersion!"BUILD_TARGET_ARM"
 alias GenericFunctionPointer = void function();
 void invokeNative(GenericFunctionPointer f, uint* args, uint sz);
 
-alias Float64FuncPtr = float64 function(GenericFunctionPointer f, uint*, uint);
+alias doubleFuncPtr = double function(GenericFunctionPointer f, uint*, uint);
 alias Float32FuncPtr = float32 function(GenericFunctionPointer f, uint*, uint);
 alias Int64FuncPtr = long function(GenericFunctionPointer f, uint*, uint);
 alias Int32FuncPtr = int function(GenericFunctionPointer f, uint*, uint);
@@ -3285,7 +3287,7 @@ alias VoidFuncPtr = void function(GenericFunctionPointer f, uint*, uint);
 
 private /*volatile*/ Int64FuncPtr invokeNative_Int64 = cast(Int64FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Int32FuncPtr invokeNative_Int32 = cast(Int32FuncPtr)cast(uintptr_t)invokeNative;
-private /*volatile*/ Float64FuncPtr invokeNative_Float64 = cast(Float64FuncPtr)cast(uintptr_t)invokeNative;
+private /*volatile*/ doubleFuncPtr invokeNative_double = cast(doubleFuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Float32FuncPtr invokeNative_Float32 = cast(Float32FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ VoidFuncPtr invokeNative_Void = cast(VoidFuncPtr)cast(uintptr_t)invokeNative;
 
@@ -3302,7 +3304,7 @@ bool wasm_runtime_invoke_native(WASMExecEnv* exec_env, void* func_ptr, const(WAS
     uint ext_ret_count = result_count > 1 ? result_count - 1 : 0;
     ulong size = void;
     bool ret = false;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     bool is_aot_func = (null == signature);
 }
 
@@ -3328,7 +3330,7 @@ version (BUILD_TARGET_X86_32) {
     for (i = 0; i < func_type.param_count; i++) {
         switch (func_type.types[i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
             {
@@ -3379,7 +3381,7 @@ static if (!HasVersion!"BUILD_TARGET_X86_32") {
             case VALUE_TYPE_F32:
                 argv1[j++] = *argv++;
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 uint externref_idx = *argv++;
@@ -3414,7 +3416,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
     else {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
                 argv_ret[0] =
@@ -3430,9 +3432,9 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             case VALUE_TYPE_F64:
                 PUT_F64_TO_ADDR(argv_ret,
-                                invokeNative_Float64(func_ptr, argv1, argc1));
+                                invokeNative_double(func_ptr, argv1, argc1));
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 if (is_aot_func) {
@@ -3507,19 +3509,19 @@ uint32x4_t v128;
 alias GenericFunctionPointer = void function();
 void invokeNative(GenericFunctionPointer f, ulong* args, ulong n_stacks);
 
-alias Float64FuncPtr = float64 function(GenericFunctionPointer, ulong*, ulong);
+alias doubleFuncPtr = double function(GenericFunctionPointer, ulong*, ulong);
 alias Float32FuncPtr = float32 function(GenericFunctionPointer, ulong*, ulong);
 alias Int64FuncPtr = long function(GenericFunctionPointer, ulong*, ulong);
 alias Int32FuncPtr = int function(GenericFunctionPointer, ulong*, ulong);
 alias VoidFuncPtr = void function(GenericFunctionPointer, ulong*, ulong);
 
-private /*volatile*/ Float64FuncPtr invokeNative_Float64 = cast(Float64FuncPtr)cast(uintptr_t)invokeNative;
+private /*volatile*/ doubleFuncPtr invokeNative_double = cast(doubleFuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Float32FuncPtr invokeNative_Float32 = cast(Float32FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Int64FuncPtr invokeNative_Int64 = cast(Int64FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ Int32FuncPtr invokeNative_Int32 = cast(Int32FuncPtr)cast(uintptr_t)invokeNative;
 private /*volatile*/ VoidFuncPtr invokeNative_Void = cast(VoidFuncPtr)cast(uintptr_t)invokeNative;
 
-static if (WASM_ENABLE_SIMD != 0) {
+static if (ver.WASM_ENABLE_SIMD) {
 alias V128FuncPtr = v128 function(GenericFunctionPointer, ulong*, ulong);
 private V128FuncPtr invokeNative_V128 = cast(V128FuncPtr)cast(uintptr_t)invokeNative;
 }
@@ -3547,7 +3549,7 @@ bool wasm_runtime_invoke_native(WASMExecEnv* exec_env, void* func_ptr, const(WAS
     uint result_count = func_type.result_count;
     uint ext_ret_count = result_count > 1 ? result_count - 1 : 0;
     bool ret = false;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
     bool is_aot_func = (null == signature);
 }
 version (BUILD_TARGET_RISCV64_LP64) {} else {
@@ -3599,7 +3601,7 @@ static if (WASM_ENABLE_SIMD == 0) {
     for (i = 0; i < func_type.param_count; i++) {
         switch (func_type.types[i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
             {
@@ -3655,14 +3657,14 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             case VALUE_TYPE_F64:
                 if (n_fps < MAX_REG_FLOATS) {
-                    *cast(float64*)&fps[n_fps++] = *cast(float64*)argv_src;
+                    *cast(double*)&fps[n_fps++] = *cast(double*)argv_src;
                 }
                 else {
-                    *cast(float64*)&stacks[n_stacks++] = *cast(float64*)argv_src;
+                    *cast(double*)&stacks[n_stacks++] = *cast(double*)argv_src;
                 }
                 argv_src += 2;
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 uint externref_idx = *argv_src++;
@@ -3686,7 +3688,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             }
 }
-static if (WASM_ENABLE_SIMD != 0) {
+static if (ver.WASM_ENABLE_SIMD) {
             case VALUE_TYPE_V128:
                 if (n_fps < MAX_REG_FLOATS) {
                     *cast(v128*)&fps[n_fps++] = *cast(v128*)argv_src;
@@ -3721,7 +3723,7 @@ static if (WASM_ENABLE_SIMD != 0) {
         /* Invoke the native function and get the first result value */
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_FUNCREF:
 }
                 argv_ret[0] =
@@ -3737,9 +3739,9 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             case VALUE_TYPE_F64:
                 PUT_F64_TO_ADDR(
-                    argv_ret, invokeNative_Float64(func_ptr, argv1, n_stacks));
+                    argv_ret, invokeNative_double(func_ptr, argv1, n_stacks));
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             {
                 if (is_aot_func) {
@@ -3759,7 +3761,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
                 break;
             }
 }
-static if (WASM_ENABLE_SIMD != 0) {
+static if (ver.WASM_ENABLE_SIMD) {
             case VALUE_TYPE_V128:
                 *cast(v128*)argv_ret =
                     invokeNative_V128(func_ptr, argv1, n_stacks);
@@ -3796,11 +3798,11 @@ bool wasm_runtime_call_indirect(WASMExecEnv* exec_env, uint element_indices, uin
        exec_env->native_stack_boundary must have been set, we don't set
        it again */
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (exec_env.module_inst.module_type == Wasm_Module_Bytecode)
         return wasm_call_indirect(exec_env, 0, element_indices, argc, argv);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (exec_env.module_inst.module_type == Wasm_Module_AoT)
         return aot_call_indirect(exec_env, 0, element_indices, argc, argv);
 }
@@ -3845,7 +3847,7 @@ void wasm_runtime_read_v128(const(ubyte)* bytes, ulong* ret1, ulong* ret2) {
     }
 }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
 struct WASMThreadArg {
     WASMExecEnv* new_exec_env;
     wasm_thread_callback_t callback;
@@ -4091,7 +4093,7 @@ private void mark_externref(uint externref_idx) {
     }
 }
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
 private void interp_mark_all_externrefs(WASMModuleInstance* module_inst) {
     uint i = void, j = void, externref_idx = void; uint* table_data = void;
     ubyte* global_data = module_inst.global_data;
@@ -4128,7 +4130,7 @@ private void interp_mark_all_externrefs(WASMModuleInstance* module_inst) {
 }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
 private void aot_mark_all_externrefs(AOTModuleInstance* module_inst) {
     uint i = 0, j = 0;
     const(AOTModule)* module_ = cast(AOTModule*)module_inst.module_;
@@ -4156,11 +4158,11 @@ private void aot_mark_all_externrefs(AOTModuleInstance* module_inst) {
 
 void wasm_externref_reclaim(WASMModuleInstanceCommon* module_inst) {
     os_mutex_lock(&externref_lock);
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode)
         interp_mark_all_externrefs(cast(WASMModuleInstance*)module_inst);
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT)
         aot_mark_all_externrefs(cast(AOTModuleInstance*)module_inst);
 }
@@ -4207,7 +4209,7 @@ bool wasm_externref_retain(uint externref_idx) {
 }
 } /* end of WASM_ENABLE_REF_TYPES */
 
-static if (WASM_ENABLE_DUMP_CALL_STACK != 0) {
+static if (ver.WASM_ENABLE_DUMP_CALL_STACK) {
 uint wasm_runtime_dump_line_buf_impl(const(char)* line_buf, bool dump_or_print, char** buf, uint* len) {
     if (dump_or_print) {
         return cast(uint)os_printf("%s", line_buf);
@@ -4231,12 +4233,12 @@ uint wasm_runtime_dump_line_buf_impl(const(char)* line_buf, bool dump_or_print, 
 
 void wasm_runtime_dump_call_stack(WASMExecEnv* exec_env) {
     WASMModuleInstanceCommon* module_inst = wasm_exec_env_get_module_inst(exec_env);
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         wasm_interp_dump_call_stack(exec_env, true, null, 0);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         aot_dump_call_stack(exec_env, true, null, 0);
     }
@@ -4246,12 +4248,12 @@ static if (WASM_ENABLE_AOT != 0) {
 uint wasm_runtime_get_call_stack_buf_size(wasm_exec_env_t exec_env) {
     WASMModuleInstanceCommon* module_inst = wasm_exec_env_get_module_inst(exec_env);
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         return wasm_interp_dump_call_stack(exec_env, false, null, 0);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         return aot_dump_call_stack(exec_env, false, null, 0);
     }
@@ -4263,12 +4265,12 @@ static if (WASM_ENABLE_AOT != 0) {
 uint wasm_runtime_dump_call_stack_to_buf(wasm_exec_env_t exec_env, char* buf, uint len) {
     WASMModuleInstanceCommon* module_inst = wasm_exec_env_get_module_inst(exec_env);
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         return wasm_interp_dump_call_stack(exec_env, false, buf, len);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         return aot_dump_call_stack(exec_env, false, buf, len);
     }
@@ -4279,7 +4281,7 @@ static if (WASM_ENABLE_AOT != 0) {
 } /* end of WASM_ENABLE_DUMP_CALL_STACK */
 
 bool wasm_runtime_get_table_elem_type(const(WASMModuleCommon)* module_comm, uint table_idx, ubyte* out_elem_type, uint* out_min_size, uint* out_max_size) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_comm.module_type == Wasm_Module_Bytecode) {
         WASMModule* module_ = cast(WASMModule*)module_comm;
 
@@ -4299,7 +4301,7 @@ static if (WASM_ENABLE_INTERP != 0) {
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_comm.module_type == Wasm_Module_AoT) {
         AOTModule* module_ = cast(AOTModule*)module_comm;
 
@@ -4323,7 +4325,7 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 bool wasm_runtime_get_table_inst_elem_type(const(WASMModuleInstanceCommon)* module_inst_comm, uint table_idx, ubyte* out_elem_type, uint* out_min_size, uint* out_max_size) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_inst_comm.module_type == Wasm_Module_Bytecode) {
         WASMModuleInstance* module_inst = cast(WASMModuleInstance*)module_inst_comm;
         return wasm_runtime_get_table_elem_type(
@@ -4331,7 +4333,7 @@ static if (WASM_ENABLE_INTERP != 0) {
             out_min_size, out_max_size);
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst_comm.module_type == Wasm_Module_AoT) {
         AOTModuleInstance* module_inst = cast(AOTModuleInstance*)module_inst_comm;
         return wasm_runtime_get_table_elem_type(
@@ -4343,7 +4345,7 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 bool wasm_runtime_get_export_func_type(const(WASMModuleCommon)* module_comm, const(WASMExport)* export_, WASMType** out_) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_comm.module_type == Wasm_Module_Bytecode) {
         WASMModule* module_ = cast(WASMModule*)module_comm;
 
@@ -4359,7 +4361,7 @@ static if (WASM_ENABLE_INTERP != 0) {
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_comm.module_type == Wasm_Module_AoT) {
         AOTModule* module_ = cast(AOTModule*)module_comm;
 
@@ -4379,7 +4381,7 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 bool wasm_runtime_get_export_global_type(const(WASMModuleCommon)* module_comm, const(WASMExport)* export_, ubyte* out_val_type, bool* out_mutability) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_comm.module_type == Wasm_Module_Bytecode) {
         WASMModule* module_ = cast(WASMModule*)module_comm;
 
@@ -4397,7 +4399,7 @@ static if (WASM_ENABLE_INTERP != 0) {
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_comm.module_type == Wasm_Module_AoT) {
         AOTModule* module_ = cast(AOTModule*)module_comm;
 
@@ -4418,7 +4420,7 @@ static if (WASM_ENABLE_AOT != 0) {
 }
 
 bool wasm_runtime_get_export_memory_type(const(WASMModuleCommon)* module_comm, const(WASMExport)* export_, uint* out_min_page, uint* out_max_page) {
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     if (module_comm.module_type == Wasm_Module_Bytecode) {
         WASMModule* module_ = cast(WASMModule*)module_comm;
 
@@ -4437,7 +4439,7 @@ static if (WASM_ENABLE_INTERP != 0) {
     }
 }
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_comm.module_type == Wasm_Module_AoT) {
         AOTModule* module_ = cast(AOTModule*)module_comm;
 
@@ -4489,7 +4491,7 @@ pragma(inline, true) private bool argv_to_params(wasm_val_t* out_params, const(u
                 u32[0] = *argv++;
                 u32[1] = *argv++;
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
                 param.kind = WASM_ANYREF;
 
@@ -4526,7 +4528,7 @@ pragma(inline, true) private bool results_to_argv(WASMModuleInstanceCommon* modu
                 *argv++ = u32[0];
                 *argv++ = u32[1];
                 break;
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
                 if (!wasm_externref_obj2ref(module_inst,
                                             cast(void*)result.of.foreign, argv)) {
@@ -4636,7 +4638,7 @@ void wasm_runtime_show_app_heap_corrupted_prompt() {
               ~ "export the runtime helpers.");
 }
 
-static if (WASM_ENABLE_LOAD_CUSTOM_SECTION != 0) {
+static if (ver.WASM_ENABLE_LOAD_CUSTOM_SECTION) {
 void wasm_runtime_destroy_custom_sections(WASMCustomSection* section_list) {
     WASMCustomSection* section = section_list, next = void;
     while (section) {
@@ -4664,7 +4666,7 @@ public import tagion.iwasm.common.wasm_exec_env;
 public import tagion.iwasm.common.wasm_native;
 public import tagion.iwasm.include.wasm_export;
 public import tagion.iwasm.interpreter.wasm;
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (ver.WASM_ENABLE_LIBC_WASI) {
 static if (WASM_ENABLE_UVWASI == 0) {
 public import wasmtime_ssp;
 public import posix;
@@ -4674,7 +4676,7 @@ public import uvwasi;
 }
 
 
-static if (WASM_CPU_SUPPORTS_UNALIGNED_ADDR_ACCESS != 0) {
+static if (ver.WASM_CPU_SUPPORTS_UNALIGNED_ADDR_ACCESS) {
 
 enum string PUT_I64_TO_ADDR(string addr, string value) = `       \
     do {                                   \
@@ -4682,11 +4684,11 @@ enum string PUT_I64_TO_ADDR(string addr, string value) = `       \
     } while (0)`;
 enum string PUT_F64_TO_ADDR(string addr, string value) = `           \
     do {                                       \
-        *(float64 *)(addr) = (float64)(value); \
+        *(double *)(addr) = (double)(value); \
     } while (0)`;
 
 enum string GET_I64_FROM_ADDR(string addr) = ` (*(int64 *)(addr))`;
-enum string GET_F64_FROM_ADDR(string addr) = ` (*(float64 *)(addr))`;
+enum string GET_F64_FROM_ADDR(string addr) = ` (*(double *)(addr))`;
 
 /* For STORE opcodes */
 enum STORE_I64 = PUT_I64_TO_ADDR;
@@ -4701,7 +4703,7 @@ enum string STORE_U16(string addr, string value) = `               \
 
 /* For LOAD opcodes */
 enum string LOAD_I64(string addr) = ` (*(int64 *)(addr))`;
-enum string LOAD_F64(string addr) = ` (*(float64 *)(addr))`;
+enum string LOAD_F64(string addr) = ` (*(double *)(addr))`;
 enum string LOAD_I32(string addr) = ` (*(int32 *)(addr))`;
 enum string LOAD_U32(string addr) = ` (*(uint32 *)(addr))`;
 enum string LOAD_I16(string addr) = ` (*(int16 *)(addr))`;
@@ -4712,7 +4714,7 @@ enum string STORE_PTR(string addr, string ptr) = `          \
         *(void **)addr = (void *)ptr; \
     } while (0)`;
 
-} else { /* WASM_CPU_SUPPORTS_UNALIGNED_ADDR_ACCESS != 0 */
+} else { /* ver.WASM_CPU_SUPPORTS_UNALIGNED_ADDR_ACCESS */
 
 enum string PUT_I64_TO_ADDR(string addr, string value) = `         \
     do {                                     \
@@ -4729,7 +4731,7 @@ enum string PUT_F64_TO_ADDR(string addr, string value) = `         \
     do {                                     \
         uint32 *addr_u32 = (uint32 *)(addr); \
         union {                              \
-            float64 val;                     \
+            double val;                     \
             uint32 parts[2];                 \
         } u;                                 \
         u.val = (value);                     \
@@ -4747,9 +4749,9 @@ pragma(inline, true) private long GET_I64_FROM_ADDR(uint* addr) {
     return u.val;
 }
 
-pragma(inline, true) private float64 GET_F64_FROM_ADDR(uint* addr) {
+pragma(inline, true) private double GET_F64_FROM_ADDR(uint* addr) {
     union _U {
-        float64 val = void;
+        double val = void;
         uint[2] parts = void;
     }_U u = void;
     u.parts[0] = addr[0];
@@ -4855,16 +4857,16 @@ pragma(inline, true) private long LOAD_I64(void* addr) {
     return u.val;
 }
 
-pragma(inline, true) private float64 LOAD_F64(void* addr) {
+pragma(inline, true) private double LOAD_F64(void* addr) {
     uintptr_t addr1 = cast(uintptr_t)addr;
     union _U {
-        float64 val = void;
+        double val = void;
         uint[2] u32 = void;
         ushort[4] u16 = void;
         ubyte[8] u8 = void;
     }_U u = void;
     if ((addr1 & cast(uintptr_t)7) == 0)
-        return *cast(float64*)addr;
+        return *cast(double*)addr;
 
     if ((addr1 & cast(uintptr_t)3) == 0) {
         u.u32[0] = (cast(uint*)addr)[0];
@@ -4930,7 +4932,7 @@ enum string STORE_PTR(string addr, string ptr) = ` STORE_U32(addr, (uintptr_t)pt
 enum string STORE_PTR(string addr, string ptr) = ` STORE_I64(addr, (uintptr_t)ptr)`;
 }
 
-} /* WASM_CPU_SUPPORTS_UNALIGNED_ADDR_ACCESS != 0 */
+} /* ver.WASM_CPU_SUPPORTS_UNALIGNED_ADDR_ACCESS */
 
 struct WASMModuleCommon {
     /* Module type, for module loaded from WASM bytecode binary,
@@ -4977,7 +4979,7 @@ struct WASMModuleMemConsumption {
     uint table_segs_size;
     uint data_segs_size;
     uint const_strs_size;
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     uint aot_code_size;
 }
 }
@@ -4993,7 +4995,7 @@ struct WASMModuleInstMemConsumption {
     uint exports_size;
 }
 
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (ver.WASM_ENABLE_LIBC_WASI) {
 static if (WASM_ENABLE_UVWASI == 0) {
 struct WASIContext {
     fd_table* curfds;
@@ -5016,7 +5018,7 @@ struct WASIContext {
 }
 }
 
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
 struct WASMRegisteredModule {
     bh_list_link l;
     /* point to a string pool */
@@ -5161,7 +5163,7 @@ void wasm_runtime_call_wasm_a(WASMExecEnv* exec_env, WASMFunctionInstanceCommon*
 
 void wasm_runtime_call_wasm_v(WASMExecEnv* exec_env, WASMFunctionInstanceCommon* function_, uint num_results, wasm_val_t* results, uint num_args, ...);
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
 /* See wasm_export.h for description */
 void wasm_runtime_start_debug_instance_with_port(WASMExecEnv* exec_env, int port);
 
@@ -5251,7 +5253,7 @@ void wasm_runtime_get_native_addr_range(WASMModuleInstanceCommon* module_inst, u
 /* See wasm_export.h for description */
 const(void)* wasm_runtime_get_custom_section(WASMModuleCommon* module_comm, const(char)* name, uint* len);
 
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
 void wasm_runtime_set_module_reader(const(module_reader) reader, const(module_destroyer) destroyer);
 
 module_reader wasm_runtime_get_module_reader();
@@ -5273,13 +5275,13 @@ void wasm_runtime_destroy_loading_module_list();
 
 bool wasm_runtime_is_built_in_module(const(char)* module_name);
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
 bool wasm_exec_env_get_aux_stack(WASMExecEnv* exec_env, uint* start_offset, uint* size);
 
 bool wasm_exec_env_set_aux_stack(WASMExecEnv* exec_env, uint start_offset, uint size);
 }
 
-static if (WASM_ENABLE_LIBC_WASI != 0) {
+static if (ver.WASM_ENABLE_LIBC_WASI) {
 void wasm_runtime_set_wasi_args_ex(WASMModuleCommon* module_, const(char)** dir_list, uint dir_count, const(char)** map_dir_list, uint map_dir_count, const(char)** env_list, uint env_count, char** argv, int argc, int stdinfd, int stdoutfd, int stderrfd);
 
 /* See wasm_export.h for description */
@@ -5308,7 +5310,7 @@ void wasm_runtime_set_wasi_addr_pool(wasm_module_t module_, const(char)** addr_p
 void wasm_runtime_set_wasi_ns_lookup_pool(wasm_module_t module_, const(char)** ns_lookup_pool, uint ns_lookup_pool_size);
 } /* end of WASM_ENABLE_LIBC_WASI */
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
 /* See wasm_export.h for description */
 void wasm_externref_obj2ref(WASMModuleInstanceCommon* module_inst, void* extern_obj, uint* p_externref_idx);
 
@@ -5330,7 +5332,7 @@ void wasm_externref_reclaim(WASMModuleInstanceCommon* module_inst);
 void wasm_externref_cleanup(WASMModuleInstanceCommon* module_inst);
 } /* end of WASM_ENABLE_REF_TYPES */
 
-static if (WASM_ENABLE_DUMP_CALL_STACK != 0) {
+static if (ver.WASM_ENABLE_DUMP_CALL_STACK) {
 /**
  * @brief Internal implementation for dumping or printing callstack line
  *
@@ -5348,7 +5350,7 @@ static if (WASM_ENABLE_DUMP_CALL_STACK != 0) {
  * @return bytes printed to stdout or dumped to buf
  */
 uint wasm_runtime_dump_line_buf_impl(const(char)* line_buf, bool dump_or_print, char** buf, uint* len);
-} /* end of WASM_ENABLE_DUMP_CALL_STACK != 0 */
+} /* end of ver.WASM_ENABLE_DUMP_CALL_STACK */
 
 /* Get module of the current exec_env */
 WASMModuleCommon* wasm_exec_env_get_module(WASMExecEnv* exec_env);
@@ -5390,7 +5392,7 @@ bool wasm_runtime_invoke_c_api_native(WASMModuleInstanceCommon* module_inst, voi
 
 void wasm_runtime_show_app_heap_corrupted_prompt();
 
-static if (WASM_ENABLE_LOAD_CUSTOM_SECTION != 0) {
+static if (ver.WASM_ENABLE_LOAD_CUSTOM_SECTION) {
 void wasm_runtime_destroy_custom_sections(WASMCustomSection* section_list);
 }
 

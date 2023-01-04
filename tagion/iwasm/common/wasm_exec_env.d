@@ -5,19 +5,21 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.basic;
+import tagion.iwasm.interpreter.wasm_interp : WASMInterpFrame;
 
 public import tagion.iwasm.common.wasm_runtime_common;
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
 public import tagion.iwasm.interpreter.wasm_runtime;
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
 public import tagion.aot.aot.aot_runtime;
 }
 
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
 public import tagion.iwasm.libraries.thread_mgr.thread_manager;
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
 public import tagion.iwasm.libraries.debug_engine.debug_engine;
 }
 }
@@ -32,20 +34,20 @@ WASMExecEnv* wasm_exec_env_create_internal(WASMModuleInstanceCommon* module_inst
 
     memset(exec_env, 0, cast(uint)total_size);
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (((exec_env.argv_buf = wasm_runtime_malloc(uint.sizeof * 64)) == 0)) {
         goto fail1;
     }
 }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     if (os_mutex_init(&exec_env.wait_lock) != 0)
         goto fail2;
 
     if (os_cond_init(&exec_env.wait_cond) != 0)
         goto fail3;
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
     if (((exec_env.current_status = wasm_cluster_create_exenv_status()) == 0))
         goto fail4;
 }
@@ -63,7 +65,7 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
         exec_env.wasm_stack.s.bottom + stack_size;
     exec_env.wasm_stack.s.top = exec_env.wasm_stack.s.bottom;
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     if (module_inst.module_type == Wasm_Module_AoT) {
         AOTModuleInstance* i = cast(AOTModuleInstance*)module_inst;
         AOTModule* m = cast(AOTModule*)i.module_;
@@ -71,7 +73,7 @@ static if (WASM_ENABLE_AOT != 0) {
     }
 }
 
-static if (WASM_ENABLE_MEMORY_TRACING != 0) {
+static if (ver.WASM_ENABLE_MEMORY_TRACING) {
     wasm_runtime_dump_exec_env_mem_consumption(exec_env);
 }
 
@@ -79,12 +81,12 @@ static if (WASM_ENABLE_MEMORY_TRACING != 0) {
 
 version (OS_ENABLE_HW_BOUND_CHECK) {
 fail5:
-static if (WASM_ENABLE_THREAD_MGR != 0 && WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR && ver.WASM_ENABLE_DEBUG_INTERP) {
     wasm_cluster_destroy_exenv_status(exec_env.current_status);
 }
 }
-static if (WASM_ENABLE_THREAD_MGR != 0) {
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
 fail4:
     os_cond_destroy(&exec_env.wait_cond);
 }
@@ -92,7 +94,7 @@ fail3:
     os_mutex_destroy(&exec_env.wait_lock);
 fail2:
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     wasm_runtime_free(exec_env.argv_buf);
 fail1:
 }
@@ -104,21 +106,21 @@ void wasm_exec_env_destroy_internal(WASMExecEnv* exec_env) {
 version (OS_ENABLE_HW_BOUND_CHECK) {
     os_munmap(exec_env.exce_check_guard_page, os_getpagesize());
 }
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     os_mutex_destroy(&exec_env.wait_lock);
     os_cond_destroy(&exec_env.wait_cond);
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
     wasm_cluster_destroy_exenv_status(exec_env.current_status);
 }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     wasm_runtime_free(exec_env.argv_buf);
 }
     wasm_runtime_free(exec_env);
 }
 
 WASMExecEnv* wasm_exec_env_create(WASMModuleInstanceCommon* module_inst, uint stack_size) {
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     WASMCluster* cluster = void;
 }
     WASMExecEnv* exec_env = wasm_exec_env_create_internal(module_inst, stack_size);
@@ -126,7 +128,7 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
     if (!exec_env)
         return null;
 
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
     /* Set the aux_stack_boundary and aux_stack_bottom */
     if (module_inst.module_type == Wasm_Module_Bytecode) {
         WASMModule* module_ = (cast(WASMModuleInstance*)module_inst).module_;
@@ -135,7 +137,7 @@ static if (WASM_ENABLE_INTERP != 0) {
             module_.aux_stack_bottom - module_.aux_stack_size;
     }
 }
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     /* Set the aux_stack_boundary and aux_stack_bottom */
     if (module_inst.module_type == Wasm_Module_AoT) {
         AOTModule* module_ = cast(AOTModule*)(cast(AOTModuleInstance*)module_inst).module_;
@@ -145,7 +147,7 @@ static if (WASM_ENABLE_AOT != 0) {
     }
 }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     /* Create a new cluster for this exec_env */
     if (((cluster = wasm_cluster_create(exec_env)) == 0)) {
         wasm_exec_env_destroy_internal(exec_env);
@@ -157,12 +159,12 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
 }
 
 void wasm_exec_env_destroy(WASMExecEnv* exec_env) {
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     /* Terminate all sub-threads */
     WASMCluster* cluster = wasm_exec_env_get_cluster(exec_env);
     if (cluster) {
         wasm_cluster_terminate_all_except_self(cluster, exec_env);
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
         /* Must fire exit event after other threads exits, otherwise
            the stopped thread will be overrided by other threads */
         wasm_cluster_thread_exited(exec_env);
@@ -189,7 +191,7 @@ void wasm_exec_env_set_thread_info(WASMExecEnv* exec_env) {
         stack_boundary ? stack_boundary + WASM_STACK_GUARD_SIZE : null;
 }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
 void* wasm_exec_env_get_thread_arg(WASMExecEnv* exec_env) {
     return exec_env.thread_arg;
 }
@@ -223,7 +225,7 @@ WASMJmpBuf* wasm_exec_env_pop_jmpbuf(WASMExecEnv* exec_env) {
 
  
 public import tagion.iwasm.share.utils.bh_assert;
-static if (WASM_ENABLE_INTERP != 0) {
+static if (ver.WASM_ENABLE_INTERP) {
 public import tagion.iwasm.interpreter.wasm;
 }
 
@@ -251,7 +253,7 @@ struct WASMExecEnv {
     /* The WASM module instance of current thread */
     WASMModuleInstanceCommon* module_inst;
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     uint* argv_buf;
 }
 
@@ -282,12 +284,12 @@ static if (WASM_ENABLE_AOT != 0) {
         uintptr_t __padding__;
     }_Aux_stack_bottom aux_stack_bottom;
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     /* Native symbol list, reserved */
     void** native_symbol;
 }
 
-static if (WASM_ENABLE_FAST_JIT != 0) {
+static if (ver.WASM_ENABLE_FAST_JIT) {
     /**
      * Cache for
      * - jit native operations in 32-bit target which hasn't 64-bit
@@ -298,7 +300,7 @@ static if (WASM_ENABLE_FAST_JIT != 0) {
     ulong[2] jit_cache;
 }
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
     /* thread return value */
     void* thread_ret_value;
 
@@ -319,7 +321,7 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
     bool thread_is_detached;
 }
 
-static if (WASM_ENABLE_DEBUG_INTERP != 0) {
+static if (ver.WASM_ENABLE_DEBUG_INTERP) {
     WASMCurrentEnvStatus* current_status;
 }
 
@@ -334,7 +336,7 @@ static if (WASM_ENABLE_DEBUG_INTERP != 0) {
     /* The native thread handle of current thread */
     korp_tid handle;
 
-static if (WASM_ENABLE_INTERP != 0 && WASM_ENABLE_FAST_INTERP == 0) {
+static if (ver.WASM_ENABLE_INTERP && WASM_ENABLE_FAST_INTERP == 0) {
     BlockAddr[BLOCK_ADDR_CONFLICT_SIZE][BLOCK_ADDR_CACHE_SIZE] block_addr_cache;
 }
 
@@ -344,7 +346,7 @@ version (OS_ENABLE_HW_BOUND_CHECK) {
     ubyte* exce_check_guard_page;
 }
 
-static if (WASM_ENABLE_MEMORY_PROFILING != 0) {
+static if (ver.WASM_ENABLE_MEMORY_PROFILING) {
     uint max_wasm_stack_used;
 }
 
@@ -404,7 +406,7 @@ pragma(inline, true) private void* wasm_exec_env_alloc_wasm_frame(WASMExecEnv* e
 
     exec_env.wasm_stack.s.top += size;
 
-static if (WASM_ENABLE_MEMORY_PROFILING != 0) {
+static if (ver.WASM_ENABLE_MEMORY_PROFILING) {
     {
         uint wasm_stack_used = exec_env.wasm_stack.s.top - exec_env.wasm_stack.s.bottom;
         if (wasm_stack_used > exec_env.max_wasm_stack_used)
@@ -457,7 +459,7 @@ void wasm_exec_env_set_module_inst(WASMExecEnv* exec_env, WASMModuleInstanceComm
 
 void wasm_exec_env_set_thread_info(WASMExecEnv* exec_env);
 
-static if (WASM_ENABLE_THREAD_MGR != 0) {
+static if (ver.WASM_ENABLE_THREAD_MGR) {
 void* wasm_exec_env_get_thread_arg(WASMExecEnv* exec_env);
 
 void wasm_exec_env_set_thread_arg(WASMExecEnv* exec_env, void* thread_arg);

@@ -6,7 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-
+import tagion.iwasm.basic;
 import tagion.iwasm.app_framework.base.app.bh_platform;
 
 
