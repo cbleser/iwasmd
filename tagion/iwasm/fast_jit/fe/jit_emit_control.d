@@ -1,4 +1,4 @@
-module jit_emit_control;
+module tagion.iwasm.fast_jit.fe.jit_emit_control;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,11 +6,10 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_emit_control;
-public import jit_emit_exception;
-public import jit_emit_function;
-public import ...jit_frontend;
-public import ...interpreter.wasm_loader;
+public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
+public import tagion.iwasm.fast_jit.fe.jit_emit_function;
+public import tagion.iwasm.fast_jit.jit_frontend;
+public import tagion.iwasm.interpreter.wasm_loader;
 
 enum string CREATE_BASIC_BLOCK(string new_basic_block) = `                       \
     do {                                                          \
@@ -83,7 +82,7 @@ private bool load_block_params(JitCompContext* cc, JitBlock* block) {
     jit_frame.sp = block.frame_sp_begin;
 
     /* Load params to new block */
-    offset = (uint32)(jit_frame.sp - jit_frame.lp);
+    offset = cast(uint)(jit_frame.sp - jit_frame.lp);
     for (i = 0; i < block.param_count; i++) {
         switch (block.param_types[i]) {
             case VALUE_TYPE_I32:
@@ -127,7 +126,7 @@ private bool load_block_results(JitCompContext* cc, JitBlock* block) {
     jit_frame.sp = block.frame_sp_begin;
 
     /* Load results to new block */
-    offset = (uint32)(jit_frame.sp - jit_frame.lp);
+    offset = cast(uint)(jit_frame.sp - jit_frame.lp);
     for (i = 0; i < block.result_count; i++) {
         switch (block.result_types[i]) {
             case VALUE_TYPE_I32:
@@ -308,7 +307,7 @@ private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* 
     JitReg value = void;
 
     jit_frame = cc.jit_frame;
-    offset_src = (uint32)(jit_frame.sp - jit_frame.lp)
+    offset_src = cast(uint)(jit_frame.sp - jit_frame.lp)
                  - wasm_get_cell_num(dst_types, dst_type_count);
     offset_dst = 0;
 
@@ -391,7 +390,7 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
     GEN_INSN(SUB, cur_exec_time, time_end, time_start);
     /* func_inst = cur_frame->function */
     GEN_INSN(LDPTR, func_inst, cc.fp_reg,
-             NEW_CONST(I32, WASMInterpFrame.function.offsetof));
+             NEW_CONST(I32, WASMInterpFrame.function_.offsetof));
     /* total_exec_time = func_inst->total_exec_time */
     GEN_INSN(LDI64, total_exec_time, func_inst,
              NEW_CONST(I32, WASMFunctionInstance.total_exec_time.offsetof));
@@ -956,7 +955,7 @@ private JitFrame* jit_frame_clone(const(JitFrame)* jit_frame) {
     uint max_stacks = jit_frame.max_stacks;
     uint total_size = void;
 
-    total_size = (uint32)(JitFrame.lp.offsetof
+    total_size = cast(uint)(JitFrame.lp.offsetof
                           + sizeof(*jit_frame.lp) * (max_locals + max_stacks));
 
     jit_frame_cloned = jit_calloc(total_size);
@@ -975,7 +974,7 @@ private void jit_frame_copy(JitFrame* jit_frame_dst, const(JitFrame)* jit_frame_
     uint total_size = void;
 
     total_size =
-        (uint32)(JitFrame.lp.offsetof
+        cast(uint)(JitFrame.lp.offsetof
                  + sizeof(*jit_frame_src.lp) * (max_locals + max_stacks));
     bh_memcpy_s(jit_frame_dst, total_size, jit_frame_src, total_size);
     jit_frame_dst.sp =
@@ -1211,36 +1210,3 @@ bool jit_handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip) {
  */
 
  
-public import ...jit_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_ip_end, uint label_type, uint param_count, ubyte* param_types, uint result_count, ubyte* result_types, bool merge_cmp_and_if);
-
-bool jit_compile_op_else(JitCompContext* cc, ubyte** p_frame_ip);
-
-bool jit_compile_op_end(JitCompContext* cc, ubyte** p_frame_ip);
-
-bool jit_compile_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip);
-
-bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_br_if, ubyte** p_frame_ip);
-
-bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count, ubyte** p_frame_ip);
-
-bool jit_compile_op_return(JitCompContext* cc, ubyte** p_frame_ip);
-
-bool jit_compile_op_unreachable(JitCompContext* cc, ubyte** p_frame_ip);
-
-bool jit_handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip);
-
-static if (WASM_ENABLE_THREAD_MGR != 0) {
-bool jit_check_suspend_flags(JitCompContext* cc);
-}
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _JIT_EMIT_CONTROL_H_ */

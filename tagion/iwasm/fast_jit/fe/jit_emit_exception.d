@@ -1,4 +1,4 @@
-module jit_emit_exception;
+module tagion.iwasm.fast_jit.fe.jit_emit_exception;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,8 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_emit_exception;
-public import ...jit_frontend;
+import tagion.iwasm.fast_jit.jit_frontend;
 
 bool jit_emit_exception(JitCompContext* cc, int exception_id, ubyte jit_opcode, JitReg cond_br_if, JitBasicBlock* cond_br_else_block) {
     JitInsn* insn = null;
@@ -82,16 +81,3 @@ bool jit_emit_exception(JitCompContext* cc, int exception_id, ubyte jit_opcode, 
  */
 
  
-public import ...jit_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_emit_exception(JitCompContext* cc, int exception_id, ubyte jit_opcode, JitReg cond_br_if, JitBasicBlock* cond_br_else_block);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _JIT_EMIT_EXCEPTION_H_ */

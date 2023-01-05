@@ -1,4 +1,4 @@
-module tagiom.iwasm.fast_jit.fe.jit_emit_compare;
+module tagion.iwasm.fast_jit.fe.jit_emit_compare;
 @nogc nothrow:
 extern(C): __gshared:
 /*
