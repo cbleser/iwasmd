@@ -1,4 +1,4 @@
-module jit_emit_table;
+module tagion.iwasm.fast_jit.fe.jit_emit_table;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,11 +6,10 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_emit_table;
-public import jit_emit_exception;
-public import jit_emit_function;
-public import ......interpreter.wasm_runtime;
-public import ...jit_frontend;
+public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
+public import tagion.iwasm.fast_jit.fe.jit_emit_function;
+public import tagion.iwasm.interpreter.wasm_runtime;
+public import tagion.iwasm.fast_jit.jit_frontend;
 
 static if (WASM_ENABLE_REF_TYPES != 0) {
 bool jit_compile_op_elem_drop(JitCompContext* cc, uint tbl_seg_idx) {
@@ -101,8 +100,8 @@ private int wasm_init_table(WASMModuleInstance* inst, uint tbl_idx, uint elem_id
 
     bh_memcpy_s(cast(ubyte*)tbl + WASMTableInstance.elems.offsetof
                     + dst * uint32.sizeof,
-                (uint32)((tbl_sz - dst) * uint32.sizeof),
-                elem.func_indexes + src, (uint32)(len * uint32.sizeof));
+                cast(uint)((tbl_sz - dst) * uint32.sizeof),
+                elem.func_indexes + src, cast(uint)(len * uint32.sizeof));
 
     return 0;
 out_of_bounds:
@@ -156,10 +155,10 @@ private int wasm_copy_table(WASMModuleInstance* inst, uint src_tbl_idx, uint dst
 
     bh_memmove_s(cast(ubyte*)dst_tbl + WASMTableInstance.elems.offsetof
                      + dst_offset * uint32.sizeof,
-                 (uint32)((dst_tbl_sz - dst_offset) * uint32.sizeof),
+                 cast(uint)((dst_tbl_sz - dst_offset) * uint32.sizeof),
                  cast(ubyte*)src_tbl + WASMTableInstance.elems.offsetof
                      + src_offset * uint32.sizeof,
-                 (uint32)(len * uint32.sizeof));
+                 cast(uint)(len * uint32.sizeof));
 
     return 0;
 out_of_bounds:
@@ -298,31 +297,4 @@ fail:
  */
 
  
-public import ...jit_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-static if (WASM_ENABLE_REF_TYPES != 0) {
-bool jit_compile_op_elem_drop(JitCompContext* cc, uint tbl_seg_idx);
-
-bool jit_compile_op_table_get(JitCompContext* cc, uint tbl_idx);
-
-bool jit_compile_op_table_set(JitCompContext* cc, uint tbl_idx);
-
-bool jit_compile_op_table_init(JitCompContext* cc, uint tbl_idx, uint tbl_seg_idx);
-
-bool jit_compile_op_table_copy(JitCompContext* cc, uint src_tbl_idx, uint dst_tbl_idx);
-
-bool jit_compile_op_table_size(JitCompContext* cc, uint tbl_idx);
-
-bool jit_compile_op_table_grow(JitCompContext* cc, uint tbl_idx);
-
-bool jit_compile_op_table_fill(JitCompContext* cc, uint tbl_idx);
-}
-
-version (none) {}
-} /* end of extern "C" */
-}
 
