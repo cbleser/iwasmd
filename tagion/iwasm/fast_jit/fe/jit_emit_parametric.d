@@ -1,4 +1,4 @@
-module jit_emit_parametric;
+module tagion.iwasm.fast_jit.fe.jit_emit_parametric;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,8 +6,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_emit_parametric;
-public import ...jit_frontend;
+public import tagion.iwasm.fast_jit.jit_frontend;
 
 private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg* p_value, ubyte* p_type) {
     JitValue* jit_value = void;
@@ -36,9 +35,8 @@ private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg
     /* is_32: i32, f32, ref.func, ref.extern, v128 */
     if (is_32bit
         && !(type == VALUE_TYPE_I32 || type == VALUE_TYPE_F32
-#if WASM_ENABLE_REF_TYPES != 0
-             || type == VALUE_TYPE_FUNCREF || type == VALUE_TYPE_EXTERNREF
-#endif
+|| ((WASM_ENABLE_REF_TYPES != 0)
+             && ( type == VALUE_TYPE_FUNCREF || type == VALUE_TYPE_EXTERNREF))
              || type == VALUE_TYPE_V128)) {
         jit_set_last_error(cc, "invalid WASM stack data type.");
         return false;
@@ -130,18 +128,3 @@ fail:
  */
 
  
-public import ...jit_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_compile_op_drop(JitCompContext* cc, bool is_drop_32);
-
-bool jit_compile_op_select(JitCompContext* cc, bool is_select_32);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _JIT_EMIT_PARAMETRIC_H_ */
