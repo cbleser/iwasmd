@@ -1,6 +1,7 @@
 module tagion.iwasm.fast_jit.jit_frontend;
 @nogc nothrow:
-extern(C): __gshared:
+extern (C):
+__gshared:
 /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -25,16 +26,16 @@ import tagion.iwasm.interpreter.wasm_runtime;
 import tagion.iwasm.common.wasm_exec_env;
 
 private uint get_global_base_offset(const(WASMModule)* module_) {
-    uint module_inst_struct_size = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes);
-    uint mem_inst_size = cast(uint)WASMMemoryInstance.sizeof
+    uint module_inst_struct_size = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes);
+    uint mem_inst_size = cast(uint) WASMMemoryInstance.sizeof
         * (module_.import_memory_count + module_.memory_count);
 
-static if (WASM_ENABLE_JIT != 0) {
-    /* If the module dosen't have memory, reserve one mem_info space
+    static if (WASM_ENABLE_JIT != 0) {
+        /* If the module dosen't have memory, reserve one mem_info space
        with empty content to align with llvm jit compiler */
-    if (mem_inst_size == 0)
-        mem_inst_size = cast(uint)WASMMemoryInstance.sizeof;
-}
+        if (mem_inst_size == 0)
+            mem_inst_size = cast(uint) WASMMemoryInstance.sizeof;
+    }
 
     /* Size of module inst and memory instances */
     return module_inst_struct_size + mem_inst_size;
@@ -65,14 +66,14 @@ uint jit_frontend_get_table_inst_offset(const(WASMModule)* module_, uint tbl_idx
     while (i < tbl_idx && i < module_.import_table_count) {
         WASMTableImport* import_table = &module_.import_tables[i].u.table;
 
-        offset += cast(uint)WASMTableInstance.elems.offsetof;
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        offset += cast(uint)uint32.sizeof * import_table.max_size;
-} else {
-        offset += cast(uint)uint32.sizeof
-                  * (import_table.possible_grow ? import_table.max_size
-                                                 : import_table.init_size);
-}
+        offset += cast(uint) WASMTableInstance.elems.offsetof;
+        static if (WASM_ENABLE_MULTI_MODULE != 0) {
+            offset += cast(uint) uint32.sizeof * import_table.max_size;
+        }
+        else {
+            offset += cast(uint) uint32.sizeof
+                * (import_table.possible_grow ? import_table.max_size : import_table.init_size);
+        }
 
         i++;
     }
@@ -86,13 +87,14 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
     while (i < tbl_idx && i < module_.table_count) {
         WASMTable* table = module_.tables + i;
 
-        offset += cast(uint)WASMTableInstance.elems.offsetof;
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        offset += cast(uint)uint32.sizeof * table.max_size;
-} else {
-        offset += cast(uint)uint32.sizeof
-                  * (table.possible_grow ? table.max_size : table.init_size);
-}
+        offset += cast(uint) WASMTableInstance.elems.offsetof;
+        static if (WASM_ENABLE_MULTI_MODULE != 0) {
+            offset += cast(uint) uint32.sizeof * table.max_size;
+        }
+        else {
+            offset += cast(uint) uint32.sizeof
+                * (table.possible_grow ? table.max_size : table.init_size);
+        }
 
         i++;
     }
@@ -102,7 +104,7 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
 
 uint jit_frontend_get_module_inst_extra_offset(const(WASMModule)* module_) {
     uint offset = jit_frontend_get_table_inst_offset(
-        module_, module_.import_table_count + module_.table_count);
+            module_, module_.import_table_count + module_.table_count);
 
     return align_uint(offset, 8);
 }
@@ -113,7 +115,7 @@ JitReg get_module_inst_reg(JitFrame* frame) {
     if (!frame.module_inst_reg) {
         frame.module_inst_reg = cc.module_inst_reg;
         GEN_INSN(LDPTR, frame.module_inst_reg, cc.exec_env_reg,
-                 NEW_CONST(I32, WASMExecEnv.module_inst.offsetof));
+                NEW_CONST(I32, WASMExecEnv.module_inst.offsetof));
     }
     return frame.module_inst_reg;
 }
@@ -125,7 +127,7 @@ JitReg get_module_reg(JitFrame* frame) {
     if (!frame.module_reg) {
         frame.module_reg = cc.module_reg;
         GEN_INSN(LDPTR, frame.module_reg, module_inst_reg,
-                 NEW_CONST(I32, WASMModuleInstance.module_.offsetof));
+                NEW_CONST(I32, WASMModuleInstance.module_.offsetof));
     }
     return frame.module_reg;
 }
@@ -137,8 +139,8 @@ JitReg get_import_func_ptrs_reg(JitFrame* frame) {
     if (!frame.import_func_ptrs_reg) {
         frame.import_func_ptrs_reg = cc.import_func_ptrs_reg;
         GEN_INSN(
-            LDPTR, frame.import_func_ptrs_reg, module_inst_reg,
-            NEW_CONST(I32, WASMModuleInstance.import_func_ptrs.offsetof));
+                LDPTR, frame.import_func_ptrs_reg, module_inst_reg,
+                NEW_CONST(I32, WASMModuleInstance.import_func_ptrs.offsetof));
     }
     return frame.import_func_ptrs_reg;
 }
@@ -150,8 +152,8 @@ JitReg get_fast_jit_func_ptrs_reg(JitFrame* frame) {
     if (!frame.fast_jit_func_ptrs_reg) {
         frame.fast_jit_func_ptrs_reg = cc.fast_jit_func_ptrs_reg;
         GEN_INSN(
-            LDPTR, frame.fast_jit_func_ptrs_reg, module_inst_reg,
-            NEW_CONST(I32, WASMModuleInstance.fast_jit_func_ptrs.offsetof));
+                LDPTR, frame.fast_jit_func_ptrs_reg, module_inst_reg,
+                NEW_CONST(I32, WASMModuleInstance.fast_jit_func_ptrs.offsetof));
     }
     return frame.fast_jit_func_ptrs_reg;
 }
@@ -163,8 +165,8 @@ JitReg get_func_type_indexes_reg(JitFrame* frame) {
     if (!frame.func_type_indexes_reg) {
         frame.func_type_indexes_reg = cc.func_type_indexes_reg;
         GEN_INSN(
-            LDPTR, frame.func_type_indexes_reg, module_inst_reg,
-            NEW_CONST(I32, WASMModuleInstance.func_type_indexes.offsetof));
+                LDPTR, frame.func_type_indexes_reg, module_inst_reg,
+                NEW_CONST(I32, WASMModuleInstance.func_type_indexes.offsetof));
     }
     return frame.func_type_indexes_reg;
 }
@@ -175,8 +177,8 @@ JitReg get_aux_stack_bound_reg(JitFrame* frame) {
     if (!frame.aux_stack_bound_reg) {
         frame.aux_stack_bound_reg = cc.aux_stack_bound_reg;
         GEN_INSN(
-            LDI32, frame.aux_stack_bound_reg, cc.exec_env_reg,
-            NEW_CONST(I32, offsetof(WASMExecEnv, aux_stack_boundary.boundary)));
+                LDI32, frame.aux_stack_bound_reg, cc.exec_env_reg,
+                NEW_CONST(I32, offsetof(WASMExecEnv, aux_stack_boundary.boundary)));
     }
     return frame.aux_stack_bound_reg;
 }
@@ -187,8 +189,8 @@ JitReg get_aux_stack_bottom_reg(JitFrame* frame) {
     if (!frame.aux_stack_bottom_reg) {
         frame.aux_stack_bottom_reg = cc.aux_stack_bottom_reg;
         GEN_INSN(
-            LDI32, frame.aux_stack_bottom_reg, cc.exec_env_reg,
-            NEW_CONST(I32, offsetof(WASMExecEnv, aux_stack_bottom.bottom)));
+                LDI32, frame.aux_stack_bottom_reg, cc.exec_env_reg,
+                NEW_CONST(I32, offsetof(WASMExecEnv, aux_stack_bottom.bottom)));
     }
     return frame.aux_stack_bottom_reg;
 }
@@ -196,8 +198,9 @@ JitReg get_aux_stack_bottom_reg(JitFrame* frame) {
 JitReg get_memory_data_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint memory_data_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.memory_data.offsetof;
+    uint memory_data_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.memory_data.offsetof;
 
     bh_assert(mem_idx == 0);
 
@@ -205,7 +208,7 @@ JitReg get_memory_data_reg(JitFrame* frame, uint mem_idx) {
         frame.memory_regs[mem_idx].memory_data =
             cc.memory_regs[mem_idx].memory_data;
         GEN_INSN(LDPTR, frame.memory_regs[mem_idx].memory_data,
-                 module_inst_reg, NEW_CONST(I32, memory_data_offset));
+        module_inst_reg, NEW_CONST(I32, memory_data_offset));
     }
     return frame.memory_regs[mem_idx].memory_data;
 }
@@ -213,8 +216,9 @@ JitReg get_memory_data_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_memory_data_end_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint memory_data_end_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.memory_data_end.offsetof;
+    uint memory_data_end_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.memory_data_end.offsetof;
 
     bh_assert(mem_idx == 0);
 
@@ -222,7 +226,7 @@ JitReg get_memory_data_end_reg(JitFrame* frame, uint mem_idx) {
         frame.memory_regs[mem_idx].memory_data_end =
             cc.memory_regs[mem_idx].memory_data_end;
         GEN_INSN(LDPTR, frame.memory_regs[mem_idx].memory_data_end,
-                 module_inst_reg, NEW_CONST(I32, memory_data_end_offset));
+        module_inst_reg, NEW_CONST(I32, memory_data_end_offset));
     }
     return frame.memory_regs[mem_idx].memory_data_end;
 }
@@ -230,21 +234,23 @@ JitReg get_memory_data_end_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_mem_bound_check_1byte_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_1byte_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.mem_bound_check_1byte.offsetof;
+    uint mem_bound_check_1byte_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.mem_bound_check_1byte.offsetof;
 
     bh_assert(mem_idx == 0);
 
     if (!frame.memory_regs[mem_idx].mem_bound_check_1byte) {
         frame.memory_regs[mem_idx].mem_bound_check_1byte =
             cc.memory_regs[mem_idx].mem_bound_check_1byte;
-static if (UINTPTR_MAX == UINT64_MAX) {
-        GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_1byte,
-                 module_inst_reg, NEW_CONST(I32, mem_bound_check_1byte_offset));
-} else {
-        GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_1byte,
-                 module_inst_reg, NEW_CONST(I32, mem_bound_check_1byte_offset));
-}
+        static if (UINTPTR_MAX == UINT64_MAX) {
+            GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_1byte,
+            module_inst_reg, NEW_CONST(I32, mem_bound_check_1byte_offset));
+        }
+        else {
+            GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_1byte,
+            module_inst_reg, NEW_CONST(I32, mem_bound_check_1byte_offset));
+        }
     }
     return frame.memory_regs[mem_idx].mem_bound_check_1byte;
 }
@@ -252,23 +258,25 @@ static if (UINTPTR_MAX == UINT64_MAX) {
 JitReg get_mem_bound_check_2bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_2bytes_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.mem_bound_check_2bytes.offsetof;
+    uint mem_bound_check_2bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.mem_bound_check_2bytes.offsetof;
 
     bh_assert(mem_idx == 0);
 
     if (!frame.memory_regs[mem_idx].mem_bound_check_2bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_2bytes =
             cc.memory_regs[mem_idx].mem_bound_check_2bytes;
-static if (UINTPTR_MAX == UINT64_MAX) {
-        GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_2bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_2bytes_offset));
-} else {
-        GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_2bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_2bytes_offset));
-}
+        static if (UINTPTR_MAX == UINT64_MAX) {
+            GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_2bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_2bytes_offset));
+        }
+        else {
+            GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_2bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_2bytes_offset));
+        }
     }
     return frame.memory_regs[mem_idx].mem_bound_check_2bytes;
 }
@@ -276,23 +284,25 @@ static if (UINTPTR_MAX == UINT64_MAX) {
 JitReg get_mem_bound_check_4bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_4bytes_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.mem_bound_check_4bytes.offsetof;
+    uint mem_bound_check_4bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.mem_bound_check_4bytes.offsetof;
 
     bh_assert(mem_idx == 0);
 
     if (!frame.memory_regs[mem_idx].mem_bound_check_4bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_4bytes =
             cc.memory_regs[mem_idx].mem_bound_check_4bytes;
-static if (UINTPTR_MAX == UINT64_MAX) {
-        GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_4bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_4bytes_offset));
-} else {
-        GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_4bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_4bytes_offset));
-}
+        static if (UINTPTR_MAX == UINT64_MAX) {
+            GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_4bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_4bytes_offset));
+        }
+        else {
+            GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_4bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_4bytes_offset));
+        }
     }
     return frame.memory_regs[mem_idx].mem_bound_check_4bytes;
 }
@@ -300,23 +310,25 @@ static if (UINTPTR_MAX == UINT64_MAX) {
 JitReg get_mem_bound_check_8bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_8bytes_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.mem_bound_check_8bytes.offsetof;
+    uint mem_bound_check_8bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.mem_bound_check_8bytes.offsetof;
 
     bh_assert(mem_idx == 0);
 
     if (!frame.memory_regs[mem_idx].mem_bound_check_8bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_8bytes =
             cc.memory_regs[mem_idx].mem_bound_check_8bytes;
-static if (UINTPTR_MAX == UINT64_MAX) {
-        GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_8bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_8bytes_offset));
-} else {
-        GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_8bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_8bytes_offset));
-}
+        static if (UINTPTR_MAX == UINT64_MAX) {
+            GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_8bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_8bytes_offset));
+        }
+        else {
+            GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_8bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_8bytes_offset));
+        }
     }
     return frame.memory_regs[mem_idx].mem_bound_check_8bytes;
 }
@@ -324,23 +336,25 @@ static if (UINTPTR_MAX == UINT64_MAX) {
 JitReg get_mem_bound_check_16bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_16bytes_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
-        + cast(uint)WASMMemoryInstance.mem_bound_check_16bytes.offsetof;
+    uint mem_bound_check_16bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+        + cast(
+                uint) WASMMemoryInstance.mem_bound_check_16bytes.offsetof;
 
     bh_assert(mem_idx == 0);
 
     if (!frame.memory_regs[mem_idx].mem_bound_check_16bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_16bytes =
             cc.memory_regs[mem_idx].mem_bound_check_16bytes;
-static if (UINTPTR_MAX == UINT64_MAX) {
-        GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_16bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_16bytes_offset));
-} else {
-        GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_16bytes,
-                 module_inst_reg,
-                 NEW_CONST(I32, mem_bound_check_16bytes_offset));
-}
+        static if (UINTPTR_MAX == UINT64_MAX) {
+            GEN_INSN(LDI64, frame.memory_regs[mem_idx].mem_bound_check_16bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_16bytes_offset));
+        }
+        else {
+            GEN_INSN(LDI32, frame.memory_regs[mem_idx].mem_bound_check_16bytes,
+            module_inst_reg,
+            NEW_CONST(I32, mem_bound_check_16bytes_offset));
+        }
     }
     return frame.memory_regs[mem_idx].mem_bound_check_16bytes;
 }
@@ -349,13 +363,13 @@ JitReg get_table_elems_reg(JitFrame* frame, uint tbl_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst = get_module_inst_reg(frame);
     uint offset = jit_frontend_get_table_inst_offset(cc.cur_wasm_module, tbl_idx)
-        + cast(uint)WASMTableInstance.elems.offsetof;
+        + cast(uint) WASMTableInstance.elems.offsetof;
 
     if (!frame.table_regs[tbl_idx].table_elems) {
         frame.table_regs[tbl_idx].table_elems =
             cc.table_regs[tbl_idx].table_elems;
         GEN_INSN(ADD, frame.table_regs[tbl_idx].table_elems, module_inst,
-                 NEW_CONST(PTR, offset));
+        NEW_CONST(PTR, offset));
     }
     return frame.table_regs[tbl_idx].table_elems;
 }
@@ -364,13 +378,13 @@ JitReg get_table_cur_size_reg(JitFrame* frame, uint tbl_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst = get_module_inst_reg(frame);
     uint offset = jit_frontend_get_table_inst_offset(cc.cur_wasm_module, tbl_idx)
-        + cast(uint)WASMTableInstance.cur_size.offsetof;
+        + cast(uint) WASMTableInstance.cur_size.offsetof;
 
     if (!frame.table_regs[tbl_idx].table_cur_size) {
         frame.table_regs[tbl_idx].table_cur_size =
             cc.table_regs[tbl_idx].table_cur_size;
         GEN_INSN(LDI32, frame.table_regs[tbl_idx].table_cur_size, module_inst,
-                 NEW_CONST(I32, offset));
+        NEW_CONST(I32, offset));
     }
     return frame.table_regs[tbl_idx].table_cur_size;
 }
@@ -436,7 +450,7 @@ JitReg gen_load_i32(JitFrame* frame, uint n) {
         JitCompContext* cc = frame.cc;
         frame.lp[n].reg = jit_cc_new_reg_I32(cc);
         GEN_INSN(LDI32, frame.lp[n].reg, cc.fp_reg,
-                 NEW_CONST(I32, offset_of_local(n)));
+        NEW_CONST(I32, offset_of_local(n)));
     }
 
     return frame.lp[n].reg;
@@ -447,7 +461,7 @@ JitReg gen_load_i64(JitFrame* frame, uint n) {
         JitCompContext* cc = frame.cc;
         frame.lp[n].reg = frame.lp[n + 1].reg = jit_cc_new_reg_I64(cc);
         GEN_INSN(LDI64, frame.lp[n].reg, cc.fp_reg,
-                 NEW_CONST(I32, offset_of_local(n)));
+        NEW_CONST(I32, offset_of_local(n)));
     }
 
     return frame.lp[n].reg;
@@ -458,7 +472,7 @@ JitReg gen_load_f32(JitFrame* frame, uint n) {
         JitCompContext* cc = frame.cc;
         frame.lp[n].reg = jit_cc_new_reg_F32(cc);
         GEN_INSN(LDF32, frame.lp[n].reg, cc.fp_reg,
-                 NEW_CONST(I32, offset_of_local(n)));
+        NEW_CONST(I32, offset_of_local(n)));
     }
 
     return frame.lp[n].reg;
@@ -469,7 +483,7 @@ JitReg gen_load_f64(JitFrame* frame, uint n) {
         JitCompContext* cc = frame.cc;
         frame.lp[n].reg = frame.lp[n + 1].reg = jit_cc_new_reg_F64(cc);
         GEN_INSN(LDF64, frame.lp[n].reg, cc.fp_reg,
-                 NEW_CONST(I32, offset_of_local(n)));
+        NEW_CONST(I32, offset_of_local(n)));
     }
 
     return frame.lp[n].reg;
@@ -488,28 +502,30 @@ void gen_commit_values(JitFrame* frame, JitValueSlot* begin, JitValueSlot* end) 
         n = p - frame.lp;
 
         switch (jit_reg_kind(p.reg)) {
-            case JitRegKind.I32:
-                GEN_INSN(STI32, p.reg, cc.fp_reg,
-                         NEW_CONST(I32, offset_of_local(n)));
-                break;
+        case JitRegKind.I32:
+            GEN_INSN(STI32, p.reg, cc.fp_reg,
+                    NEW_CONST(I32, offset_of_local(n)));
+            break;
 
-            case JitRegKind.I64:
-                GEN_INSN(STI64, p.reg, cc.fp_reg,
-                         NEW_CONST(I32, offset_of_local(n)));
-                (++p).dirty = 0;
-                break;
+        case JitRegKind.I64:
+            GEN_INSN(STI64, p.reg, cc.fp_reg,
+                    NEW_CONST(I32, offset_of_local(n)));
+            (++p).dirty = 0;
+            break;
 
-            case JitRegKind.F32:
-                GEN_INSN(STF32, p.reg, cc.fp_reg,
-                         NEW_CONST(I32, offset_of_local(n)));
-                break;
+        case JitRegKind.F32:
+            GEN_INSN(STF32, p.reg, cc.fp_reg,
+                    NEW_CONST(I32, offset_of_local(n)));
+            break;
 
-            case JitRegKind.F64:
-                GEN_INSN(STF64, p.reg, cc.fp_reg,
-                         NEW_CONST(I32, offset_of_local(n)));
-                (++p).dirty = 0;
-                break;
-        default: break;}
+        case JitRegKind.F64:
+            GEN_INSN(STF64, p.reg, cc.fp_reg,
+                    NEW_CONST(I32, offset_of_local(n)));
+            (++p).dirty = 0;
+            break;
+        default:
+            break;
+        }
     }
 }
 
@@ -525,19 +541,19 @@ void gen_commit_sp_ip(JitFrame* frame) {
     if (frame.sp != frame.committed_sp) {
         sp = jit_cc_new_reg_ptr(cc);
         GEN_INSN(ADD, sp, cc.fp_reg,
-                 NEW_CONST(PTR, offset_of_local(frame.sp - frame.lp)));
+                NEW_CONST(PTR, offset_of_local(frame.sp - frame.lp)));
         GEN_INSN(STPTR, sp, cc.fp_reg,
-                 NEW_CONST(I32, WASMInterpFrame.sp.offsetof));
+                NEW_CONST(I32, WASMInterpFrame.sp.offsetof));
         frame.committed_sp = frame.sp;
     }
 
-version (none) { /* Disable committing ip currently */
-    if (frame.ip != frame.committed_ip) {
-        GEN_INSN(STPTR, NEW_CONST(PTR, cast(uintptr_t)frame.ip), cc.fp_reg,
-                 NEW_CONST(I32, WASMInterpFrame.ip.offsetof));
-        frame.committed_ip = frame.ip;
+    version (none) { /* Disable committing ip currently */
+        if (frame.ip != frame.committed_ip) {
+            GEN_INSN(STPTR, NEW_CONST(PTR, cast(uintptr_t) frame.ip), cc.fp_reg,
+                    NEW_CONST(I32, WASMInterpFrame.ip.offsetof));
+            frame.committed_ip = frame.ip;
+        }
     }
-}
 }
 
 private bool create_fixed_virtual_regs(JitCompContext* cc) {
@@ -555,9 +571,9 @@ private bool create_fixed_virtual_regs(JitCompContext* cc) {
 
     count = module_.import_memory_count + module_.memory_count;
     if (count > 0) {
-        total_size = cast(ulong)JitMemRegs.sizeof * count;
+        total_size = cast(ulong) JitMemRegs.sizeof * count;
         if (total_size > UINT32_MAX
-            || ((cc.memory_regs = jit_calloc(cast(uint)total_size)) == 0)) {
+                || ((cc.memory_regs = jit_calloc(cast(uint) total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
             return false;
         }
@@ -575,9 +591,9 @@ private bool create_fixed_virtual_regs(JitCompContext* cc) {
 
     count = module_.import_table_count + module_.table_count;
     if (count > 0) {
-        total_size = cast(ulong)JitTableRegs.sizeof * count;
+        total_size = cast(ulong) JitTableRegs.sizeof * count;
         if (total_size > UINT32_MAX
-            || ((cc.table_regs = jit_calloc(cast(uint)total_size)) == 0)) {
+                || ((cc.table_regs = jit_calloc(cast(uint) total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
             return false;
         }
@@ -632,7 +648,7 @@ private bool form_and_translate_func(JitCompContext* cc) {
                         jit_basic_block_label(cc.exce_basic_blocks[i]);
                 }
                 else if (insn.opcode >= JIT_OP_BEQ
-                         && insn.opcode <= JIT_OP_BLEU) {
+                        && insn.opcode <= JIT_OP_BLEU) {
                     *(jit_insn_opnd(insn, 1)) =
                         jit_basic_block_label(cc.exce_basic_blocks[i]);
                 }
@@ -642,10 +658,10 @@ private bool form_and_translate_func(JitCompContext* cc) {
             if (i != EXCE_ALREADY_THROWN) {
                 JitReg module_inst_reg = jit_cc_new_reg_ptr(cc);
                 GEN_INSN(LDPTR, module_inst_reg, cc.exec_env_reg,
-                         NEW_CONST(I32, WASMExecEnv.module_inst.offsetof));
+                        NEW_CONST(I32, WASMExecEnv.module_inst.offsetof));
                 insn = GEN_INSN(
-                    CALLNATIVE, 0,
-                    NEW_CONST(PTR, cast(uintptr_t)jit_set_exception_with_id), 2);
+                        CALLNATIVE, 0,
+                        NEW_CONST(PTR, cast(uintptr_t) jit_set_exception_with_id), 2);
                 if (insn) {
                     *(jit_insn_opndv(insn, 2)) = module_inst_reg;
                     *(jit_insn_opndv(insn, 3)) = NEW_CONST(I32, i);
@@ -654,18 +670,18 @@ private bool form_and_translate_func(JitCompContext* cc) {
             GEN_INSN(RETURN, NEW_CONST(I32, JIT_INTERP_ACTION_THROWN));
 
             *(jit_annl_begin_bcip(cc,
-                                  jit_basic_block_label(cc.cur_basic_block))) =
+                    jit_basic_block_label(cc.cur_basic_block))) =
                 *(jit_annl_end_bcip(
-                    cc, jit_basic_block_label(cc.cur_basic_block))) =
-                    cc.cur_wasm_module.load_addr;
+                        cc, jit_basic_block_label(cc.cur_basic_block))) =
+                cc.cur_wasm_module.load_addr;
         }
     }
 
     *(jit_annl_begin_bcip(cc, cc.entry_label)) =
         *(jit_annl_end_bcip(cc, cc.entry_label)) =
-            *(jit_annl_begin_bcip(cc, cc.exit_label)) =
-                *(jit_annl_end_bcip(cc, cc.exit_label)) =
-                    cc.cur_wasm_module.load_addr;
+        *(jit_annl_begin_bcip(cc, cc.exit_label)) =
+        *(jit_annl_end_bcip(cc, cc.exit_label)) =
+        cc.cur_wasm_module.load_addr;
 
     if (jit_get_last_error(cc)) {
         return false;
@@ -676,8 +692,8 @@ private bool form_and_translate_func(JitCompContext* cc) {
 bool jit_pass_frontend(JitCompContext* cc) {
     /* Enable necessary annotations required at the current stage. */
     if (!jit_annl_enable_begin_bcip(cc) || !jit_annl_enable_end_bcip(cc)
-        || !jit_annl_enable_end_sp(cc) || !jit_annr_enable_def_insn(cc)
-        || !jit_cc_enable_insn_hash(cc, 127))
+            || !jit_annl_enable_end_sp(cc) || !jit_annr_enable_def_insn(cc)
+            || !jit_cc_enable_insn_hash(cc, 127))
         return false;
 
     if (!(form_and_translate_func(cc)))
@@ -698,26 +714,27 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     uint cur_wasm_func_idx = cc.cur_wasm_func_idx;
     uint max_locals = cur_wasm_func.param_cell_num + cur_wasm_func.local_cell_num;
     uint max_stacks = cur_wasm_func.max_stack_cell_num;
-    ulong total_cell_num = cast(ulong)cur_wasm_func.param_cell_num
-        + cast(ulong)cur_wasm_func.local_cell_num
-        + cast(ulong)cur_wasm_func.max_stack_cell_num
-        + (cast(ulong)cur_wasm_func.max_block_num) * WASMBranchBlock.sizeof / 4;
+    ulong total_cell_num = cast(ulong) cur_wasm_func.param_cell_num
+        + cast(ulong) cur_wasm_func.local_cell_num
+        + cast(
+                ulong) cur_wasm_func.max_stack_cell_num
+        + (cast(ulong) cur_wasm_func.max_block_num) * WASMBranchBlock.sizeof / 4;
     uint frame_size = void, outs_size = void, local_size = void, count = void;
     uint i = void, local_off = void;
     ulong total_size = void;
-static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
-    JitReg module_inst = void, func_inst = void;
-    uint func_insts_offset = void;
-static if (WASM_ENABLE_PERF_PROFILING != 0) {
-    JitReg time_started = void;
-}
-}
+    static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
+        JitReg module_inst = void, func_inst = void;
+        uint func_insts_offset = void;
+        static if (WASM_ENABLE_PERF_PROFILING != 0) {
+            JitReg time_started = void;
+        }
+    }
 
-    if (cast(ulong)max_locals + cast(ulong)max_stacks >= UINT32_MAX
-        || total_cell_num >= UINT32_MAX
-        || ((jit_frame = jit_calloc(JitFrame.lp.offsetof
-                                    + sizeof(*jit_frame.lp)
-                                          * (max_locals + max_stacks))) == 0)) {
+    if (cast(ulong) max_locals + cast(ulong) max_stacks >= UINT32_MAX
+            || total_cell_num >= UINT32_MAX
+            || ((jit_frame = jit_calloc(JitFrame.lp.offsetof
+                + sizeof(*jit_frame.lp)
+                * (max_locals + max_stacks))) == 0)) {
         os_printf("allocate jit frame failed\n");
         return null;
     }
@@ -725,9 +742,9 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
     count =
         cur_wasm_module.import_memory_count + cur_wasm_module.memory_count;
     if (count > 0) {
-        total_size = cast(ulong)JitMemRegs.sizeof * count;
+        total_size = cast(ulong) JitMemRegs.sizeof * count;
         if (total_size > UINT32_MAX
-            || ((jit_frame.memory_regs = jit_calloc(cast(uint)total_size)) == 0)) {
+                || ((jit_frame.memory_regs = jit_calloc(cast(uint) total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
             jit_free(jit_frame);
             return null;
@@ -736,9 +753,9 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
 
     count = cur_wasm_module.import_table_count + cur_wasm_module.table_count;
     if (count > 0) {
-        total_size = cast(ulong)JitTableRegs.sizeof * count;
+        total_size = cast(ulong) JitTableRegs.sizeof * count;
         if (total_size > UINT32_MAX
-            || ((jit_frame.table_regs = jit_calloc(cast(uint)total_size)) == 0)) {
+                || ((jit_frame.table_regs = jit_calloc(cast(uint) total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
             if (jit_frame.memory_regs)
                 jit_free(jit_frame.memory_regs);
@@ -777,33 +794,33 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
     frame_boundary = jit_cc_new_reg_ptr(cc);
     frame_sp = jit_cc_new_reg_ptr(cc);
 
-static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
-    module_inst = jit_cc_new_reg_ptr(cc);
-    func_inst = jit_cc_new_reg_ptr(cc);
-static if (WASM_ENABLE_PERF_PROFILING != 0) {
-    time_started = jit_cc_new_reg_I64(cc);
-    /* Call os_time_get_boot_microsecond() to get time_started firstly
+    static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
+        module_inst = jit_cc_new_reg_ptr(cc);
+        func_inst = jit_cc_new_reg_ptr(cc);
+        static if (WASM_ENABLE_PERF_PROFILING != 0) {
+            time_started = jit_cc_new_reg_I64(cc);
+            /* Call os_time_get_boot_microsecond() to get time_started firstly
        as there is stack frame switching below, calling native in them
        may cause register spilling work inproperly */
-    if (!jit_emit_callnative(cc, os_time_get_boot_microsecond, time_started,
-                             null, 0)) {
-        return null;
+            if (!jit_emit_callnative(cc, os_time_get_boot_microsecond, time_started,
+                    null, 0)) {
+                return null;
+            }
+        }
     }
-}
-}
 
     /* top = exec_env->wasm_stack.s.top */
     GEN_INSN(LDPTR, top, cc.exec_env_reg,
-             NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top)));
+            NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top)));
     /* top_boundary = exec_env->wasm_stack.s.top_boundary */
     GEN_INSN(LDPTR, top_boundary, cc.exec_env_reg,
-             NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top_boundary)));
+            NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top_boundary)));
     /* frame_boundary = top + frame_size + outs_size */
     GEN_INSN(ADD, frame_boundary, top, NEW_CONST(PTR, frame_size + outs_size));
     /* if frame_boundary > top_boundary, throw stack overflow exception */
     GEN_INSN(CMP, cc.cmp_reg, frame_boundary, top_boundary);
     if (!jit_emit_exception(cc, EXCE_OPERAND_STACK_OVERFLOW, JIT_OP_BGTU,
-                            cc.cmp_reg, null)) {
+            cc.cmp_reg, null)) {
         return null;
     }
 
@@ -812,54 +829,54 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
     GEN_INSN(SUB, new_top, frame_boundary, NEW_CONST(PTR, outs_size));
     /* exec_env->wasm_stack.s.top = new_top */
     GEN_INSN(STPTR, new_top, cc.exec_env_reg,
-             NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top)));
+            NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top)));
     /* frame_sp = frame->lp + local_size */
     GEN_INSN(ADD, frame_sp, top,
-             NEW_CONST(PTR, WASMInterpFrame.lp.offsetof + local_size));
+            NEW_CONST(PTR, WASMInterpFrame.lp.offsetof + local_size));
     /* frame->sp = frame_sp */
     GEN_INSN(STPTR, frame_sp, top,
-             NEW_CONST(I32, WASMInterpFrame.sp.offsetof));
+            NEW_CONST(I32, WASMInterpFrame.sp.offsetof));
     /* frame->prev_frame = fp_reg */
     GEN_INSN(STPTR, cc.fp_reg, top,
-             NEW_CONST(I32, WASMInterpFrame.prev_frame.offsetof));
-static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
-    /* module_inst = exec_env->module_inst */
-    GEN_INSN(LDPTR, module_inst, cc.exec_env_reg,
-             NEW_CONST(I32, WASMExecEnv.module_inst.offsetof));
-    func_insts_offset =
-        jit_frontend_get_module_inst_extra_offset(cur_wasm_module)
-        + cast(uint)WASMModuleInstanceExtra.functions.offsetof;
-    /* func_inst = module_inst->e->functions */
-    GEN_INSN(LDPTR, func_inst, module_inst, NEW_CONST(I32, func_insts_offset));
-    /* func_inst = func_inst + cur_wasm_func_idx */
-    GEN_INSN(ADD, func_inst, func_inst,
-             NEW_CONST(PTR, cast(uint)WASMFunctionInstance.sizeof
-                                * cur_wasm_func_idx));
-    /* frame->function = func_inst */
-    GEN_INSN(STPTR, func_inst, top,
-             NEW_CONST(I32, WASMInterpFrame.function_.offsetof));
-static if (WASM_ENABLE_PERF_PROFILING != 0) {
-    /* frame->time_started = time_started */
-    GEN_INSN(STI64, time_started, top,
-             NEW_CONST(I32, WASMInterpFrame.time_started.offsetof));
-}
-}
+            NEW_CONST(I32, WASMInterpFrame.prev_frame.offsetof));
+    static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
+        /* module_inst = exec_env->module_inst */
+        GEN_INSN(LDPTR, module_inst, cc.exec_env_reg,
+                NEW_CONST(I32, WASMExecEnv.module_inst.offsetof));
+        func_insts_offset =
+            jit_frontend_get_module_inst_extra_offset(cur_wasm_module)
+            + cast(uint) WASMModuleInstanceExtra.functions.offsetof;
+        /* func_inst = module_inst->e->functions */
+        GEN_INSN(LDPTR, func_inst, module_inst, NEW_CONST(I32, func_insts_offset));
+        /* func_inst = func_inst + cur_wasm_func_idx */
+        GEN_INSN(ADD, func_inst, func_inst,
+                NEW_CONST(PTR, cast(uint) WASMFunctionInstance.sizeof
+                * cur_wasm_func_idx));
+        /* frame->function = func_inst */
+        GEN_INSN(STPTR, func_inst, top,
+                NEW_CONST(I32, WASMInterpFrame.function_.offsetof));
+        static if (WASM_ENABLE_PERF_PROFILING != 0) {
+            /* frame->time_started = time_started */
+            GEN_INSN(STI64, time_started, top,
+                    NEW_CONST(I32, WASMInterpFrame.time_started.offsetof));
+        }
+    }
     /* exec_env->cur_frame = top */
     GEN_INSN(STPTR, top, cc.exec_env_reg,
-             NEW_CONST(I32, WASMExecEnv.cur_frame.offsetof));
+            NEW_CONST(I32, WASMExecEnv.cur_frame.offsetof));
     /* fp_reg = top */
     GEN_INSN(MOV, cc.fp_reg, top);
 
     /* Initialize local variables, set them to 0 */
-    local_off = cast(uint)WASMInterpFrame.lp.offsetof
-                + cur_wasm_func.param_cell_num * 4;
+    local_off = cast(uint) WASMInterpFrame.lp.offsetof
+        + cur_wasm_func.param_cell_num * 4;
     for (i = 0; i < cur_wasm_func.local_cell_num / 2; i++, local_off += 8) {
         GEN_INSN(STI64, NEW_CONST(I64, 0), cc.fp_reg,
-                 NEW_CONST(I32, local_off));
+                NEW_CONST(I32, local_off));
     }
     if (cur_wasm_func.local_cell_num & 1) {
         GEN_INSN(STI32, NEW_CONST(I32, 0), cc.fp_reg,
-                 NEW_CONST(I32, local_off));
+                NEW_CONST(I32, local_off));
     }
 
     return jit_frame;
@@ -896,12 +913,12 @@ private JitBasicBlock* create_func_block(JitCompContext* cc) {
     jit_block.param_count = param_count;
     if (param_count) {
         bh_memcpy_s(jit_block.param_types, param_count, func_type.types,
-                    param_count);
+                param_count);
     }
     jit_block.result_count = result_count;
     if (result_count) {
         bh_memcpy_s(jit_block.result_types, result_count,
-                    func_type.types + param_count, result_count);
+                func_type.types + param_count, result_count);
     }
     jit_block.wasm_code_end = cur_func.code + cur_func.code_size;
     jit_block.frame_sp_begin = cc.jit_frame.sp;
@@ -911,7 +928,7 @@ private JitBasicBlock* create_func_block(JitCompContext* cc) {
         goto fail;
     }
     *(jit_annl_begin_bcip(
-        cc, jit_basic_block_label(jit_block.basic_block_entry))) =
+            cc, jit_basic_block_label(jit_block.basic_block_entry))) =
         cur_func.code;
     jit_block_stack_push(&cc.block_stack, jit_block);
     cc.cur_basic_block = jit_block.basic_block_entry;
@@ -950,12 +967,12 @@ private bool read_leb(JitCompContext* cc, const(ubyte)* buf, const(ubyte)* buf_e
     }
     if (bcnt > (maxbits + 6) / 7) {
         jit_set_last_error(cc, "read leb failed: "
-                               ~ "integer representation too long");
+                ~ "integer representation too long");
         return false;
     }
     if (sign && (shift < maxbits) && (byte_ & 0x40)) {
         /* Sign extend */
-        result |= (~(cast(ulong)0)) << shift;
+        result |= (~(cast(ulong) 0)) << shift;
     }
     *p_result = result;
     return true;
@@ -994,11 +1011,16 @@ enum string read_leb_int64(string p, string p_end, string res) = `              
 private bool jit_compile_func(JitCompContext* cc) {
     WASMFunction* cur_func = cc.cur_wasm_func;
     WASMType* func_type = null;
-    ubyte* frame_ip = cur_func.code; ubyte opcode = void; ubyte* p_f32 = void, p_f64 = void;
+    ubyte* frame_ip = cur_func.code;
+    ubyte opcode = void;
+    ubyte* p_f32 = void, p_f64 = void;
     ubyte* frame_ip_end = frame_ip + cur_func.code_size;
-    ubyte* param_types = null, result_types = null; ubyte value_type = void;
+    ubyte* param_types = null, result_types = null;
+    ubyte value_type = void;
     ushort param_count = void, result_count = void;
-    uint br_depth = void; uint* br_depths = void; uint br_count = void;
+    uint br_depth = void;
+    uint* br_depths = void;
+    uint br_count = void;
     uint func_idx = void, type_idx = void, mem_idx = void, local_idx = void, global_idx = void, i = void;
     uint bytes = 4, align_ = void, offset = void;
     bool merge_cmp_and_if = false, merge_cmp_and_br_if = false;
@@ -1012,37 +1034,36 @@ private bool jit_compile_func(JitCompContext* cc) {
         cc.jit_frame.ip = frame_ip;
         opcode = *frame_ip++;
 
-version (none) { /* TODO */
-static if (WASM_ENABLE_THREAD_MGR != 0) {
-    /* Insert suspend check point */
-    if (cc.enable_thread_mgr) {
-        if (!check_suspend_flags(cc, func_ctx))
-            return false;
-    }
-}
-}
+        version (none) { /* TODO */
+            static if (WASM_ENABLE_THREAD_MGR != 0) {
+                /* Insert suspend check point */
+                if (cc.enable_thread_mgr) {
+                    if (!check_suspend_flags(cc, func_ctx))
+                        return false;
+                }
+            }
+        }
 
         switch (opcode) {
-            case WASM_OP_UNREACHABLE:
-                if (!jit_compile_op_unreachable(cc, &frame_ip))
-                    return false;
-                break;
+        case WASM_OP_UNREACHABLE:
+            if (!jit_compile_op_unreachable(cc, &frame_ip))
+                return false;
+            break;
 
-            case WASM_OP_NOP:
-                break;
+        case WASM_OP_NOP:
+            break;
 
-            case WASM_OP_BLOCK:
-            case WASM_OP_LOOP:
-            case WASM_OP_IF:
-            {
+        case WASM_OP_BLOCK:
+        case WASM_OP_LOOP:
+        case WASM_OP_IF: {
                 value_type = *frame_ip++;
                 if (value_type == VALUE_TYPE_I32 || value_type == VALUE_TYPE_I64
-                    || value_type == VALUE_TYPE_F32
-                    || value_type == VALUE_TYPE_F64
-                    || value_type == VALUE_TYPE_V128
-                    || value_type == VALUE_TYPE_VOID
-                    || value_type == VALUE_TYPE_FUNCREF
-                    || value_type == VALUE_TYPE_EXTERNREF) {
+                        || value_type == VALUE_TYPE_F32
+                        || value_type == VALUE_TYPE_F64
+                        || value_type == VALUE_TYPE_V128
+                        || value_type == VALUE_TYPE_VOID
+                        || value_type == VALUE_TYPE_FUNCREF
+                        || value_type == VALUE_TYPE_EXTERNREF) {
                     param_count = 0;
                     param_types = null;
                     if (value_type == VALUE_TYPE_VOID) {
@@ -1068,10 +1089,9 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
                 merge_cmp_and_if = false;
                 break;
             }
-            case EXT_OP_BLOCK:
-            case EXT_OP_LOOP:
-            case EXT_OP_IF:
-            {
+        case EXT_OP_BLOCK:
+        case EXT_OP_LOOP:
+        case EXT_OP_IF: {
                 read_leb_uint32(frame_ip, frame_ip_end, type_idx);
                 func_type = cc.cur_wasm_module.types[type_idx];
                 param_count = func_type.param_count;
@@ -1089,114 +1109,114 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
                 break;
             }
 
-            case WASM_OP_ELSE:
-                if (!jit_compile_op_else(cc, &frame_ip))
-                    return false;
-                break;
+        case WASM_OP_ELSE:
+            if (!jit_compile_op_else(cc, &frame_ip))
+                return false;
+            break;
 
-            case WASM_OP_END:
-                if (!jit_compile_op_end(cc, &frame_ip))
-                    return false;
-                break;
+        case WASM_OP_END:
+            if (!jit_compile_op_end(cc, &frame_ip))
+                return false;
+            break;
 
-            case WASM_OP_BR:
-                read_leb_uint32(frame_ip, frame_ip_end, br_depth);
-                if (!jit_compile_op_br(cc, br_depth, &frame_ip))
-                    return false;
-                break;
+        case WASM_OP_BR:
+            read_leb_uint32(frame_ip, frame_ip_end, br_depth);
+            if (!jit_compile_op_br(cc, br_depth, &frame_ip))
+                return false;
+            break;
 
-            case WASM_OP_BR_IF:
-                read_leb_uint32(frame_ip, frame_ip_end, br_depth);
-                if (!jit_compile_op_br_if(cc, br_depth, merge_cmp_and_br_if,
-                                          &frame_ip))
-                    return false;
-                /* Clear flag */
-                merge_cmp_and_br_if = false;
-                break;
+        case WASM_OP_BR_IF:
+            read_leb_uint32(frame_ip, frame_ip_end, br_depth);
+            if (!jit_compile_op_br_if(cc, br_depth, merge_cmp_and_br_if,
+                    &frame_ip))
+                return false;
+            /* Clear flag */
+            merge_cmp_and_br_if = false;
+            break;
 
-            case WASM_OP_BR_TABLE:
-                read_leb_uint32(frame_ip, frame_ip_end, br_count);
-                if (((br_depths = jit_calloc(cast(uint)uint32.sizeof
-                                             * (br_count + 1))) == 0)) {
-                    jit_set_last_error(cc, "allocate memory failed.");
-                    goto fail;
-                }
-static if (WASM_ENABLE_FAST_INTERP != 0) {
+        case WASM_OP_BR_TABLE:
+            read_leb_uint32(frame_ip, frame_ip_end, br_count);
+            if (((br_depths = jit_calloc(cast(uint) uint32.sizeof
+                    * (br_count + 1))) == 0)) {
+                jit_set_last_error(cc, "allocate memory failed.");
+                goto fail;
+            }
+            static if (WASM_ENABLE_FAST_INTERP != 0) {
                 for (i = 0; i <= br_count; i++)
                     read_leb_uint32(frame_ip, frame_ip_end, br_depths[i]);
-} else {
+            }
+            else {
                 for (i = 0; i <= br_count; i++)
                     br_depths[i] = *frame_ip++;
-}
-
-                if (!jit_compile_op_br_table(cc, br_depths, br_count,
-                                             &frame_ip)) {
-                    jit_free(br_depths);
-                    return false;
-                }
-
-                jit_free(br_depths);
-                break;
-
-static if (WASM_ENABLE_FAST_INTERP == 0) {
-            case EXT_OP_BR_TABLE_CACHE:
-            {
-                BrTableCache* node = bh_list_first_elem(
-                    cc.cur_wasm_module.br_table_cache_list);
-                BrTableCache* node_next = void;
-                ubyte* p_opcode = frame_ip - 1;
-
-                read_leb_uint32(frame_ip, frame_ip_end, br_count);
-
-                while (node) {
-                    node_next = bh_list_elem_next(node);
-                    if (node.br_table_op_addr == p_opcode) {
-                        br_depths = node.br_depths;
-                        if (!jit_compile_op_br_table(cc, br_depths, br_count,
-                                                     &frame_ip)) {
-                            return false;
-                        }
-                        break;
-                    }
-                    node = node_next;
-                }
-                bh_assert(node);
-
-                break;
             }
-}
 
-            case WASM_OP_RETURN:
-                if (!jit_compile_op_return(cc, &frame_ip))
-                    return false;
-                break;
+            if (!jit_compile_op_br_table(cc, br_depths, br_count,
+                    &frame_ip)) {
+                jit_free(br_depths);
+                return false;
+            }
 
-            case WASM_OP_CALL:
-                read_leb_uint32(frame_ip, frame_ip_end, func_idx);
-                if (!jit_compile_op_call(cc, func_idx, false))
-                    return false;
-                break;
+            jit_free(br_depths);
+            break;
 
-            case WASM_OP_CALL_INDIRECT:
-            {
+            static if (WASM_ENABLE_FAST_INTERP == 0) {
+        case EXT_OP_BR_TABLE_CACHE: {
+                    BrTableCache* node = bh_list_first_elem(
+                            cc.cur_wasm_module.br_table_cache_list);
+                    BrTableCache* node_next = void;
+                    ubyte* p_opcode = frame_ip - 1;
+
+                    read_leb_uint32(frame_ip, frame_ip_end, br_count);
+
+                    while (node) {
+                        node_next = bh_list_elem_next(node);
+                        if (node.br_table_op_addr == p_opcode) {
+                            br_depths = node.br_depths;
+                            if (!jit_compile_op_br_table(cc, br_depths, br_count,
+                                    &frame_ip)) {
+                                return false;
+                            }
+                            break;
+                        }
+                        node = node_next;
+                    }
+                    bh_assert(node);
+
+                    break;
+                }
+            }
+
+        case WASM_OP_RETURN:
+            if (!jit_compile_op_return(cc, &frame_ip))
+                return false;
+            break;
+
+        case WASM_OP_CALL:
+            read_leb_uint32(frame_ip, frame_ip_end, func_idx);
+            if (!jit_compile_op_call(cc, func_idx, false))
+                return false;
+            break;
+
+        case WASM_OP_CALL_INDIRECT: {
                 uint tbl_idx = void;
 
                 read_leb_uint32(frame_ip, frame_ip_end, type_idx);
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
-                read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-} else {
-                frame_ip++;
-                tbl_idx = 0;
-}
+                static if (WASM_ENABLE_REF_TYPES != 0) {
+                    read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                }
+                else {
+                    frame_ip++;
+                    tbl_idx = 0;
+                }
 
                 if (!jit_compile_op_call_indirect(cc, type_idx, tbl_idx))
                     return false;
                 break;
             }
 
-static if (WASM_ENABLE_TAIL_CALL != 0) {
-            case WASM_OP_RETURN_CALL:
+            static if (WASM_ENABLE_TAIL_CALL != 0) {
+        case WASM_OP_RETURN_CALL:
                 read_leb_uint32(frame_ip, frame_ip_end, func_idx);
 
                 if (!jit_compile_op_call(cc, func_idx, true))
@@ -1205,803 +1225,781 @@ static if (WASM_ENABLE_TAIL_CALL != 0) {
                     return false;
                 break;
 
-            case WASM_OP_RETURN_CALL_INDIRECT:
-            {
-                uint tbl_idx = void;
+        case WASM_OP_RETURN_CALL_INDIRECT: {
+                    uint tbl_idx = void;
 
-                read_leb_uint32(frame_ip, frame_ip_end, type_idx);
-static if (WASM_ENABLE_REF_TYPES != 0) {
-                read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-} else {
-                frame_ip++;
-                tbl_idx = 0;
-}
+                    read_leb_uint32(frame_ip, frame_ip_end, type_idx);
+                    static if (WASM_ENABLE_REF_TYPES != 0) {
+                        read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                    }
+                    else {
+                        frame_ip++;
+                        tbl_idx = 0;
+                    }
 
-                if (!jit_compile_op_call_indirect(cc, type_idx, tbl_idx))
-                    return false;
-                if (!jit_compile_op_return(cc, &frame_ip))
-                    return false;
-                break;
-            }
-} /* end of WASM_ENABLE_TAIL_CALL */
-
-            case WASM_OP_DROP:
-                if (!jit_compile_op_drop(cc, true))
-                    return false;
-                break;
-
-            case WASM_OP_DROP_64:
-                if (!jit_compile_op_drop(cc, false))
-                    return false;
-                break;
-
-            case WASM_OP_SELECT:
-                if (!jit_compile_op_select(cc, true))
-                    return false;
-                break;
-
-            case WASM_OP_SELECT_64:
-                if (!jit_compile_op_select(cc, false))
-                    return false;
-                break;
-
-static if (WASM_ENABLE_REF_TYPES != 0) {
-            case WASM_OP_SELECT_T:
-            {
-                uint vec_len = void;
-
-                read_leb_uint32(frame_ip, frame_ip_end, vec_len);
-                bh_assert(vec_len == 1);
-                cast(void)vec_len;
-
-                type_idx = *frame_ip++;
-                if (!jit_compile_op_select(cc,
-                                           (type_idx != VALUE_TYPE_I64)
-                                               && (type_idx != VALUE_TYPE_F64)))
-                    return false;
-                break;
-            }
-            case WASM_OP_TABLE_GET:
-            {
-                uint tbl_idx = void;
-
-                read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-                if (!jit_compile_op_table_get(cc, tbl_idx))
-                    return false;
-                break;
-            }
-            case WASM_OP_TABLE_SET:
-            {
-                uint tbl_idx = void;
-
-                read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-                if (!jit_compile_op_table_set(cc, tbl_idx))
-                    return false;
-                break;
-            }
-            case WASM_OP_REF_NULL:
-            {
-                uint ref_type = void;
-                read_leb_uint32(frame_ip, frame_ip_end, ref_type);
-                if (!jit_compile_op_ref_null(cc, ref_type))
-                    return false;
-                break;
-            }
-            case WASM_OP_REF_IS_NULL:
-            {
-                if (!jit_compile_op_ref_is_null(cc))
-                    return false;
-                break;
-            }
-            case WASM_OP_REF_FUNC:
-            {
-                read_leb_uint32(frame_ip, frame_ip_end, func_idx);
-                if (!jit_compile_op_ref_func(cc, func_idx))
-                    return false;
-                break;
-            }
-}
-
-            case WASM_OP_GET_LOCAL:
-                read_leb_uint32(frame_ip, frame_ip_end, local_idx);
-                if (!jit_compile_op_get_local(cc, local_idx))
-                    return false;
-                break;
-
-            case WASM_OP_SET_LOCAL:
-                read_leb_uint32(frame_ip, frame_ip_end, local_idx);
-                if (!jit_compile_op_set_local(cc, local_idx))
-                    return false;
-                break;
-
-            case WASM_OP_TEE_LOCAL:
-                read_leb_uint32(frame_ip, frame_ip_end, local_idx);
-                if (!jit_compile_op_tee_local(cc, local_idx))
-                    return false;
-                break;
-
-            case WASM_OP_GET_GLOBAL:
-            case WASM_OP_GET_GLOBAL_64:
-                read_leb_uint32(frame_ip, frame_ip_end, global_idx);
-                if (!jit_compile_op_get_global(cc, global_idx))
-                    return false;
-                break;
-
-            case WASM_OP_SET_GLOBAL:
-            case WASM_OP_SET_GLOBAL_64:
-            case WASM_OP_SET_GLOBAL_AUX_STACK:
-                read_leb_uint32(frame_ip, frame_ip_end, global_idx);
-                if (!jit_compile_op_set_global(
-                        cc, global_idx,
-                        opcode == WASM_OP_SET_GLOBAL_AUX_STACK ? true : false))
-                    return false;
-                break;
-
-            case WASM_OP_I32_LOAD:
-                bytes = 4;
-                sign = true;
-                goto op_i32_load;
-            case WASM_OP_I32_LOAD8_S:
-            case WASM_OP_I32_LOAD8_U:
-                bytes = 1;
-                sign = (opcode == WASM_OP_I32_LOAD8_S) ? true : false;
-                goto op_i32_load;
-            case WASM_OP_I32_LOAD16_S:
-            case WASM_OP_I32_LOAD16_U:
-                bytes = 2;
-                sign = (opcode == WASM_OP_I32_LOAD16_S) ? true : false;
-            op_i32_load:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_i32_load(cc, align_, offset, bytes, sign,
-                                             false))
-                    return false;
-                break;
-
-            case WASM_OP_I64_LOAD:
-                bytes = 8;
-                sign = true;
-                goto op_i64_load;
-            case WASM_OP_I64_LOAD8_S:
-            case WASM_OP_I64_LOAD8_U:
-                bytes = 1;
-                sign = (opcode == WASM_OP_I64_LOAD8_S) ? true : false;
-                goto op_i64_load;
-            case WASM_OP_I64_LOAD16_S:
-            case WASM_OP_I64_LOAD16_U:
-                bytes = 2;
-                sign = (opcode == WASM_OP_I64_LOAD16_S) ? true : false;
-                goto op_i64_load;
-            case WASM_OP_I64_LOAD32_S:
-            case WASM_OP_I64_LOAD32_U:
-                bytes = 4;
-                sign = (opcode == WASM_OP_I64_LOAD32_S) ? true : false;
-            op_i64_load:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_i64_load(cc, align_, offset, bytes, sign,
-                                             false))
-                    return false;
-                break;
-
-            case WASM_OP_F32_LOAD:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_f32_load(cc, align_, offset))
-                    return false;
-                break;
-
-            case WASM_OP_F64_LOAD:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_f64_load(cc, align_, offset))
-                    return false;
-                break;
-
-            case WASM_OP_I32_STORE:
-                bytes = 4;
-                goto op_i32_store;
-            case WASM_OP_I32_STORE8:
-                bytes = 1;
-                goto op_i32_store;
-            case WASM_OP_I32_STORE16:
-                bytes = 2;
-            op_i32_store:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_i32_store(cc, align_, offset, bytes, false))
-                    return false;
-                break;
-
-            case WASM_OP_I64_STORE:
-                bytes = 8;
-                goto op_i64_store;
-            case WASM_OP_I64_STORE8:
-                bytes = 1;
-                goto op_i64_store;
-            case WASM_OP_I64_STORE16:
-                bytes = 2;
-                goto op_i64_store;
-            case WASM_OP_I64_STORE32:
-                bytes = 4;
-            op_i64_store:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_i64_store(cc, align_, offset, bytes, false))
-                    return false;
-                break;
-
-            case WASM_OP_F32_STORE:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_f32_store(cc, align_, offset))
-                    return false;
-                break;
-
-            case WASM_OP_F64_STORE:
-                read_leb_uint32(frame_ip, frame_ip_end, align_);
-                read_leb_uint32(frame_ip, frame_ip_end, offset);
-                if (!jit_compile_op_f64_store(cc, align_, offset))
-                    return false;
-                break;
-
-            case WASM_OP_MEMORY_SIZE:
-                read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
-                if (!jit_compile_op_memory_size(cc, mem_idx))
-                    return false;
-                break;
-
-            case WASM_OP_MEMORY_GROW:
-                read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
-                if (!jit_compile_op_memory_grow(cc, mem_idx))
-                    return false;
-                break;
-
-            case WASM_OP_I32_CONST:
-                read_leb_int32(frame_ip, frame_ip_end, i32_const);
-                if (!jit_compile_op_i32_const(cc, i32_const))
-                    return false;
-                break;
-
-            case WASM_OP_I64_CONST:
-                read_leb_int64(frame_ip, frame_ip_end, i64_const);
-                if (!jit_compile_op_i64_const(cc, i64_const))
-                    return false;
-                break;
-
-            case WASM_OP_F32_CONST:
-                p_f32 = cast(ubyte*)&f32_const;
-                for (i = 0; i < float32.sizeof; i++)
-                    *p_f32++ = *frame_ip++;
-                if (!jit_compile_op_f32_const(cc, f32_const))
-                    return false;
-                break;
-
-            case WASM_OP_F64_CONST:
-                p_f64 = cast(ubyte*)&f64_const;
-                for (i = 0; i < float64.sizeof; i++)
-                    *p_f64++ = *frame_ip++;
-                if (!jit_compile_op_f64_const(cc, f64_const))
-                    return false;
-                break;
-
-            case WASM_OP_I32_EQZ:
-            case WASM_OP_I32_EQ:
-            case WASM_OP_I32_NE:
-            case WASM_OP_I32_LT_S:
-            case WASM_OP_I32_LT_U:
-            case WASM_OP_I32_GT_S:
-            case WASM_OP_I32_GT_U:
-            case WASM_OP_I32_LE_S:
-            case WASM_OP_I32_LE_U:
-            case WASM_OP_I32_GE_S:
-            case WASM_OP_I32_GE_U:
-                if (!jit_compile_op_i32_compare(cc, INT_EQZ + opcode
-                                                        - WASM_OP_I32_EQZ))
-                    return false;
-                if (frame_ip < frame_ip_end) {
-                    /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
-                    if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
-                        merge_cmp_and_if = true;
-                    if (*frame_ip == WASM_OP_BR_IF)
-                        merge_cmp_and_br_if = true;
+                    if (!jit_compile_op_call_indirect(cc, type_idx, tbl_idx))
+                        return false;
+                    if (!jit_compile_op_return(cc, &frame_ip))
+                        return false;
+                    break;
                 }
-                break;
+            } /* end of WASM_ENABLE_TAIL_CALL */
 
-            case WASM_OP_I64_EQZ:
-            case WASM_OP_I64_EQ:
-            case WASM_OP_I64_NE:
-            case WASM_OP_I64_LT_S:
-            case WASM_OP_I64_LT_U:
-            case WASM_OP_I64_GT_S:
-            case WASM_OP_I64_GT_U:
-            case WASM_OP_I64_LE_S:
-            case WASM_OP_I64_LE_U:
-            case WASM_OP_I64_GE_S:
-            case WASM_OP_I64_GE_U:
-                if (!jit_compile_op_i64_compare(cc, INT_EQZ + opcode
-                                                        - WASM_OP_I64_EQZ))
-                    return false;
-                if (frame_ip < frame_ip_end) {
-                    /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
-                    if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
-                        merge_cmp_and_if = true;
-                    if (*frame_ip == WASM_OP_BR_IF)
-                        merge_cmp_and_br_if = true;
+        case WASM_OP_DROP:
+            if (!jit_compile_op_drop(cc, true))
+                return false;
+            break;
+
+        case WASM_OP_DROP_64:
+            if (!jit_compile_op_drop(cc, false))
+                return false;
+            break;
+
+        case WASM_OP_SELECT:
+            if (!jit_compile_op_select(cc, true))
+                return false;
+            break;
+
+        case WASM_OP_SELECT_64:
+            if (!jit_compile_op_select(cc, false))
+                return false;
+            break;
+
+            static if (WASM_ENABLE_REF_TYPES != 0) {
+        case WASM_OP_SELECT_T: {
+                    uint vec_len = void;
+
+                    read_leb_uint32(frame_ip, frame_ip_end, vec_len);
+                    bh_assert(vec_len == 1);
+                    cast(void) vec_len;
+
+                    type_idx = *frame_ip++;
+                    if (!jit_compile_op_select(cc,
+                            (type_idx != VALUE_TYPE_I64)
+                            && (type_idx != VALUE_TYPE_F64)))
+                        return false;
+                    break;
                 }
-                break;
+        case WASM_OP_TABLE_GET: {
+                    uint tbl_idx = void;
 
-            case WASM_OP_F32_EQ:
-            case WASM_OP_F32_NE:
-            case WASM_OP_F32_LT:
-            case WASM_OP_F32_GT:
-            case WASM_OP_F32_LE:
-            case WASM_OP_F32_GE:
-                if (!jit_compile_op_f32_compare(cc, FLOAT_EQ + opcode
-                                                        - WASM_OP_F32_EQ))
-                    return false;
-                if (frame_ip < frame_ip_end) {
-                    /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
-                    if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
-                        merge_cmp_and_if = true;
-                    if (*frame_ip == WASM_OP_BR_IF)
-                        merge_cmp_and_br_if = true;
+                    read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                    if (!jit_compile_op_table_get(cc, tbl_idx))
+                        return false;
+                    break;
                 }
-                break;
+        case WASM_OP_TABLE_SET: {
+                    uint tbl_idx = void;
 
-            case WASM_OP_F64_EQ:
-            case WASM_OP_F64_NE:
-            case WASM_OP_F64_LT:
-            case WASM_OP_F64_GT:
-            case WASM_OP_F64_LE:
-            case WASM_OP_F64_GE:
-                if (!jit_compile_op_f64_compare(cc, FLOAT_EQ + opcode
-                                                        - WASM_OP_F64_EQ))
-                    return false;
-                if (frame_ip < frame_ip_end) {
-                    /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
-                    if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
-                        merge_cmp_and_if = true;
-                    if (*frame_ip == WASM_OP_BR_IF)
-                        merge_cmp_and_br_if = true;
+                    read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                    if (!jit_compile_op_table_set(cc, tbl_idx))
+                        return false;
+                    break;
                 }
-                break;
+        case WASM_OP_REF_NULL: {
+                    uint ref_type = void;
+                    read_leb_uint32(frame_ip, frame_ip_end, ref_type);
+                    if (!jit_compile_op_ref_null(cc, ref_type))
+                        return false;
+                    break;
+                }
+        case WASM_OP_REF_IS_NULL: {
+                    if (!jit_compile_op_ref_is_null(cc))
+                        return false;
+                    break;
+                }
+        case WASM_OP_REF_FUNC: {
+                    read_leb_uint32(frame_ip, frame_ip_end, func_idx);
+                    if (!jit_compile_op_ref_func(cc, func_idx))
+                        return false;
+                    break;
+                }
+            }
 
-            case WASM_OP_I32_CLZ:
-                if (!jit_compile_op_i32_clz(cc))
-                    return false;
-                break;
+        case WASM_OP_GET_LOCAL:
+            read_leb_uint32(frame_ip, frame_ip_end, local_idx);
+            if (!jit_compile_op_get_local(cc, local_idx))
+                return false;
+            break;
 
-            case WASM_OP_I32_CTZ:
-                if (!jit_compile_op_i32_ctz(cc))
-                    return false;
-                break;
+        case WASM_OP_SET_LOCAL:
+            read_leb_uint32(frame_ip, frame_ip_end, local_idx);
+            if (!jit_compile_op_set_local(cc, local_idx))
+                return false;
+            break;
 
-            case WASM_OP_I32_POPCNT:
-                if (!jit_compile_op_i32_popcnt(cc))
-                    return false;
-                break;
+        case WASM_OP_TEE_LOCAL:
+            read_leb_uint32(frame_ip, frame_ip_end, local_idx);
+            if (!jit_compile_op_tee_local(cc, local_idx))
+                return false;
+            break;
 
-            case WASM_OP_I32_ADD:
-            case WASM_OP_I32_SUB:
-            case WASM_OP_I32_MUL:
-            case WASM_OP_I32_DIV_S:
-            case WASM_OP_I32_DIV_U:
-            case WASM_OP_I32_REM_S:
-            case WASM_OP_I32_REM_U:
-                if (!jit_compile_op_i32_arithmetic(
-                        cc, INT_ADD + opcode - WASM_OP_I32_ADD, &frame_ip))
-                    return false;
-                break;
+        case WASM_OP_GET_GLOBAL:
+        case WASM_OP_GET_GLOBAL_64:
+            read_leb_uint32(frame_ip, frame_ip_end, global_idx);
+            if (!jit_compile_op_get_global(cc, global_idx))
+                return false;
+            break;
 
-            case WASM_OP_I32_AND:
-            case WASM_OP_I32_OR:
-            case WASM_OP_I32_XOR:
-                if (!jit_compile_op_i32_bitwise(cc, INT_SHL + opcode
-                                                        - WASM_OP_I32_AND))
-                    return false;
-                break;
+        case WASM_OP_SET_GLOBAL:
+        case WASM_OP_SET_GLOBAL_64:
+        case WASM_OP_SET_GLOBAL_AUX_STACK:
+            read_leb_uint32(frame_ip, frame_ip_end, global_idx);
+            if (!jit_compile_op_set_global(
+                    cc, global_idx,
+                    opcode == WASM_OP_SET_GLOBAL_AUX_STACK ? true : false))
+                return false;
+            break;
 
-            case WASM_OP_I32_SHL:
-            case WASM_OP_I32_SHR_S:
-            case WASM_OP_I32_SHR_U:
-            case WASM_OP_I32_ROTL:
-            case WASM_OP_I32_ROTR:
-                if (!jit_compile_op_i32_shift(cc, INT_SHL + opcode
-                                                      - WASM_OP_I32_SHL))
-                    return false;
-                break;
+        case WASM_OP_I32_LOAD:
+            bytes = 4;
+            sign = true;
+            goto op_i32_load;
+        case WASM_OP_I32_LOAD8_S:
+        case WASM_OP_I32_LOAD8_U:
+            bytes = 1;
+            sign = (opcode == WASM_OP_I32_LOAD8_S) ? true : false;
+            goto op_i32_load;
+        case WASM_OP_I32_LOAD16_S:
+        case WASM_OP_I32_LOAD16_U:
+            bytes = 2;
+            sign = (opcode == WASM_OP_I32_LOAD16_S) ? true : false;
+        op_i32_load:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_i32_load(cc, align_, offset, bytes, sign,
+                    false))
+                return false;
+            break;
 
-            case WASM_OP_I64_CLZ:
-                if (!jit_compile_op_i64_clz(cc))
-                    return false;
-                break;
+        case WASM_OP_I64_LOAD:
+            bytes = 8;
+            sign = true;
+            goto op_i64_load;
+        case WASM_OP_I64_LOAD8_S:
+        case WASM_OP_I64_LOAD8_U:
+            bytes = 1;
+            sign = (opcode == WASM_OP_I64_LOAD8_S) ? true : false;
+            goto op_i64_load;
+        case WASM_OP_I64_LOAD16_S:
+        case WASM_OP_I64_LOAD16_U:
+            bytes = 2;
+            sign = (opcode == WASM_OP_I64_LOAD16_S) ? true : false;
+            goto op_i64_load;
+        case WASM_OP_I64_LOAD32_S:
+        case WASM_OP_I64_LOAD32_U:
+            bytes = 4;
+            sign = (opcode == WASM_OP_I64_LOAD32_S) ? true : false;
+        op_i64_load:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_i64_load(cc, align_, offset, bytes, sign,
+                    false))
+                return false;
+            break;
 
-            case WASM_OP_I64_CTZ:
-                if (!jit_compile_op_i64_ctz(cc))
-                    return false;
-                break;
+        case WASM_OP_F32_LOAD:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_f32_load(cc, align_, offset))
+                return false;
+            break;
 
-            case WASM_OP_I64_POPCNT:
-                if (!jit_compile_op_i64_popcnt(cc))
-                    return false;
-                break;
+        case WASM_OP_F64_LOAD:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_f64_load(cc, align_, offset))
+                return false;
+            break;
 
-            case WASM_OP_I64_ADD:
-            case WASM_OP_I64_SUB:
-            case WASM_OP_I64_MUL:
-            case WASM_OP_I64_DIV_S:
-            case WASM_OP_I64_DIV_U:
-            case WASM_OP_I64_REM_S:
-            case WASM_OP_I64_REM_U:
-                if (!jit_compile_op_i64_arithmetic(
-                        cc, INT_ADD + opcode - WASM_OP_I64_ADD, &frame_ip))
-                    return false;
-                break;
+        case WASM_OP_I32_STORE:
+            bytes = 4;
+            goto op_i32_store;
+        case WASM_OP_I32_STORE8:
+            bytes = 1;
+            goto op_i32_store;
+        case WASM_OP_I32_STORE16:
+            bytes = 2;
+        op_i32_store:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_i32_store(cc, align_, offset, bytes, false))
+                return false;
+            break;
 
-            case WASM_OP_I64_AND:
-            case WASM_OP_I64_OR:
-            case WASM_OP_I64_XOR:
-                if (!jit_compile_op_i64_bitwise(cc, INT_SHL + opcode
-                                                        - WASM_OP_I64_AND))
-                    return false;
-                break;
+        case WASM_OP_I64_STORE:
+            bytes = 8;
+            goto op_i64_store;
+        case WASM_OP_I64_STORE8:
+            bytes = 1;
+            goto op_i64_store;
+        case WASM_OP_I64_STORE16:
+            bytes = 2;
+            goto op_i64_store;
+        case WASM_OP_I64_STORE32:
+            bytes = 4;
+        op_i64_store:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_i64_store(cc, align_, offset, bytes, false))
+                return false;
+            break;
 
-            case WASM_OP_I64_SHL:
-            case WASM_OP_I64_SHR_S:
-            case WASM_OP_I64_SHR_U:
-            case WASM_OP_I64_ROTL:
-            case WASM_OP_I64_ROTR:
-                if (!jit_compile_op_i64_shift(cc, INT_SHL + opcode
-                                                      - WASM_OP_I64_SHL))
-                    return false;
-                break;
+        case WASM_OP_F32_STORE:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_f32_store(cc, align_, offset))
+                return false;
+            break;
 
-            case WASM_OP_F32_ABS:
-            case WASM_OP_F32_NEG:
-            case WASM_OP_F32_CEIL:
-            case WASM_OP_F32_FLOOR:
-            case WASM_OP_F32_TRUNC:
-            case WASM_OP_F32_NEAREST:
-            case WASM_OP_F32_SQRT:
-                if (!jit_compile_op_f32_math(cc, FLOAT_ABS + opcode
-                                                     - WASM_OP_F32_ABS))
-                    return false;
-                break;
+        case WASM_OP_F64_STORE:
+            read_leb_uint32(frame_ip, frame_ip_end, align_);
+            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            if (!jit_compile_op_f64_store(cc, align_, offset))
+                return false;
+            break;
 
-            case WASM_OP_F32_ADD:
-            case WASM_OP_F32_SUB:
-            case WASM_OP_F32_MUL:
-            case WASM_OP_F32_DIV:
-            case WASM_OP_F32_MIN:
-            case WASM_OP_F32_MAX:
-                if (!jit_compile_op_f32_arithmetic(cc, FLOAT_ADD + opcode
-                                                           - WASM_OP_F32_ADD))
-                    return false;
-                break;
+        case WASM_OP_MEMORY_SIZE:
+            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+            if (!jit_compile_op_memory_size(cc, mem_idx))
+                return false;
+            break;
 
-            case WASM_OP_F32_COPYSIGN:
-                if (!jit_compile_op_f32_copysign(cc))
-                    return false;
-                break;
+        case WASM_OP_MEMORY_GROW:
+            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+            if (!jit_compile_op_memory_grow(cc, mem_idx))
+                return false;
+            break;
 
-            case WASM_OP_F64_ABS:
-            case WASM_OP_F64_NEG:
-            case WASM_OP_F64_CEIL:
-            case WASM_OP_F64_FLOOR:
-            case WASM_OP_F64_TRUNC:
-            case WASM_OP_F64_NEAREST:
-            case WASM_OP_F64_SQRT:
-                if (!jit_compile_op_f64_math(cc, FLOAT_ABS + opcode
-                                                     - WASM_OP_F64_ABS))
-                    return false;
-                break;
+        case WASM_OP_I32_CONST:
+            read_leb_int32(frame_ip, frame_ip_end, i32_const);
+            if (!jit_compile_op_i32_const(cc, i32_const))
+                return false;
+            break;
 
-            case WASM_OP_F64_ADD:
-            case WASM_OP_F64_SUB:
-            case WASM_OP_F64_MUL:
-            case WASM_OP_F64_DIV:
-            case WASM_OP_F64_MIN:
-            case WASM_OP_F64_MAX:
-                if (!jit_compile_op_f64_arithmetic(cc, FLOAT_ADD + opcode
-                                                           - WASM_OP_F64_ADD))
-                    return false;
-                break;
+        case WASM_OP_I64_CONST:
+            read_leb_int64(frame_ip, frame_ip_end, i64_const);
+            if (!jit_compile_op_i64_const(cc, i64_const))
+                return false;
+            break;
 
-            case WASM_OP_F64_COPYSIGN:
-                if (!jit_compile_op_f64_copysign(cc))
-                    return false;
-                break;
+        case WASM_OP_F32_CONST:
+            p_f32 = cast(ubyte*)&f32_const;
+            for (i = 0; i < float32.sizeof; i++)
+                *p_f32++ = *frame_ip++;
+            if (!jit_compile_op_f32_const(cc, f32_const))
+                return false;
+            break;
 
-            case WASM_OP_I32_WRAP_I64:
-                if (!jit_compile_op_i32_wrap_i64(cc))
-                    return false;
-                break;
+        case WASM_OP_F64_CONST:
+            p_f64 = cast(ubyte*)&f64_const;
+            for (i = 0; i < float64.sizeof; i++)
+                *p_f64++ = *frame_ip++;
+            if (!jit_compile_op_f64_const(cc, f64_const))
+                return false;
+            break;
 
-            case WASM_OP_I32_TRUNC_S_F32:
-            case WASM_OP_I32_TRUNC_U_F32:
-                sign = (opcode == WASM_OP_I32_TRUNC_S_F32) ? true : false;
-                if (!jit_compile_op_i32_trunc_f32(cc, sign, false))
-                    return false;
-                break;
+        case WASM_OP_I32_EQZ:
+        case WASM_OP_I32_EQ:
+        case WASM_OP_I32_NE:
+        case WASM_OP_I32_LT_S:
+        case WASM_OP_I32_LT_U:
+        case WASM_OP_I32_GT_S:
+        case WASM_OP_I32_GT_U:
+        case WASM_OP_I32_LE_S:
+        case WASM_OP_I32_LE_U:
+        case WASM_OP_I32_GE_S:
+        case WASM_OP_I32_GE_U:
+            if (!jit_compile_op_i32_compare(cc, INT_EQZ + opcode
+                    - WASM_OP_I32_EQZ))
+                return false;
+            if (frame_ip < frame_ip_end) {
+                /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
+                if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
+                    merge_cmp_and_if = true;
+                if (*frame_ip == WASM_OP_BR_IF)
+                    merge_cmp_and_br_if = true;
+            }
+            break;
 
-            case WASM_OP_I32_TRUNC_S_F64:
-            case WASM_OP_I32_TRUNC_U_F64:
-                sign = (opcode == WASM_OP_I32_TRUNC_S_F64) ? true : false;
-                if (!jit_compile_op_i32_trunc_f64(cc, sign, false))
-                    return false;
-                break;
+        case WASM_OP_I64_EQZ:
+        case WASM_OP_I64_EQ:
+        case WASM_OP_I64_NE:
+        case WASM_OP_I64_LT_S:
+        case WASM_OP_I64_LT_U:
+        case WASM_OP_I64_GT_S:
+        case WASM_OP_I64_GT_U:
+        case WASM_OP_I64_LE_S:
+        case WASM_OP_I64_LE_U:
+        case WASM_OP_I64_GE_S:
+        case WASM_OP_I64_GE_U:
+            if (!jit_compile_op_i64_compare(cc, INT_EQZ + opcode
+                    - WASM_OP_I64_EQZ))
+                return false;
+            if (frame_ip < frame_ip_end) {
+                /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
+                if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
+                    merge_cmp_and_if = true;
+                if (*frame_ip == WASM_OP_BR_IF)
+                    merge_cmp_and_br_if = true;
+            }
+            break;
 
-            case WASM_OP_I64_EXTEND_S_I32:
-            case WASM_OP_I64_EXTEND_U_I32:
-                sign = (opcode == WASM_OP_I64_EXTEND_S_I32) ? true : false;
-                if (!jit_compile_op_i64_extend_i32(cc, sign))
-                    return false;
-                break;
+        case WASM_OP_F32_EQ:
+        case WASM_OP_F32_NE:
+        case WASM_OP_F32_LT:
+        case WASM_OP_F32_GT:
+        case WASM_OP_F32_LE:
+        case WASM_OP_F32_GE:
+            if (!jit_compile_op_f32_compare(cc, FLOAT_EQ + opcode
+                    - WASM_OP_F32_EQ))
+                return false;
+            if (frame_ip < frame_ip_end) {
+                /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
+                if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
+                    merge_cmp_and_if = true;
+                if (*frame_ip == WASM_OP_BR_IF)
+                    merge_cmp_and_br_if = true;
+            }
+            break;
 
-            case WASM_OP_I64_TRUNC_S_F32:
-            case WASM_OP_I64_TRUNC_U_F32:
-                sign = (opcode == WASM_OP_I64_TRUNC_S_F32) ? true : false;
-                if (!jit_compile_op_i64_trunc_f32(cc, sign, false))
-                    return false;
-                break;
+        case WASM_OP_F64_EQ:
+        case WASM_OP_F64_NE:
+        case WASM_OP_F64_LT:
+        case WASM_OP_F64_GT:
+        case WASM_OP_F64_LE:
+        case WASM_OP_F64_GE:
+            if (!jit_compile_op_f64_compare(cc, FLOAT_EQ + opcode
+                    - WASM_OP_F64_EQ))
+                return false;
+            if (frame_ip < frame_ip_end) {
+                /* Merge `CMP, SELECTcc, CMP, BNE` insns into `CMP, Bcc` */
+                if (*frame_ip == WASM_OP_IF || *frame_ip == EXT_OP_IF)
+                    merge_cmp_and_if = true;
+                if (*frame_ip == WASM_OP_BR_IF)
+                    merge_cmp_and_br_if = true;
+            }
+            break;
 
-            case WASM_OP_I64_TRUNC_S_F64:
-            case WASM_OP_I64_TRUNC_U_F64:
-                sign = (opcode == WASM_OP_I64_TRUNC_S_F64) ? true : false;
-                if (!jit_compile_op_i64_trunc_f64(cc, sign, false))
-                    return false;
-                break;
+        case WASM_OP_I32_CLZ:
+            if (!jit_compile_op_i32_clz(cc))
+                return false;
+            break;
 
-            case WASM_OP_F32_CONVERT_S_I32:
-            case WASM_OP_F32_CONVERT_U_I32:
-                sign = (opcode == WASM_OP_F32_CONVERT_S_I32) ? true : false;
-                if (!jit_compile_op_f32_convert_i32(cc, sign))
-                    return false;
-                break;
+        case WASM_OP_I32_CTZ:
+            if (!jit_compile_op_i32_ctz(cc))
+                return false;
+            break;
 
-            case WASM_OP_F32_CONVERT_S_I64:
-            case WASM_OP_F32_CONVERT_U_I64:
-                sign = (opcode == WASM_OP_F32_CONVERT_S_I64) ? true : false;
-                if (!jit_compile_op_f32_convert_i64(cc, sign))
-                    return false;
-                break;
+        case WASM_OP_I32_POPCNT:
+            if (!jit_compile_op_i32_popcnt(cc))
+                return false;
+            break;
 
-            case WASM_OP_F32_DEMOTE_F64:
-                if (!jit_compile_op_f32_demote_f64(cc))
-                    return false;
-                break;
+        case WASM_OP_I32_ADD:
+        case WASM_OP_I32_SUB:
+        case WASM_OP_I32_MUL:
+        case WASM_OP_I32_DIV_S:
+        case WASM_OP_I32_DIV_U:
+        case WASM_OP_I32_REM_S:
+        case WASM_OP_I32_REM_U:
+            if (!jit_compile_op_i32_arithmetic(
+                    cc, INT_ADD + opcode - WASM_OP_I32_ADD, &frame_ip))
+                return false;
+            break;
 
-            case WASM_OP_F64_CONVERT_S_I32:
-            case WASM_OP_F64_CONVERT_U_I32:
-                sign = (opcode == WASM_OP_F64_CONVERT_S_I32) ? true : false;
-                if (!jit_compile_op_f64_convert_i32(cc, sign))
-                    return false;
-                break;
+        case WASM_OP_I32_AND:
+        case WASM_OP_I32_OR:
+        case WASM_OP_I32_XOR:
+            if (!jit_compile_op_i32_bitwise(cc, INT_SHL + opcode
+                    - WASM_OP_I32_AND))
+                return false;
+            break;
 
-            case WASM_OP_F64_CONVERT_S_I64:
-            case WASM_OP_F64_CONVERT_U_I64:
-                sign = (opcode == WASM_OP_F64_CONVERT_S_I64) ? true : false;
-                if (!jit_compile_op_f64_convert_i64(cc, sign))
-                    return false;
-                break;
+        case WASM_OP_I32_SHL:
+        case WASM_OP_I32_SHR_S:
+        case WASM_OP_I32_SHR_U:
+        case WASM_OP_I32_ROTL:
+        case WASM_OP_I32_ROTR:
+            if (!jit_compile_op_i32_shift(cc, INT_SHL + opcode
+                    - WASM_OP_I32_SHL))
+                return false;
+            break;
 
-            case WASM_OP_F64_PROMOTE_F32:
-                if (!jit_compile_op_f64_promote_f32(cc))
-                    return false;
-                break;
+        case WASM_OP_I64_CLZ:
+            if (!jit_compile_op_i64_clz(cc))
+                return false;
+            break;
 
-            case WASM_OP_I32_REINTERPRET_F32:
-                if (!jit_compile_op_i32_reinterpret_f32(cc))
-                    return false;
-                break;
+        case WASM_OP_I64_CTZ:
+            if (!jit_compile_op_i64_ctz(cc))
+                return false;
+            break;
 
-            case WASM_OP_I64_REINTERPRET_F64:
-                if (!jit_compile_op_i64_reinterpret_f64(cc))
-                    return false;
-                break;
+        case WASM_OP_I64_POPCNT:
+            if (!jit_compile_op_i64_popcnt(cc))
+                return false;
+            break;
 
-            case WASM_OP_F32_REINTERPRET_I32:
-                if (!jit_compile_op_f32_reinterpret_i32(cc))
-                    return false;
-                break;
+        case WASM_OP_I64_ADD:
+        case WASM_OP_I64_SUB:
+        case WASM_OP_I64_MUL:
+        case WASM_OP_I64_DIV_S:
+        case WASM_OP_I64_DIV_U:
+        case WASM_OP_I64_REM_S:
+        case WASM_OP_I64_REM_U:
+            if (!jit_compile_op_i64_arithmetic(
+                    cc, INT_ADD + opcode - WASM_OP_I64_ADD, &frame_ip))
+                return false;
+            break;
 
-            case WASM_OP_F64_REINTERPRET_I64:
-                if (!jit_compile_op_f64_reinterpret_i64(cc))
-                    return false;
-                break;
+        case WASM_OP_I64_AND:
+        case WASM_OP_I64_OR:
+        case WASM_OP_I64_XOR:
+            if (!jit_compile_op_i64_bitwise(cc, INT_SHL + opcode
+                    - WASM_OP_I64_AND))
+                return false;
+            break;
 
-            case WASM_OP_I32_EXTEND8_S:
-                if (!jit_compile_op_i32_extend_i32(cc, 8))
-                    return false;
-                break;
+        case WASM_OP_I64_SHL:
+        case WASM_OP_I64_SHR_S:
+        case WASM_OP_I64_SHR_U:
+        case WASM_OP_I64_ROTL:
+        case WASM_OP_I64_ROTR:
+            if (!jit_compile_op_i64_shift(cc, INT_SHL + opcode
+                    - WASM_OP_I64_SHL))
+                return false;
+            break;
 
-            case WASM_OP_I32_EXTEND16_S:
-                if (!jit_compile_op_i32_extend_i32(cc, 16))
-                    return false;
-                break;
+        case WASM_OP_F32_ABS:
+        case WASM_OP_F32_NEG:
+        case WASM_OP_F32_CEIL:
+        case WASM_OP_F32_FLOOR:
+        case WASM_OP_F32_TRUNC:
+        case WASM_OP_F32_NEAREST:
+        case WASM_OP_F32_SQRT:
+            if (!jit_compile_op_f32_math(cc, FLOAT_ABS + opcode
+                    - WASM_OP_F32_ABS))
+                return false;
+            break;
 
-            case WASM_OP_I64_EXTEND8_S:
-                if (!jit_compile_op_i64_extend_i64(cc, 8))
-                    return false;
-                break;
+        case WASM_OP_F32_ADD:
+        case WASM_OP_F32_SUB:
+        case WASM_OP_F32_MUL:
+        case WASM_OP_F32_DIV:
+        case WASM_OP_F32_MIN:
+        case WASM_OP_F32_MAX:
+            if (!jit_compile_op_f32_arithmetic(cc, FLOAT_ADD + opcode
+                    - WASM_OP_F32_ADD))
+                return false;
+            break;
 
-            case WASM_OP_I64_EXTEND16_S:
-                if (!jit_compile_op_i64_extend_i64(cc, 16))
-                    return false;
-                break;
+        case WASM_OP_F32_COPYSIGN:
+            if (!jit_compile_op_f32_copysign(cc))
+                return false;
+            break;
 
-            case WASM_OP_I64_EXTEND32_S:
-                if (!jit_compile_op_i64_extend_i64(cc, 32))
-                    return false;
-                break;
+        case WASM_OP_F64_ABS:
+        case WASM_OP_F64_NEG:
+        case WASM_OP_F64_CEIL:
+        case WASM_OP_F64_FLOOR:
+        case WASM_OP_F64_TRUNC:
+        case WASM_OP_F64_NEAREST:
+        case WASM_OP_F64_SQRT:
+            if (!jit_compile_op_f64_math(cc, FLOAT_ABS + opcode
+                    - WASM_OP_F64_ABS))
+                return false;
+            break;
 
-            case WASM_OP_MISC_PREFIX:
-            {
+        case WASM_OP_F64_ADD:
+        case WASM_OP_F64_SUB:
+        case WASM_OP_F64_MUL:
+        case WASM_OP_F64_DIV:
+        case WASM_OP_F64_MIN:
+        case WASM_OP_F64_MAX:
+            if (!jit_compile_op_f64_arithmetic(cc, FLOAT_ADD + opcode
+                    - WASM_OP_F64_ADD))
+                return false;
+            break;
+
+        case WASM_OP_F64_COPYSIGN:
+            if (!jit_compile_op_f64_copysign(cc))
+                return false;
+            break;
+
+        case WASM_OP_I32_WRAP_I64:
+            if (!jit_compile_op_i32_wrap_i64(cc))
+                return false;
+            break;
+
+        case WASM_OP_I32_TRUNC_S_F32:
+        case WASM_OP_I32_TRUNC_U_F32:
+            sign = (opcode == WASM_OP_I32_TRUNC_S_F32) ? true : false;
+            if (!jit_compile_op_i32_trunc_f32(cc, sign, false))
+                return false;
+            break;
+
+        case WASM_OP_I32_TRUNC_S_F64:
+        case WASM_OP_I32_TRUNC_U_F64:
+            sign = (opcode == WASM_OP_I32_TRUNC_S_F64) ? true : false;
+            if (!jit_compile_op_i32_trunc_f64(cc, sign, false))
+                return false;
+            break;
+
+        case WASM_OP_I64_EXTEND_S_I32:
+        case WASM_OP_I64_EXTEND_U_I32:
+            sign = (opcode == WASM_OP_I64_EXTEND_S_I32) ? true : false;
+            if (!jit_compile_op_i64_extend_i32(cc, sign))
+                return false;
+            break;
+
+        case WASM_OP_I64_TRUNC_S_F32:
+        case WASM_OP_I64_TRUNC_U_F32:
+            sign = (opcode == WASM_OP_I64_TRUNC_S_F32) ? true : false;
+            if (!jit_compile_op_i64_trunc_f32(cc, sign, false))
+                return false;
+            break;
+
+        case WASM_OP_I64_TRUNC_S_F64:
+        case WASM_OP_I64_TRUNC_U_F64:
+            sign = (opcode == WASM_OP_I64_TRUNC_S_F64) ? true : false;
+            if (!jit_compile_op_i64_trunc_f64(cc, sign, false))
+                return false;
+            break;
+
+        case WASM_OP_F32_CONVERT_S_I32:
+        case WASM_OP_F32_CONVERT_U_I32:
+            sign = (opcode == WASM_OP_F32_CONVERT_S_I32) ? true : false;
+            if (!jit_compile_op_f32_convert_i32(cc, sign))
+                return false;
+            break;
+
+        case WASM_OP_F32_CONVERT_S_I64:
+        case WASM_OP_F32_CONVERT_U_I64:
+            sign = (opcode == WASM_OP_F32_CONVERT_S_I64) ? true : false;
+            if (!jit_compile_op_f32_convert_i64(cc, sign))
+                return false;
+            break;
+
+        case WASM_OP_F32_DEMOTE_F64:
+            if (!jit_compile_op_f32_demote_f64(cc))
+                return false;
+            break;
+
+        case WASM_OP_F64_CONVERT_S_I32:
+        case WASM_OP_F64_CONVERT_U_I32:
+            sign = (opcode == WASM_OP_F64_CONVERT_S_I32) ? true : false;
+            if (!jit_compile_op_f64_convert_i32(cc, sign))
+                return false;
+            break;
+
+        case WASM_OP_F64_CONVERT_S_I64:
+        case WASM_OP_F64_CONVERT_U_I64:
+            sign = (opcode == WASM_OP_F64_CONVERT_S_I64) ? true : false;
+            if (!jit_compile_op_f64_convert_i64(cc, sign))
+                return false;
+            break;
+
+        case WASM_OP_F64_PROMOTE_F32:
+            if (!jit_compile_op_f64_promote_f32(cc))
+                return false;
+            break;
+
+        case WASM_OP_I32_REINTERPRET_F32:
+            if (!jit_compile_op_i32_reinterpret_f32(cc))
+                return false;
+            break;
+
+        case WASM_OP_I64_REINTERPRET_F64:
+            if (!jit_compile_op_i64_reinterpret_f64(cc))
+                return false;
+            break;
+
+        case WASM_OP_F32_REINTERPRET_I32:
+            if (!jit_compile_op_f32_reinterpret_i32(cc))
+                return false;
+            break;
+
+        case WASM_OP_F64_REINTERPRET_I64:
+            if (!jit_compile_op_f64_reinterpret_i64(cc))
+                return false;
+            break;
+
+        case WASM_OP_I32_EXTEND8_S:
+            if (!jit_compile_op_i32_extend_i32(cc, 8))
+                return false;
+            break;
+
+        case WASM_OP_I32_EXTEND16_S:
+            if (!jit_compile_op_i32_extend_i32(cc, 16))
+                return false;
+            break;
+
+        case WASM_OP_I64_EXTEND8_S:
+            if (!jit_compile_op_i64_extend_i64(cc, 8))
+                return false;
+            break;
+
+        case WASM_OP_I64_EXTEND16_S:
+            if (!jit_compile_op_i64_extend_i64(cc, 16))
+                return false;
+            break;
+
+        case WASM_OP_I64_EXTEND32_S:
+            if (!jit_compile_op_i64_extend_i64(cc, 32))
+                return false;
+            break;
+
+        case WASM_OP_MISC_PREFIX: {
                 uint opcode1 = void;
 
                 read_leb_uint32(frame_ip, frame_ip_end, opcode1);
-                opcode = cast(uint)opcode1;
+                opcode = cast(uint) opcode1;
 
                 switch (opcode) {
-                    case WASM_OP_I32_TRUNC_SAT_S_F32:
-                    case WASM_OP_I32_TRUNC_SAT_U_F32:
-                        sign = (opcode == WASM_OP_I32_TRUNC_SAT_S_F32) ? true
-                                                                       : false;
-                        if (!jit_compile_op_i32_trunc_f32(cc, sign, true))
-                            return false;
-                        break;
-                    case WASM_OP_I32_TRUNC_SAT_S_F64:
-                    case WASM_OP_I32_TRUNC_SAT_U_F64:
-                        sign = (opcode == WASM_OP_I32_TRUNC_SAT_S_F64) ? true
-                                                                       : false;
-                        if (!jit_compile_op_i32_trunc_f64(cc, sign, true))
-                            return false;
-                        break;
-                    case WASM_OP_I64_TRUNC_SAT_S_F32:
-                    case WASM_OP_I64_TRUNC_SAT_U_F32:
-                        sign = (opcode == WASM_OP_I64_TRUNC_SAT_S_F32) ? true
-                                                                       : false;
-                        if (!jit_compile_op_i64_trunc_f32(cc, sign, true))
-                            return false;
-                        break;
-                    case WASM_OP_I64_TRUNC_SAT_S_F64:
-                    case WASM_OP_I64_TRUNC_SAT_U_F64:
-                        sign = (opcode == WASM_OP_I64_TRUNC_SAT_S_F64) ? true
-                                                                       : false;
-                        if (!jit_compile_op_i64_trunc_f64(cc, sign, true))
-                            return false;
-                        break;
-static if (WASM_ENABLE_BULK_MEMORY != 0) {
-                    case WASM_OP_MEMORY_INIT:
-                    {
-                        uint seg_idx = 0;
-                        read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
-                        read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
-                        if (!jit_compile_op_memory_init(cc, mem_idx, seg_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_DATA_DROP:
-                    {
-                        uint seg_idx = void;
-                        read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
-                        if (!jit_compile_op_data_drop(cc, seg_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_MEMORY_COPY:
-                    {
-                        uint src_mem_idx = void, dst_mem_idx = void;
-                        read_leb_uint32(frame_ip, frame_ip_end, src_mem_idx);
-                        read_leb_uint32(frame_ip, frame_ip_end, dst_mem_idx);
-                        if (!jit_compile_op_memory_copy(cc, src_mem_idx,
-                                                        dst_mem_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_MEMORY_FILL:
-                    {
-                        read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
-                        if (!jit_compile_op_memory_fill(cc, mem_idx))
-                            return false;
-                        break;
-                    }
-} /* WASM_ENABLE_BULK_MEMORY */
-static if (WASM_ENABLE_REF_TYPES != 0) {
-                    case WASM_OP_TABLE_INIT:
-                    {
-                        uint tbl_idx = void, tbl_seg_idx = void;
-
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_seg_idx);
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-                        if (!jit_compile_op_table_init(cc, tbl_idx,
-                                                       tbl_seg_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_ELEM_DROP:
-                    {
-                        uint tbl_seg_idx = void;
-
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_seg_idx);
-                        if (!jit_compile_op_elem_drop(cc, tbl_seg_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_TABLE_COPY:
-                    {
-                        uint src_tbl_idx = void, dst_tbl_idx = void;
-
-                        read_leb_uint32(frame_ip, frame_ip_end, dst_tbl_idx);
-                        read_leb_uint32(frame_ip, frame_ip_end, src_tbl_idx);
-                        if (!jit_compile_op_table_copy(cc, src_tbl_idx,
-                                                       dst_tbl_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_TABLE_GROW:
-                    {
-                        uint tbl_idx = void;
-
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-                        if (!jit_compile_op_table_grow(cc, tbl_idx))
-                            return false;
-                        break;
-                    }
-
-                    case WASM_OP_TABLE_SIZE:
-                    {
-                        uint tbl_idx = void;
-
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-                        if (!jit_compile_op_table_size(cc, tbl_idx))
-                            return false;
-                        break;
-                    }
-                    case WASM_OP_TABLE_FILL:
-                    {
-                        uint tbl_idx = void;
-
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
-                        if (!jit_compile_op_table_fill(cc, tbl_idx))
-                            return false;
-                        break;
-                    }
-} /* WASM_ENABLE_REF_TYPES */
-                    default:
-                        jit_set_last_error(cc, "unsupported opcode");
+                case WASM_OP_I32_TRUNC_SAT_S_F32:
+                case WASM_OP_I32_TRUNC_SAT_U_F32:
+                    sign = (opcode == WASM_OP_I32_TRUNC_SAT_S_F32) ? true : false;
+                    if (!jit_compile_op_i32_trunc_f32(cc, sign, true))
                         return false;
+                    break;
+                case WASM_OP_I32_TRUNC_SAT_S_F64:
+                case WASM_OP_I32_TRUNC_SAT_U_F64:
+                    sign = (opcode == WASM_OP_I32_TRUNC_SAT_S_F64) ? true : false;
+                    if (!jit_compile_op_i32_trunc_f64(cc, sign, true))
+                        return false;
+                    break;
+                case WASM_OP_I64_TRUNC_SAT_S_F32:
+                case WASM_OP_I64_TRUNC_SAT_U_F32:
+                    sign = (opcode == WASM_OP_I64_TRUNC_SAT_S_F32) ? true : false;
+                    if (!jit_compile_op_i64_trunc_f32(cc, sign, true))
+                        return false;
+                    break;
+                case WASM_OP_I64_TRUNC_SAT_S_F64:
+                case WASM_OP_I64_TRUNC_SAT_U_F64:
+                    sign = (opcode == WASM_OP_I64_TRUNC_SAT_S_F64) ? true : false;
+                    if (!jit_compile_op_i64_trunc_f64(cc, sign, true))
+                        return false;
+                    break;
+                    static if (WASM_ENABLE_BULK_MEMORY != 0) {
+                case WASM_OP_MEMORY_INIT: {
+                            uint seg_idx = 0;
+                            read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
+                            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+                            if (!jit_compile_op_memory_init(cc, mem_idx, seg_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_DATA_DROP: {
+                            uint seg_idx = void;
+                            read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
+                            if (!jit_compile_op_data_drop(cc, seg_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_MEMORY_COPY: {
+                            uint src_mem_idx = void, dst_mem_idx = void;
+                            read_leb_uint32(frame_ip, frame_ip_end, src_mem_idx);
+                            read_leb_uint32(frame_ip, frame_ip_end, dst_mem_idx);
+                            if (!jit_compile_op_memory_copy(cc, src_mem_idx,
+                                    dst_mem_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_MEMORY_FILL: {
+                            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+                            if (!jit_compile_op_memory_fill(cc, mem_idx))
+                                return false;
+                            break;
+                        }
+                    } /* WASM_ENABLE_BULK_MEMORY */
+                    static if (WASM_ENABLE_REF_TYPES != 0) {
+                case WASM_OP_TABLE_INIT: {
+                            uint tbl_idx = void, tbl_seg_idx = void;
+
+                            read_leb_uint32(frame_ip, frame_ip_end, tbl_seg_idx);
+                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            if (!jit_compile_op_table_init(cc, tbl_idx,
+                                    tbl_seg_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_ELEM_DROP: {
+                            uint tbl_seg_idx = void;
+
+                            read_leb_uint32(frame_ip, frame_ip_end, tbl_seg_idx);
+                            if (!jit_compile_op_elem_drop(cc, tbl_seg_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_TABLE_COPY: {
+                            uint src_tbl_idx = void, dst_tbl_idx = void;
+
+                            read_leb_uint32(frame_ip, frame_ip_end, dst_tbl_idx);
+                            read_leb_uint32(frame_ip, frame_ip_end, src_tbl_idx);
+                            if (!jit_compile_op_table_copy(cc, src_tbl_idx,
+                                    dst_tbl_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_TABLE_GROW: {
+                            uint tbl_idx = void;
+
+                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            if (!jit_compile_op_table_grow(cc, tbl_idx))
+                                return false;
+                            break;
+                        }
+
+                case WASM_OP_TABLE_SIZE: {
+                            uint tbl_idx = void;
+
+                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            if (!jit_compile_op_table_size(cc, tbl_idx))
+                                return false;
+                            break;
+                        }
+                case WASM_OP_TABLE_FILL: {
+                            uint tbl_idx = void;
+
+                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            if (!jit_compile_op_table_fill(cc, tbl_idx))
+                                return false;
+                            break;
+                        }
+                    } /* WASM_ENABLE_REF_TYPES */
+                default:
+                    jit_set_last_error(cc, "unsupported opcode");
+                    return false;
                 }
                 break;
             }
 
-static if (WASM_ENABLE_SHARED_MEMORY != 0) {
-            case WASM_OP_ATOMIC_PREFIX:
-            {
-                ubyte bin_op = void, op_type = void;
+            static if (WASM_ENABLE_SHARED_MEMORY != 0) {
+        case WASM_OP_ATOMIC_PREFIX: {
+                    ubyte bin_op = void, op_type = void;
 
-                if (frame_ip < frame_ip_end) {
-                    opcode = *frame_ip++;
-                }
-                if (opcode != WASM_OP_ATOMIC_FENCE) {
-                    read_leb_uint32(frame_ip, frame_ip_end, align_);
-                    read_leb_uint32(frame_ip, frame_ip_end, offset);
-                }
-                switch (opcode) {
+                    if (frame_ip < frame_ip_end) {
+                        opcode = *frame_ip++;
+                    }
+                    if (opcode != WASM_OP_ATOMIC_FENCE) {
+                        read_leb_uint32(frame_ip, frame_ip_end, align_);
+                        read_leb_uint32(frame_ip, frame_ip_end, offset);
+                    }
+                    switch (opcode) {
                     case WASM_OP_ATOMIC_WAIT32:
                         if (!jit_compile_op_atomic_wait(cc, VALUE_TYPE_I32,
-                                                        align_, offset, 4))
+                                align_, offset, 4))
                             return false;
                         break;
                     case WASM_OP_ATOMIC_WAIT64:
                         if (!jit_compile_op_atomic_wait(cc, VALUE_TYPE_I64,
-                                                        align_, offset, 8))
+                                align_, offset, 8))
                             return false;
                         break;
                     case WASM_OP_ATOMIC_NOTIFY:
                         if (!jit_compiler_op_atomic_notify(cc, align_, offset,
-                                                           bytes))
+                                bytes))
                             return false;
                         break;
                     case WASM_OP_ATOMIC_FENCE:
@@ -2018,7 +2016,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
                         bytes = 2;
                     op_atomic_i32_load:
                         if (!jit_compile_op_i32_load(cc, align_, offset, bytes,
-                                                     sign, true))
+                                sign, true))
                             return false;
                         break;
 
@@ -2035,7 +2033,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
                         bytes = 4;
                     op_atomic_i64_load:
                         if (!jit_compile_op_i64_load(cc, align_, offset, bytes,
-                                                     sign, true))
+                                sign, true))
                             return false;
                         break;
 
@@ -2049,7 +2047,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
                         bytes = 2;
                     op_atomic_i32_store:
                         if (!jit_compile_op_i32_store(cc, align_, offset, bytes,
-                                                      true))
+                                true))
                             return false;
                         break;
 
@@ -2066,7 +2064,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
                         bytes = 4;
                     op_atomic_i64_store:
                         if (!jit_compile_op_i64_store(cc, align_, offset, bytes,
-                                                      true))
+                                true))
                             return false;
                         break;
 
@@ -2099,7 +2097,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
                         op_type = VALUE_TYPE_I64;
                     op_atomic_cmpxchg:
                         if (!jit_compile_op_atomic_cmpxchg(cc, op_type, align_,
-                                                           offset, bytes))
+                                offset, bytes))
                             return false;
                         break;
 
@@ -2115,21 +2113,21 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
 
                     build_atomic_rmw:
                         if (!jit_compile_op_atomic_rmw(cc, bin_op, op_type,
-                                                       align_, offset, bytes))
+                                align_, offset, bytes))
                             return false;
                         break;
 
                     default:
                         jit_set_last_error(cc, "unsupported opcode");
                         return false;
+                    }
+                    break;
                 }
-                break;
-            }
-} /* end of WASM_ENABLE_SHARED_MEMORY */
+            } /* end of WASM_ENABLE_SHARED_MEMORY */
 
-            default:
-                jit_set_last_error(cc, "unsupported opcode");
-                return false;
+        default:
+            jit_set_last_error(cc, "unsupported opcode");
+            return false;
         }
         /* Error may occur when creating registers, basic blocks, insns,
            consts and labels, in which the return value may be unchecked,
@@ -2139,7 +2137,7 @@ static if (WASM_ENABLE_SHARED_MEMORY != 0) {
         }
     }
 
-    cast(void)func_idx;
+    cast(void) func_idx;
     return true;
 fail:
     return false;
@@ -2165,142 +2163,136 @@ JitBasicBlock* jit_frontend_translate_func(JitCompContext* cc) {
 }
 
 uint jit_frontend_get_jitted_return_addr_offset() {
-    return cast(uint)WASMInterpFrame.jitted_return_addr.offsetof;
+    return cast(uint) WASMInterpFrame.jitted_return_addr.offsetof;
 }
 
 version (none) {
-static if (WASM_ENABLE_THREAD_MGR != 0) {
-bool check_suspend_flags(JitCompContext* cc, JITFuncContext* func_ctx) {
-    LLVMValueRef terminate_addr = void, terminate_flags = void, flag = void, offset = void, res = void;
-    JitBasicBlock* terminate_check_block = void; JitBasicBlock non_terminate_block = void;
-    JITFuncType* jit_func_type = func_ctx.jit_func.func_type;
-    JitBasicBlock* terminate_block = void;
+    static if (WASM_ENABLE_THREAD_MGR != 0) {
+        bool check_suspend_flags(JitCompContext* cc, JITFuncContext* func_ctx) {
+            LLVMValueRef terminate_addr = void, terminate_flags = void, flag = void, offset = void, res = void;
+            JitBasicBlock* terminate_check_block = void;
+            JitBasicBlock non_terminate_block = void;
+            JITFuncType* jit_func_type = func_ctx.jit_func.func_type;
+            JitBasicBlock* terminate_block = void;
 
-    /* Offset of suspend_flags */
-    offset = I32_FIVE;
+            /* Offset of suspend_flags */
+            offset = I32_FIVE;
 
-    if (((terminate_addr = LLVMBuildInBoundsGEP(
-              cc.builder, func_ctx.exec_env, &offset, 1, "terminate_addr")) == 0)) {
-        jit_set_last_error("llvm build in bounds gep failed");
-        return false;
-    }
-    if (((terminate_addr =
-              LLVMBuildBitCast(cc.builder, terminate_addr, INT32_PTR_TYPE,
-                               "terminate_addr_ptr")) == 0)) {
-        jit_set_last_error("llvm build bit cast failed");
-        return false;
-    }
+            if (((terminate_addr = LLVMBuildInBoundsGEP(
+                    cc.builder, func_ctx.exec_env, &offset, 1, "terminate_addr")) == 0)) {
+                jit_set_last_error("llvm build in bounds gep failed");
+                return false;
+            }
+            if (((terminate_addr =
+                    LLVMBuildBitCast(cc.builder, terminate_addr, INT32_PTR_TYPE,
+                    "terminate_addr_ptr")) == 0)) {
+                jit_set_last_error("llvm build bit cast failed");
+                return false;
+            }
 
-    if (((terminate_flags =
-              LLVMBuildLoad(cc.builder, terminate_addr, "terminate_flags")) == 0)) {
-        jit_set_last_error("llvm build bit cast failed");
-        return false;
-    }
-    /* Set terminate_flags memory accecc to volatile, so that the value
+            if (((terminate_flags =
+                    LLVMBuildLoad(cc.builder, terminate_addr, "terminate_flags")) == 0)) {
+                jit_set_last_error("llvm build bit cast failed");
+                return false;
+            }
+            /* Set terminate_flags memory accecc to volatile, so that the value
         will always be loaded from memory rather than register */
-    LLVMSetVolatile(terminate_flags, true);
+            LLVMSetVolatile(terminate_flags, true);
 
-    CREATE_BASIC_BLOCK(terminate_check_block, "terminate_check");
-    MOVE_BASIC_BLOCK_AFTER_CURR(terminate_check_block);
+            CREATE_BASIC_BLOCK(terminate_check_block, "terminate_check");
+            MOVE_BASIC_BLOCK_AFTER_CURR(terminate_check_block);
 
-    CREATE_BASIC_BLOCK(non_terminate_block, "non_terminate");
-    MOVE_BASIC_BLOCK_AFTER_CURR(non_terminate_block);
+            CREATE_BASIC_BLOCK(non_terminate_block, "non_terminate");
+            MOVE_BASIC_BLOCK_AFTER_CURR(non_terminate_block);
 
-    BUILD_ICMP(LLVMIntSGT, terminate_flags, I32_ZERO, res, "need_terminate");
-    BUILD_COND_BR(res, terminate_check_block, non_terminate_block);
+            BUILD_ICMP(LLVMIntSGT, terminate_flags, I32_ZERO, res, "need_terminate");
+            BUILD_COND_BR(res, terminate_check_block, non_terminate_block);
 
-    /* Move builder to terminate check block */
-    SET_BUILDER_POS(terminate_check_block);
+            /* Move builder to terminate check block */
+            SET_BUILDER_POS(terminate_check_block);
 
-    CREATE_BASIC_BLOCK(terminate_block, "terminate");
-    MOVE_BASIC_BLOCK_AFTER_CURR(terminate_block);
+            CREATE_BASIC_BLOCK(terminate_block, "terminate");
+            MOVE_BASIC_BLOCK_AFTER_CURR(terminate_block);
 
-    if (((flag = LLVMBuildAnd(cc.builder, terminate_flags, I32_ONE,
-                              "termination_flag")) == 0)) {
-        jit_set_last_error("llvm build AND failed");
-        return false;
-    }
+            if (((flag = LLVMBuildAnd(cc.builder, terminate_flags, I32_ONE,
+                    "termination_flag")) == 0)) {
+                jit_set_last_error("llvm build AND failed");
+                return false;
+            }
 
-    BUILD_ICMP(LLVMIntSGT, flag, I32_ZERO, res, "need_terminate");
-    BUILD_COND_BR(res, terminate_block, non_terminate_block);
+            BUILD_ICMP(LLVMIntSGT, flag, I32_ZERO, res, "need_terminate");
+            BUILD_COND_BR(res, terminate_block, non_terminate_block);
 
-    /* Move builder to terminate block */
-    SET_BUILDER_POS(terminate_block);
-    if (!jit_build_zero_function_ret(cc, func_ctx, jit_func_type)) {
-        goto fail;
-    }
+            /* Move builder to terminate block */
+            SET_BUILDER_POS(terminate_block);
+            if (!jit_build_zero_function_ret(cc, func_ctx, jit_func_type)) {
+                goto fail;
+            }
 
-    /* Move builder to terminate block */
-    SET_BUILDER_POS(non_terminate_block);
-    return true;
+            /* Move builder to terminate block */
+            SET_BUILDER_POS(non_terminate_block);
+            return true;
 
-fail:
-    return false;
-}
-} /* End of WASM_ENABLE_THREAD_MGR */
+        fail:
+            return false;
+        }
+    } /* End of WASM_ENABLE_THREAD_MGR */
 }
 /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
- 
-public import jit_utils;
-public import jit_ir;
 public import tagion.iwasm.interpreter.wasm_interp;
+
 static if (WASM_ENABLE_AOT != 0) {
-public import tagion.iwasm.aot.aot_runtime;
+    public import tagion.iwasm.aot.aot_runtime;
 }
 
+    enum IntCond {
+        INT_EQZ = 0,
+        INT_EQ,
+        INT_NE,
+        INT_LT_S,
+        INT_LT_U,
+        INT_GT_S,
+        INT_GT_U,
+        INT_LE_S,
+        INT_LE_U,
+        INT_GE_S,
+        INT_GE_U
+    }
 
-static if (WASM_ENABLE_AOT == 0) {
-enum IntCond {
-    INT_EQZ = 0,
-    INT_EQ,
-    INT_NE,
-    INT_LT_S,
-    INT_LT_U,
-    INT_GT_S,
-    INT_GT_U,
-    INT_LE_S,
-    INT_LE_U,
-    INT_GE_S,
-    INT_GE_U
-}
-alias INT_EQZ = IntCond.INT_EQZ;
-alias INT_EQ = IntCond.INT_EQ;
-alias INT_NE = IntCond.INT_NE;
-alias INT_LT_S = IntCond.INT_LT_S;
-alias INT_LT_U = IntCond.INT_LT_U;
-alias INT_GT_S = IntCond.INT_GT_S;
-alias INT_GT_U = IntCond.INT_GT_U;
-alias INT_LE_S = IntCond.INT_LE_S;
-alias INT_LE_U = IntCond.INT_LE_U;
-alias INT_GE_S = IntCond.INT_GE_S;
-alias INT_GE_U = IntCond.INT_GE_U;
+    alias INT_EQZ = IntCond.INT_EQZ;
+    alias INT_EQ = IntCond.INT_EQ;
+    alias INT_NE = IntCond.INT_NE;
+    alias INT_LT_S = IntCond.INT_LT_S;
+    alias INT_LT_U = IntCond.INT_LT_U;
+    alias INT_GT_S = IntCond.INT_GT_S;
+    alias INT_GT_U = IntCond.INT_GT_U;
+    alias INT_LE_S = IntCond.INT_LE_S;
+    alias INT_LE_U = IntCond.INT_LE_U;
+    alias INT_GE_S = IntCond.INT_GE_S;
+    alias INT_GE_U = IntCond.INT_GE_U;
 
+    enum FloatCond {
+        FLOAT_EQ = 0,
+        FLOAT_NE,
+        FLOAT_LT,
+        FLOAT_GT,
+        FLOAT_LE,
+        FLOAT_GE,
+        FLOAT_UNO
+    }
 
-enum FloatCond {
-    FLOAT_EQ = 0,
-    FLOAT_NE,
-    FLOAT_LT,
-    FLOAT_GT,
-    FLOAT_LE,
-    FLOAT_GE,
-    FLOAT_UNO
-}
-alias FLOAT_EQ = FloatCond.FLOAT_EQ;
-alias FLOAT_NE = FloatCond.FLOAT_NE;
-alias FLOAT_LT = FloatCond.FLOAT_LT;
-alias FLOAT_GT = FloatCond.FLOAT_GT;
-alias FLOAT_LE = FloatCond.FLOAT_LE;
-alias FLOAT_GE = FloatCond.FLOAT_GE;
-alias FLOAT_UNO = FloatCond.FLOAT_UNO;
+    alias FLOAT_EQ = FloatCond.FLOAT_EQ;
+    alias FLOAT_NE = FloatCond.FLOAT_NE;
+    alias FLOAT_LT = FloatCond.FLOAT_LT;
+    alias FLOAT_GT = FloatCond.FLOAT_GT;
+    alias FLOAT_LE = FloatCond.FLOAT_LE;
+    alias FLOAT_GE = FloatCond.FLOAT_GE;
+    alias FLOAT_UNO = FloatCond.FLOAT_UNO;
 
-} else {
-enum IntCond = AOTIntCond;
-enum FloatCond = AOTFloatCond;
-}
 
 enum IntArithmetic {
     INT_ADD = 0,
@@ -2311,6 +2303,7 @@ enum IntArithmetic {
     INT_REM_S,
     INT_REM_U
 }
+
 alias INT_ADD = IntArithmetic.INT_ADD;
 alias INT_SUB = IntArithmetic.INT_SUB;
 alias INT_MUL = IntArithmetic.INT_MUL;
@@ -2318,7 +2311,6 @@ alias INT_DIV_S = IntArithmetic.INT_DIV_S;
 alias INT_DIV_U = IntArithmetic.INT_DIV_U;
 alias INT_REM_S = IntArithmetic.INT_REM_S;
 alias INT_REM_U = IntArithmetic.INT_REM_U;
-
 
 enum V128Arithmetic {
     V128_ADD = 0,
@@ -2329,6 +2321,7 @@ enum V128Arithmetic {
     V128_MIN,
     V128_MAX,
 }
+
 alias V128_ADD = V128Arithmetic.V128_ADD;
 alias V128_SUB = V128Arithmetic.V128_SUB;
 alias V128_MUL = V128Arithmetic.V128_MUL;
@@ -2337,16 +2330,15 @@ alias V128_NEG = V128Arithmetic.V128_NEG;
 alias V128_MIN = V128Arithmetic.V128_MIN;
 alias V128_MAX = V128Arithmetic.V128_MAX;
 
-
 enum IntBitwise {
     INT_AND = 0,
     INT_OR,
     INT_XOR,
 }
+
 alias INT_AND = IntBitwise.INT_AND;
 alias INT_OR = IntBitwise.INT_OR;
 alias INT_XOR = IntBitwise.INT_XOR;
-
 
 enum V128Bitwise {
     V128_NOT,
@@ -2356,13 +2348,13 @@ enum V128Bitwise {
     V128_XOR,
     V128_BITSELECT,
 }
+
 alias V128_NOT = V128Bitwise.V128_NOT;
 alias V128_AND = V128Bitwise.V128_AND;
 alias V128_ANDNOT = V128Bitwise.V128_ANDNOT;
 alias V128_OR = V128Bitwise.V128_OR;
 alias V128_XOR = V128Bitwise.V128_XOR;
 alias V128_BITSELECT = V128Bitwise.V128_BITSELECT;
-
 
 enum IntShift {
     INT_SHL = 0,
@@ -2371,12 +2363,12 @@ enum IntShift {
     INT_ROTL,
     INT_ROTR
 }
+
 alias INT_SHL = IntShift.INT_SHL;
 alias INT_SHR_S = IntShift.INT_SHR_S;
 alias INT_SHR_U = IntShift.INT_SHR_U;
 alias INT_ROTL = IntShift.INT_ROTL;
 alias INT_ROTR = IntShift.INT_ROTR;
-
 
 enum FloatMath {
     FLOAT_ABS = 0,
@@ -2387,6 +2379,7 @@ enum FloatMath {
     FLOAT_NEAREST,
     FLOAT_SQRT
 }
+
 alias FLOAT_ABS = FloatMath.FLOAT_ABS;
 alias FLOAT_NEG = FloatMath.FLOAT_NEG;
 alias FLOAT_CEIL = FloatMath.FLOAT_CEIL;
@@ -2394,7 +2387,6 @@ alias FLOAT_FLOOR = FloatMath.FLOAT_FLOOR;
 alias FLOAT_TRUNC = FloatMath.FLOAT_TRUNC;
 alias FLOAT_NEAREST = FloatMath.FLOAT_NEAREST;
 alias FLOAT_SQRT = FloatMath.FLOAT_SQRT;
-
 
 enum FloatArithmetic {
     FLOAT_ADD = 0,
@@ -2404,13 +2396,13 @@ enum FloatArithmetic {
     FLOAT_MIN,
     FLOAT_MAX,
 }
+
 alias FLOAT_ADD = FloatArithmetic.FLOAT_ADD;
 alias FLOAT_SUB = FloatArithmetic.FLOAT_SUB;
 alias FLOAT_MUL = FloatArithmetic.FLOAT_MUL;
 alias FLOAT_DIV = FloatArithmetic.FLOAT_DIV;
 alias FLOAT_MIN = FloatArithmetic.FLOAT_MIN;
 alias FLOAT_MAX = FloatArithmetic.FLOAT_MAX;
-
 
 /**
  * Translate instructions in a function. The translated block must
@@ -2716,6 +2708,3 @@ enum string PUSH_F32(string v) = ` PUSH(v, VALUE_TYPE_F32)`;
 enum string PUSH_F64(string v) = ` PUSH(v, VALUE_TYPE_F64)`;
 enum string PUSH_FUNCREF(string v) = ` PUSH(v, VALUE_TYPE_FUNCREF)`;
 enum string PUSH_EXTERNREF(string v) = ` PUSH(v, VALUE_TYPE_EXTERNREF)`;
-
-
-

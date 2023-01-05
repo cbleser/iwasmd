@@ -865,7 +865,7 @@ private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg 
     return true;
 }
 } else {
-private bool emit_callnative(JitCompContext* cc, JitRef native_func_reg, JitReg res, JitReg* params, uint param_count) {
+private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg res, JitReg* params, uint param_count) {
     JitInsn* insn = void;
     uint i = void;
 

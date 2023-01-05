@@ -7,7 +7,7 @@ extern(C): __gshared:
  */
 
 import tagion.iwasm.fast_jit.jit_frontend;
-
+import tagion.iwasm.fast_jit.jit_ir : JitCompContext, JitReg, JitBasicBlock;
 bool jit_emit_exception(JitCompContext* cc, int exception_id, ubyte jit_opcode, JitReg cond_br_if, JitBasicBlock* cond_br_else_block) {
     JitInsn* insn = null;
     JitIncomingInsn* incoming_insn = void;

@@ -6,7 +6,8 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_ir : JitCompContext;
 
 bool jit_compile_op_i32_const(JitCompContext* cc, int i32_const) {
     JitReg value = NEW_CONST(I32, i32_const);
@@ -24,7 +25,7 @@ fail:
     return false;
 }
 
-bool jit_compile_op_f32_const(JitCompContext* cc, float32 f32_const) {
+bool jit_compile_op_f32_const(JitCompContext* cc, float f32_const) {
     JitReg value = NEW_CONST(F32, f32_const);
     PUSH_F32(value);
     return true;
@@ -32,7 +33,7 @@ fail:
     return false;
 }
 
-bool jit_compile_op_f64_const(JitCompContext* cc, float64 f64_const) {
+bool jit_compile_op_f64_const(JitCompContext* cc, double f64_const) {
     JitReg value = NEW_CONST(F64, f64_const);
     PUSH_F64(value);
     return true;
