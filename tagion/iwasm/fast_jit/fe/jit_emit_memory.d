@@ -1,4 +1,4 @@
-module jit_emit_memory;
+module tagion.iwasm.fast_jit.fe.jit_emit_memory;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,12 +6,11 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_emit_memory;
-public import jit_emit_exception;
-public import jit_emit_function;
-public import ...jit_frontend;
-public import ...jit_codegen;
-public import ......interpreter.wasm_runtime;
+public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
+public import tagion.iwasm.fast_jit.fe.jit_emit_function;
+public import tagion.iwasm.fast_jit.jit_frontend;
+public import tagion.iwasm.fast_jit.jit_codegen;
+public import tagion.iwasm.interpreter.wasm_runtime;
 
 version (OS_ENABLE_HW_BOUND_CHECK) {} else {
 private JitReg get_memory_boundary(JitCompContext* cc, uint mem_idx, uint bytes) {
@@ -730,57 +729,3 @@ bool jit_compiler_op_atomic_notify(JitCompContext* cc, uint align_, uint offset,
  */
 
  
-public import ...jit_compiler;
-static if (WASM_ENABLE_SHARED_MEMORY != 0) {
-public import ......common.wasm_shared_memory;
-}
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_compile_op_i32_load(JitCompContext* cc, uint align_, uint offset, uint bytes, bool sign, bool atomic);
-
-bool jit_compile_op_i64_load(JitCompContext* cc, uint align_, uint offset, uint bytes, bool sign, bool atomic);
-
-bool jit_compile_op_f32_load(JitCompContext* cc, uint align_, uint offset);
-
-bool jit_compile_op_f64_load(JitCompContext* cc, uint align_, uint offset);
-
-bool jit_compile_op_i32_store(JitCompContext* cc, uint align_, uint offset, uint bytes, bool atomic);
-
-bool jit_compile_op_i64_store(JitCompContext* cc, uint align_, uint offset, uint bytes, bool atomic);
-
-bool jit_compile_op_f32_store(JitCompContext* cc, uint align_, uint offset);
-
-bool jit_compile_op_f64_store(JitCompContext* cc, uint align_, uint offset);
-
-bool jit_compile_op_memory_size(JitCompContext* cc, uint mem_idx);
-
-bool jit_compile_op_memory_grow(JitCompContext* cc, uint mem_idx);
-
-static if (WASM_ENABLE_BULK_MEMORY != 0) {
-bool jit_compile_op_memory_init(JitCompContext* cc, uint mem_idx, uint seg_idx);
-
-bool jit_compile_op_data_drop(JitCompContext* cc, uint seg_idx);
-
-bool jit_compile_op_memory_copy(JitCompContext* cc, uint src_mem_idx, uint dst_mem_idx);
-
-bool jit_compile_op_memory_fill(JitCompContext* cc, uint mem_idx);
-}
-
-static if (WASM_ENABLE_SHARED_MEMORY != 0) {
-bool jit_compile_op_atomic_rmw(JitCompContext* cc, ubyte atomic_op, ubyte op_type, uint align_, uint offset, uint bytes);
-
-bool jit_compile_op_atomic_cmpxchg(JitCompContext* cc, ubyte op_type, uint align_, uint offset, uint bytes);
-
-bool jit_compile_op_atomic_wait(JitCompContext* cc, ubyte op_type, uint align_, uint offset, uint bytes);
-
-bool jit_compiler_op_atomic_notify(JitCompContext* cc, uint align_, uint offset, uint bytes);
-}
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _JIT_EMIT_MEMORY_H_ */
