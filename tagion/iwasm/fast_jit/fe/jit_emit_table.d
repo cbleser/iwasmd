@@ -5,13 +5,13 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
 public import tagion.iwasm.fast_jit.fe.jit_emit_function;
 public import tagion.iwasm.interpreter.wasm_runtime;
 public import tagion.iwasm.fast_jit.jit_frontend;
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
 bool jit_compile_op_elem_drop(JitCompContext* cc, uint tbl_seg_idx) {
     JitReg module_ = void, tbl_segs = void;
 

@@ -5,7 +5,7 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
 public import tagion.iwasm.fast_jit.fe.jit_emit_function;
 public import tagion.iwasm.fast_jit.jit_frontend;
@@ -522,7 +522,7 @@ fail:
     return false;
 }
 
-static if (WASM_ENABLE_BULK_MEMORY != 0) {
+static if (ver.WASM_ENABLE_BULK_MEMORY) {
 private int wasm_init_memory(WASMModuleInstance* inst, uint mem_idx, uint seg_idx, uint len, uint mem_offset, uint data_offset) {
     WASMMemoryInstance* mem_inst = void;
     WASMDataSeg* data_segment = void;
@@ -706,7 +706,7 @@ fail:
 }
 }
 
-static if (WASM_ENABLE_SHARED_MEMORY != 0) {
+static if (ver.WASM_ENABLE_SHARED_MEMORY) {
 bool jit_compile_op_atomic_rmw(JitCompContext* cc, ubyte atomic_op, ubyte op_type, uint align_, uint offset, uint bytes) {
     return false;
 }

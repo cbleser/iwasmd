@@ -9,7 +9,7 @@ private template HasVersion(string versionId) {
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.fe.jit_emit_exception;
 import tagion.iwasm.fast_jit.jit_frontend;
@@ -30,7 +30,7 @@ private bool pre_call(JitCompContext* cc, const(WASMType)* func_type) {
     for (i = 0; i < func_type.param_count; i++) {
         switch (func_type.types[func_type.param_count - 1 - i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -76,7 +76,7 @@ private bool post_return(JitCompContext* cc, const(WASMType)* func_type, JitReg 
     for (i = 0; i < func_type.result_count; i++) {
         switch (func_type.types[func_type.param_count + i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -154,7 +154,7 @@ private bool pre_load(JitCompContext* cc, JitReg* argvs, const(WASMType)* func_t
     for (i = 0; i < func_type.param_count; i++) {
         switch (func_type.types[func_type.param_count - 1 - i]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -190,7 +190,7 @@ private JitReg create_first_res_reg(JitCompContext* cc, const(WASMType)* func_ty
     if (func_type.result_count) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -603,7 +603,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
     if (func_type.result_count > 0) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -669,7 +669,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
     if (func_type.result_count > 0) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -696,7 +696,7 @@ static if (WASM_ENABLE_REF_TYPES != 0) {
     if (func_type.result_count > 0) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
@@ -741,7 +741,7 @@ fail:
     return false;
 }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
 bool jit_compile_op_ref_null(JitCompContext* cc, uint ref_type) {
     PUSH_I32(NEW_CONST(I32, NULL_REF));
     cast(void)ref_type;

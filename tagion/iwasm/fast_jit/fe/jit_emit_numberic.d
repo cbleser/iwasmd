@@ -941,10 +941,10 @@ bool jit_compile_op_i32_shift(JitCompContext* cc, IntShift shift_op) {
 bool jit_compile_op_i64_shift(JitCompContext* cc, IntShift shift_op) {
     return compile_op_int_shift(cc, shift_op, false);
 }
-private float32 negf(float32 f32) {
+private float negf(float f32) {
     return -f32;
 }
-private float64 neg(float64 f64) {
+private double neg(double f64) {
     return -f64;
 }
 private bool compile_op_float_math(JitCompContext* cc, FloatMath math_op, bool is_f32) {
@@ -1003,7 +1003,7 @@ bool jit_compile_op_f32_math(JitCompContext* cc, FloatMath math_op) {
 bool jit_compile_op_f64_math(JitCompContext* cc, FloatMath math_op) {
     return compile_op_float_math(cc, math_op, false);
 }
-private float32 f32_min(float32 a, float32 b) {
+private float f32_min(float a, float b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1011,7 +1011,7 @@ private float32 f32_min(float32 a, float32 b) {
     else
         return a > b ? b : a;
 }
-private float32 f32_max(float32 a, float32 b) {
+private float f32_max(float a, float b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1019,7 +1019,7 @@ private float32 f32_max(float32 a, float32 b) {
     else
         return a > b ? a : b;
 }
-private float64 f64_min(float64 a, float64 b) {
+private double f64_min(double a, double b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1027,7 +1027,7 @@ private float64 f64_min(float64 a, float64 b) {
     else
         return a > b ? b : a;
 }
-private float64 f64_max(float64 a, float64 b) {
+private double f64_max(double a, double b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)

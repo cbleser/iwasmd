@@ -136,6 +136,7 @@ enum _JIT_REG_CONST_IDX_FLAG = (_JIT_REG_CONST_VAL_FLAG >> 1);
  */
 import core.stdc.string : memset, memcpy, memcmp;
 import core.stdc.stdint : uintptr_t;
+import core.stdc.stdarg;
 import tagion.iwasm.interpreter.wasm_runtime : EXCE_NUM;
 import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.share.utils.bh_assert;
@@ -4009,7 +4010,7 @@ char* jit_get_last_error(JitCompContext* cc) {
     return cc.last_error[0] == '\0' ? null : cc.last_error.ptr;
 }
 
-void jit_set_last_error_v(JitCompContext* cc, const(char)* format, ...) {
+void jit_set_last_error_v(JitCompContext* cc, const(char)* format, va_list args) {
     va_list args = void;
     va_start(args, format);
     vsnprintf(cc.last_error, typeof(cc.last_error).sizeof, format, args);

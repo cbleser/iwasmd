@@ -44,6 +44,8 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.interpreter.wasm : WASMFunction, WASMModule;
+import tagion.iwasm.fast_jit.jit_ir : JitCompContext;
 //#include "../jit_compiler.h"
 bool jit_compile_op_get_local(JitCompContext* cc, uint local_idx);
 bool jit_compile_op_set_local(JitCompContext* cc, uint local_idx);

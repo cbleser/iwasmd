@@ -6,7 +6,7 @@ __gshared:
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.fe.jit_emit_compare;
@@ -30,7 +30,7 @@ private uint get_global_base_offset(const(WASMModule)* module_) {
     uint mem_inst_size = cast(uint) WASMMemoryInstance.sizeof
         * (module_.import_memory_count + module_.memory_count);
 
-    static if (WASM_ENABLE_JIT != 0) {
+    static if (ver.WASM_ENABLE_JIT) {
         /* If the module dosen't have memory, reserve one mem_info space
        with empty content to align with llvm jit compiler */
         if (mem_inst_size == 0)
@@ -67,7 +67,7 @@ uint jit_frontend_get_table_inst_offset(const(WASMModule)* module_, uint tbl_idx
         WASMTableImport* import_table = &module_.import_tables[i].u.table;
 
         offset += cast(uint) WASMTableInstance.elems.offsetof;
-        static if (WASM_ENABLE_MULTI_MODULE != 0) {
+        static if (ver.WASM_ENABLE_MULTI_MODULE) {
             offset += cast(uint) uint32.sizeof * import_table.max_size;
         }
         else {
@@ -88,7 +88,7 @@ uint jit_frontend_get_table_inst_offset(const(WASMModule)* module_, uint tbl_idx
         WASMTable* table = module_.tables + i;
 
         offset += cast(uint) WASMTableInstance.elems.offsetof;
-        static if (WASM_ENABLE_MULTI_MODULE != 0) {
+        static if (ver.WASM_ENABLE_MULTI_MODULE) {
             offset += cast(uint) uint32.sizeof * table.max_size;
         }
         else {
@@ -725,7 +725,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
         JitReg module_inst = void, func_inst = void;
         uint func_insts_offset = void;
-        static if (WASM_ENABLE_PERF_PROFILING != 0) {
+        static if (ver.WASM_ENABLE_PERF_PROFILING) {
             JitReg time_started = void;
         }
     }
@@ -797,7 +797,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
         module_inst = jit_cc_new_reg_ptr(cc);
         func_inst = jit_cc_new_reg_ptr(cc);
-        static if (WASM_ENABLE_PERF_PROFILING != 0) {
+        static if (ver.WASM_ENABLE_PERF_PROFILING) {
             time_started = jit_cc_new_reg_I64(cc);
             /* Call os_time_get_boot_microsecond() to get time_started firstly
        as there is stack frame switching below, calling native in them
@@ -855,7 +855,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
         /* frame->function = func_inst */
         GEN_INSN(STPTR, func_inst, top,
                 NEW_CONST(I32, WASMInterpFrame.function_.offsetof));
-        static if (WASM_ENABLE_PERF_PROFILING != 0) {
+        static if (ver.WASM_ENABLE_PERF_PROFILING) {
             /* frame->time_started = time_started */
             GEN_INSN(STI64, time_started, top,
                     NEW_CONST(I32, WASMInterpFrame.time_started.offsetof));
@@ -1035,7 +1035,7 @@ private bool jit_compile_func(JitCompContext* cc) {
         opcode = *frame_ip++;
 
         version (none) { /* TODO */
-            static if (WASM_ENABLE_THREAD_MGR != 0) {
+            static if (ver.WASM_ENABLE_THREAD_MGR) {
                 /* Insert suspend check point */
                 if (cc.enable_thread_mgr) {
                     if (!check_suspend_flags(cc, func_ctx))
@@ -1141,7 +1141,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                 jit_set_last_error(cc, "allocate memory failed.");
                 goto fail;
             }
-            static if (WASM_ENABLE_FAST_INTERP != 0) {
+            static if (ver.WASM_ENABLE_FAST_INTERP) {
                 for (i = 0; i <= br_count; i++)
                     read_leb_uint32(frame_ip, frame_ip_end, br_depths[i]);
             }
@@ -1202,7 +1202,7 @@ private bool jit_compile_func(JitCompContext* cc) {
 
                 read_leb_uint32(frame_ip, frame_ip_end, type_idx);
 
-                static if (WASM_ENABLE_REF_TYPES != 0) {
+                static if (ver.WASM_ENABLE_REF_TYPES) {
                     read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
                 }
                 else {
@@ -1215,7 +1215,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                 break;
             }
 
-            static if (WASM_ENABLE_TAIL_CALL != 0) {
+            static if (ver.WASM_ENABLE_TAIL_CALL) {
         case WASM_OP_RETURN_CALL:
                 read_leb_uint32(frame_ip, frame_ip_end, func_idx);
 
@@ -1229,7 +1229,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                     uint tbl_idx = void;
 
                     read_leb_uint32(frame_ip, frame_ip_end, type_idx);
-                    static if (WASM_ENABLE_REF_TYPES != 0) {
+                    static if (ver.WASM_ENABLE_REF_TYPES) {
                         read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
                     }
                     else {
@@ -1265,7 +1265,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                 return false;
             break;
 
-            static if (WASM_ENABLE_REF_TYPES != 0) {
+            static if (ver.WASM_ENABLE_REF_TYPES) {
         case WASM_OP_SELECT_T: {
                     uint vec_len = void;
 
@@ -1881,7 +1881,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                     if (!jit_compile_op_i64_trunc_f64(cc, sign, true))
                         return false;
                     break;
-                    static if (WASM_ENABLE_BULK_MEMORY != 0) {
+                    static if (ver.WASM_ENABLE_BULK_MEMORY) {
                 case WASM_OP_MEMORY_INIT: {
                             uint seg_idx = 0;
                             read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
@@ -1913,7 +1913,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                             break;
                         }
                     } /* WASM_ENABLE_BULK_MEMORY */
-                    static if (WASM_ENABLE_REF_TYPES != 0) {
+                    static if (ver.WASM_ENABLE_REF_TYPES) {
                 case WASM_OP_TABLE_INIT: {
                             uint tbl_idx = void, tbl_seg_idx = void;
 
@@ -1975,7 +1975,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                 break;
             }
 
-            static if (WASM_ENABLE_SHARED_MEMORY != 0) {
+            static if (ver.WASM_ENABLE_SHARED_MEMORY) {
         case WASM_OP_ATOMIC_PREFIX: {
                     ubyte bin_op = void, op_type = void;
 
@@ -2167,7 +2167,7 @@ uint jit_frontend_get_jitted_return_addr_offset() {
 }
 
 version (none) {
-    static if (WASM_ENABLE_THREAD_MGR != 0) {
+    static if (ver.WASM_ENABLE_THREAD_MGR) {
         bool check_suspend_flags(JitCompContext* cc, JITFuncContext* func_ctx) {
             LLVMValueRef terminate_addr = void, terminate_flags = void, flag = void, offset = void, res = void;
             JitBasicBlock* terminate_check_block = void;
@@ -2245,7 +2245,7 @@ version (none) {
 
 public import tagion.iwasm.interpreter.wasm_interp;
 
-static if (WASM_ENABLE_AOT != 0) {
+static if (ver.WASM_ENABLE_AOT) {
     public import tagion.iwasm.aot.aot_runtime;
 }
 
