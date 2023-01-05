@@ -1,15 +1,13 @@
-module jit_emit_compare;
+module tagiom.iwasm.fast_jit.fe.jit_emit_compare;
 @nogc nothrow:
 extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
-public import jit_emit_compare;
-public import jit_emit_function;
-public import ...jit_frontend;
-public import ...jit_codegen;
+import tagion.iwasm.fast_jit.fe.jit_emit_function;
+import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_codegen;
 
 private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bool is64Bit) {
     JitReg lhs = void, rhs = void, res = void, const_zero = void, const_one = void;
@@ -331,23 +329,3 @@ fail:
  */
 
  
-public import ...jit_compiler;
-public import ...jit_frontend;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_compile_op_i32_compare(JitCompContext* cc, IntCond cond);
-
-bool jit_compile_op_i64_compare(JitCompContext* cc, IntCond cond);
-
-bool jit_compile_op_f32_compare(JitCompContext* cc, FloatCond cond);
-
-bool jit_compile_op_f64_compare(JitCompContext* cc, FloatCond cond);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _JIT_EMIT_COMPARE_H_ */

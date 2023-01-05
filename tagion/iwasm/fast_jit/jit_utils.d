@@ -85,11 +85,40 @@ pragma(inline, true) JitIncomingInsn** jit_calloc_list(uint size) {
     }
     return ret;
 }
+pragma(inline, true) JitIncomingInsn* jit_calloc_incoming(uint size) {
+    void* ret = wasm_runtime_malloc(size);
+    if (ret) {
+        memset(ret, 0, size);
+    }
+    return ret;
+}
+pragma(inline, true) JitValue* jit_calloc_value(uint size) {
+    void* ret = wasm_runtime_malloc(size);
+    if (ret) {
+        memset(ret, 0, size);
+    }
+    return ret;
+}
 /*
  * Reallocate a memory block with the new_size.
  * TODO: replace this with imported jit_realloc when it's available.
  */
 ubyte* jit_realloc_buffer(ubyte* ptr, uint new_size, uint old_size) {
+    void* new_ptr = jit_malloc(new_size);
+    if (new_ptr) {
+        bh_assert(new_size > old_size);
+        if (ptr) {
+            memcpy(new_ptr, ptr, old_size);
+            memset(cast(ubyte*) new_ptr + old_size, 0, new_size - old_size);
+            jit_free(ptr);
+        }
+        else
+            memset(new_ptr, 0, new_size);
+    }
+    return new_ptr;
+}
+
+uint* jit_realloc_reg(uint* ptr, uint new_size, uint old_size) {
     void* new_ptr = jit_malloc(new_size);
     if (new_ptr) {
         bh_assert(new_size > old_size);

@@ -1,4 +1,4 @@
-module jit_frontend;
+module tagion.iwasm.fast_jit.jit_frontend;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,27 +6,27 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_compiler;
-public import jit_frontend;
-public import fe.jit_emit_compare;
-public import fe.jit_emit_const;
-public import fe.jit_emit_control;
-public import fe.jit_emit_conversion;
-public import fe.jit_emit_exception;
-public import fe.jit_emit_function;
-public import fe.jit_emit_memory;
-public import fe.jit_emit_numberic;
-public import fe.jit_emit_parametric;
-public import fe.jit_emit_table;
-public import fe.jit_emit_variable;
-public import ...interpreter.wasm_interp;
-public import ...interpreter.wasm_opcode;
-public import ...interpreter.wasm_runtime;
-public import ...common.wasm_exec_env;
+import tagion.iwasm.fast_jit.jit_compiler;
+import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.fe.jit_emit_compare;
+import tagion.iwasm.fast_jit.fe.jit_emit_const;
+import tagion.iwasm.fast_jit.fe.jit_emit_control;
+import tagion.iwasm.fast_jit.fe.jit_emit_conversion;
+import tagion.iwasm.fast_jit.fe.jit_emit_exception;
+import tagion.iwasm.fast_jit.fe.jit_emit_function;
+import tagion.iwasm.fast_jit.fe.jit_emit_memory;
+import tagion.iwasm.fast_jit.fe.jit_emit_numberic;
+import tagion.iwasm.fast_jit.fe.jit_emit_parametric;
+import tagion.iwasm.fast_jit.fe.jit_emit_table;
+import tagion.iwasm.fast_jit.fe.jit_emit_variable;
+import tagion.iwasm.interpreter.wasm_interp;
+import tagion.iwasm.interpreter.wasm_opcode;
+import tagion.iwasm.interpreter.wasm_runtime;
+import tagion.iwasm.common.wasm_exec_env;
 
 private uint get_global_base_offset(const(WASMModule)* module_) {
     uint module_inst_struct_size = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes);
-    uint mem_inst_size = cast(uint)sizeof(WASMMemoryInstance)
+    uint mem_inst_size = cast(uint)WASMMemoryInstance.sizeof
         * (module_.import_memory_count + module_.memory_count);
 
 static if (WASM_ENABLE_JIT != 0) {
@@ -67,9 +67,9 @@ uint jit_frontend_get_table_inst_offset(const(WASMModule)* module_, uint tbl_idx
 
         offset += cast(uint)WASMTableInstance.elems.offsetof;
 static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        offset += cast(uint)sizeof(uint32) * import_table.max_size;
+        offset += cast(uint)uint32.sizeof * import_table.max_size;
 } else {
-        offset += cast(uint)sizeof(uint32)
+        offset += cast(uint)uint32.sizeof
                   * (import_table.possible_grow ? import_table.max_size
                                                  : import_table.init_size);
 }
@@ -88,9 +88,9 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
 
         offset += cast(uint)WASMTableInstance.elems.offsetof;
 static if (WASM_ENABLE_MULTI_MODULE != 0) {
-        offset += cast(uint)sizeof(uint32) * table.max_size;
+        offset += cast(uint)uint32.sizeof * table.max_size;
 } else {
-        offset += cast(uint)sizeof(uint32)
+        offset += cast(uint)uint32.sizeof
                   * (table.possible_grow ? table.max_size : table.init_size);
 }
 
@@ -125,7 +125,7 @@ JitReg get_module_reg(JitFrame* frame) {
     if (!frame.module_reg) {
         frame.module_reg = cc.module_reg;
         GEN_INSN(LDPTR, frame.module_reg, module_inst_reg,
-                 NEW_CONST(I32, WASMModuleInstance.module.offsetof));
+                 NEW_CONST(I32, WASMModuleInstance.module_.offsetof));
     }
     return frame.module_reg;
 }
@@ -555,7 +555,7 @@ private bool create_fixed_virtual_regs(JitCompContext* cc) {
 
     count = module_.import_memory_count + module_.memory_count;
     if (count > 0) {
-        total_size = cast(ulong)sizeof(JitMemRegs) * count;
+        total_size = cast(ulong)JitMemRegs.sizeof * count;
         if (total_size > UINT32_MAX
             || ((cc.memory_regs = jit_calloc(cast(uint)total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
@@ -575,7 +575,7 @@ private bool create_fixed_virtual_regs(JitCompContext* cc) {
 
     count = module_.import_table_count + module_.table_count;
     if (count > 0) {
-        total_size = cast(ulong)sizeof(JitTableRegs) * count;
+        total_size = cast(ulong)JitTableRegs.sizeof * count;
         if (total_size > UINT32_MAX
             || ((cc.table_regs = jit_calloc(cast(uint)total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
@@ -725,7 +725,7 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
     count =
         cur_wasm_module.import_memory_count + cur_wasm_module.memory_count;
     if (count > 0) {
-        total_size = cast(ulong)sizeof(JitMemRegs) * count;
+        total_size = cast(ulong)JitMemRegs.sizeof * count;
         if (total_size > UINT32_MAX
             || ((jit_frame.memory_regs = jit_calloc(cast(uint)total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
@@ -736,7 +736,7 @@ static if (WASM_ENABLE_PERF_PROFILING != 0) {
 
     count = cur_wasm_module.import_table_count + cur_wasm_module.table_count;
     if (count > 0) {
-        total_size = cast(ulong)sizeof(JitTableRegs) * count;
+        total_size = cast(ulong)JitTableRegs.sizeof * count;
         if (total_size > UINT32_MAX
             || ((jit_frame.table_regs = jit_calloc(cast(uint)total_size)) == 0)) {
             jit_set_last_error(cc, "allocate memory failed");
@@ -833,11 +833,11 @@ static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) 
     GEN_INSN(LDPTR, func_inst, module_inst, NEW_CONST(I32, func_insts_offset));
     /* func_inst = func_inst + cur_wasm_func_idx */
     GEN_INSN(ADD, func_inst, func_inst,
-             NEW_CONST(PTR, cast(uint)sizeof(WASMFunctionInstance)
+             NEW_CONST(PTR, cast(uint)WASMFunctionInstance.sizeof
                                 * cur_wasm_func_idx));
     /* frame->function = func_inst */
     GEN_INSN(STPTR, func_inst, top,
-             NEW_CONST(I32, WASMInterpFrame.function.offsetof));
+             NEW_CONST(I32, WASMInterpFrame.function_.offsetof));
 static if (WASM_ENABLE_PERF_PROFILING != 0) {
     /* frame->time_started = time_started */
     GEN_INSN(STI64, time_started, top,
@@ -968,7 +968,7 @@ enum string read_leb_uint32(string p, string p_end, string res) = `             
         if (!read_leb(cc, p, p_end, &off, 32, false, &res64)) \
             return false;                                     \
         p += off;                                             \
-        res = (uint32)res64;                                  \
+        res = cast(uint)res64;                                  \
     } while (0)`;
 
 enum string read_leb_int32(string p, string p_end, string res) = `                        \
@@ -1060,7 +1060,7 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
                 }
                 if (!jit_compile_op_block(
                         cc, &frame_ip, frame_ip_end,
-                        (uint32)(LABEL_TYPE_BLOCK + opcode - WASM_OP_BLOCK),
+                        cast(uint)(LABEL_TYPE_BLOCK + opcode - WASM_OP_BLOCK),
                         param_count, param_types, result_count, result_types,
                         merge_cmp_and_if))
                     return false;
@@ -1080,7 +1080,7 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
                 result_types = func_type.types + param_count;
                 if (!jit_compile_op_block(
                         cc, &frame_ip, frame_ip_end,
-                        (uint32)(LABEL_TYPE_BLOCK + opcode - EXT_OP_BLOCK),
+                        cast(uint)(LABEL_TYPE_BLOCK + opcode - EXT_OP_BLOCK),
                         param_count, param_types, result_count, result_types,
                         merge_cmp_and_if))
                     return false;
@@ -1116,7 +1116,7 @@ static if (WASM_ENABLE_THREAD_MGR != 0) {
 
             case WASM_OP_BR_TABLE:
                 read_leb_uint32(frame_ip, frame_ip_end, br_count);
-                if (((br_depths = jit_calloc(cast(uint)sizeof(uint32)
+                if (((br_depths = jit_calloc(cast(uint)uint32.sizeof
                                              * (br_count + 1))) == 0)) {
                     jit_set_last_error(cc, "allocate memory failed.");
                     goto fail;
@@ -2247,14 +2247,11 @@ fail:
  
 public import jit_utils;
 public import jit_ir;
-public import ...interpreter.wasm_interp;
+public import tagion.iwasm.interpreter.wasm_interp;
 static if (WASM_ENABLE_AOT != 0) {
-public import ...aot.aot_runtime;
+public import tagion.iwasm.aot.aot_runtime;
 }
 
-version (none) {
-extern "C" {
-//! #endif
 
 static if (WASM_ENABLE_AOT == 0) {
 enum IntCond {
@@ -2601,20 +2598,20 @@ pragma(inline, true) private void gen_commit_for_all(JitFrame* frame) {
 }
 
 pragma(inline, true) private void clear_values(JitFrame* frame) {
-    size_t total_size = sizeof(JitValueSlot) * (frame.max_locals + frame.max_stacks);
+    size_t total_size = JitValueSlot.sizeof * (frame.max_locals + frame.max_stacks);
     memset(frame.lp, 0, total_size);
     frame.committed_sp = null;
     frame.committed_ip = null;
     clear_fixed_virtual_regs(frame);
 }
 
-pragma(inline, true) private void push_i32(JitFrame* frame, JitReg value) {
+pragma(inline, true) void push_i32(JitFrame* frame, JitReg value) {
     frame.sp.reg = value;
     frame.sp.dirty = 1;
     frame.sp++;
 }
 
-pragma(inline, true) private void push_i64(JitFrame* frame, JitReg value) {
+pragma(inline, true) void push_i64(JitFrame* frame, JitReg value) {
     frame.sp.reg = value;
     frame.sp.dirty = 1;
     frame.sp++;
@@ -2623,52 +2620,52 @@ pragma(inline, true) private void push_i64(JitFrame* frame, JitReg value) {
     frame.sp++;
 }
 
-pragma(inline, true) private void push_f32(JitFrame* frame, JitReg value) {
+pragma(inline, true) void push_f32(JitFrame* frame, JitReg value) {
     push_i32(frame, value);
 }
 
-pragma(inline, true) private void push_f64(JitFrame* frame, JitReg value) {
+pragma(inline, true) void push_f64(JitFrame* frame, JitReg value) {
     push_i64(frame, value);
 }
 
-pragma(inline, true) private JitReg pop_i32(JitFrame* frame) {
+pragma(inline, true) JitReg pop_i32(JitFrame* frame) {
     frame.sp--;
     return gen_load_i32(frame, frame.sp - frame.lp);
 }
 
-pragma(inline, true) private JitReg pop_i64(JitFrame* frame) {
+pragma(inline, true) JitReg pop_i64(JitFrame* frame) {
     frame.sp -= 2;
     return gen_load_i64(frame, frame.sp - frame.lp);
 }
 
-pragma(inline, true) private JitReg pop_f32(JitFrame* frame) {
+pragma(inline, true) JitReg pop_f32(JitFrame* frame) {
     frame.sp--;
     return gen_load_f32(frame, frame.sp - frame.lp);
 }
 
-pragma(inline, true) private JitReg pop_f64(JitFrame* frame) {
+pragma(inline, true) JitReg pop_f64(JitFrame* frame) {
     frame.sp -= 2;
     return gen_load_f64(frame, frame.sp - frame.lp);
 }
 
-pragma(inline, true) private void pop(JitFrame* frame, int n) {
+pragma(inline, true) void pop(JitFrame* frame, int n) {
     frame.sp -= n;
     memset(frame.sp, 0, n * typeof(*frame.sp).sizeof);
 }
 
-pragma(inline, true) private JitReg local_i32(JitFrame* frame, int n) {
+pragma(inline, true) JitReg local_i32(JitFrame* frame, int n) {
     return gen_load_i32(frame, n);
 }
 
-pragma(inline, true) private JitReg local_i64(JitFrame* frame, int n) {
+pragma(inline, true) JitReg local_i64(JitFrame* frame, int n) {
     return gen_load_i64(frame, n);
 }
 
-pragma(inline, true) private JitReg local_f32(JitFrame* frame, int n) {
+pragma(inline, true) JitReg local_f32(JitFrame* frame, int n) {
     return gen_load_f32(frame, n);
 }
 
-pragma(inline, true) private JitReg local_f64(JitFrame* frame, int n) {
+pragma(inline, true) JitReg local_f64(JitFrame* frame, int n) {
     return gen_load_f64(frame, n);
 }
 
@@ -2720,8 +2717,5 @@ enum string PUSH_F64(string v) = ` PUSH(v, VALUE_TYPE_F64)`;
 enum string PUSH_FUNCREF(string v) = ` PUSH(v, VALUE_TYPE_FUNCREF)`;
 enum string PUSH_EXTERNREF(string v) = ` PUSH(v, VALUE_TYPE_EXTERNREF)`;
 
-version (none) {}
-}
-}
 
 

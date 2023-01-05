@@ -139,8 +139,10 @@ import core.stdc.stdint : uintptr_t;
 import tagion.iwasm.interpreter.wasm_runtime : EXCE_NUM;
 import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.share.utils.bh_assert;
-import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
+import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction, 
+VALUE_TYPE_I32, VALUE_TYPE_I64, VALUE_TYPE_F32, VALUE_TYPE_F64;
 import tagion.iwasm.fast_jit.insn_opnd;
+import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen : jit_codegen_get_hreg_info;
 enum JitRegKind {
     VOID = 0x00, /* void type */
@@ -1442,7 +1444,7 @@ struct JitRegVec {
  *
  * @return the address of the i-th register in the vector
  */
-pragma(inline, true) const(JitReg)* jit_reg_vec_at(const(JitRegVec)* vec, uint i) {
+pragma(inline, true) JitReg* jit_reg_vec_at(JitRegVec* vec, uint i) {
     bh_assert(i < vec.num);
     return vec._base + vec._stride * i;
 }
@@ -3813,8 +3815,8 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
         new_value = jit_realloc_buffer(cc._const_val._value[kind], size * capacity,
         size * num);
         new_next =
-            jit_realloc_buffer(cc._const_val._next[kind],
-        sizeof(*new_next) * capacity, sizeof(*new_next) * num);
+            jit_realloc_reg(cc._const_val._next[kind],
+        cast(uint)((*new_next).sizeof * capacity), cast(uint)((*new_next).sizeof * num));
         if (new_value && new_next) {
             cc._const_val._value[kind] = new_value;
             cc._const_val._next[kind] = new_next;
@@ -3939,7 +3941,7 @@ double jit_cc_get_const_F64(JitCompContext* cc, JitReg reg) {
 JitBasicBlock* jit_cc_new_basic_block(JitCompContext* cc, int n) {
     JitReg label = jit_cc_new_label(cc);
     JitBasicBlock* block = null;
-    if (label && (block = jit_basic_block_new(label, n))) /* Void 0 register indicates error in creation.  */
+    if (label && ((block = jit_basic_block_new(label, n)) !is null)) /* Void 0 register indicates error in creation.  */
         *(jit_annl_basic_block(cc, label)) = block;
     else
         jit_set_last_error(cc, "create basic block failed");
@@ -3974,7 +3976,7 @@ bool jit_cc_enable_insn_hash(JitCompContext* cc, uint n) {
     /* Integer overflow cannot happen because n << 4G (at most several
        times of 64K in the most extreme case).  */
     if (((cc._insn_hash_table._table =
-            jit_calloc(n * typeof(*cc._insn_hash_table._table).sizeof)) == 0)) {
+            jit_calloc_ref(cast(uint)(n * typeof(*cc._insn_hash_table._table).sizeof))) is null)) {
         jit_anni_disable__hash_link(cc);
         return false;
     }
@@ -4004,7 +4006,7 @@ JitInsn* _jit_cc_set_insn_uid_for_new_insn(JitCompContext* cc, JitInsn* insn) {
 }
 
 char* jit_get_last_error(JitCompContext* cc) {
-    return cc.last_error[0] == '\0' ? null : cc.last_error;
+    return cc.last_error[0] == '\0' ? null : cc.last_error.ptr;
 }
 
 void jit_set_last_error_v(JitCompContext* cc, const(char)* format, ...) {
@@ -4023,24 +4025,25 @@ void jit_set_last_error(JitCompContext* cc, const(char)* error) {
 
 bool jit_cc_update_cfg(JitCompContext* cc) {
     JitBasicBlock* block = void;
-    uint block_index = void, end = void, succ_index = void, idx = void;
+    uint block_index = void, end = void, succ_index = void;
+	ushort idx = void;
     JitReg* target = void;
     bool retval = false;
     if (!jit_annl_enable_pred_num(cc))
         return false;
     /* Update pred_num of all blocks.  */
     for (block_index = 0, end = (cc)._ann._label_num; block_index < end; block_index++)
-        if ((block = (cc)._ann._label_basic_block[block_index])) {
+        if ((block = (cc)._ann._label_basic_block[block_index]) !is null) {
         JitRegVec succs = jit_basic_block_succs(block);
         for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
                 ._stride)
-            if (jit_reg_is_kind(L32, *target))
+            if (*target is JitRegKind.L32)
 
                 *(jit_annl_pred_num(cc, *target)) += 1;
     }
     /* Resize predecessor vectors of body blocks.  */
     for (block_index = 2, end = (cc)._ann._label_num; block_index < end; block_index++)
-        if ((block = (cc)._ann._label_basic_block[block_index])) {
+        if ((block = (cc)._ann._label_basic_block[block_index]) !is null) {
         if (!jit_cc_resize_basic_block(
                 cc, block,
 
@@ -4049,18 +4052,18 @@ bool jit_cc_update_cfg(JitCompContext* cc) {
     }
     /* Fill in predecessor vectors all blocks.  */
     for (block_index = (cc)._ann._label_num; block_index > 0; block_index--)
-        if ((block = (cc)._ann._label_basic_block[block_index - 1])) {
+        if ((block = (cc)._ann._label_basic_block[block_index - 1]) !is null) {
         JitRegVec succs = jit_basic_block_succs(block), preds = void;
         for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
                 ._stride)
-            if (jit_reg_is_kind(L32, *target)) {
+            if (*target is JitRegKind.L32) {
                 preds = jit_basic_block_preds(*(jit_annl_basic_block(cc, *target)));
                 bh_assert(*(jit_annl_pred_num(cc, *target)) > 0);
-                idx = *(jit_annl_pred_num(cc, *target)) - 1;
+                idx = cast(ushort)(*(jit_annl_pred_num(cc, *target)) - 1);
 
                 *(jit_annl_pred_num(cc, *target)) = idx;
 
-                *(jit_reg_vec_at(&preds, idx)) = jit_basic_block_label(block);
+                *(jit_reg_vec_at(&preds, idx)) =  jit_basic_block_label(block);
             }
     }
     retval = true;
@@ -4081,7 +4084,7 @@ void jit_value_stack_push(JitValueStack* stack, JitValue* value) {
 
 JitValue* jit_value_stack_pop(JitValueStack* stack) {
     JitValue* value = stack.value_list_end;
-    bh_assert(stack.value_list_end);
+    bh_assert(stack.value_list_end !is null);
     if (stack.value_list_head == stack.value_list_end)
         stack.value_list_head = stack.value_list_end = null;
     else {
@@ -4119,7 +4122,7 @@ JitBlock* jit_block_stack_top(JitBlockStack* stack) {
 
 JitBlock* jit_block_stack_pop(JitBlockStack* stack) {
     JitBlock* block = stack.block_list_end;
-    bh_assert(stack.block_list_end);
+    bh_assert(stack.block_list_end !is null);
     if (stack.block_list_head == stack.block_list_end)
         stack.block_list_head = stack.block_list_end = null;
     else {
@@ -4144,7 +4147,7 @@ void jit_block_stack_destroy(JitBlockStack* stack) {
 
 bool jit_block_add_incoming_insn(JitBlock* block, JitInsn* insn, uint opnd_idx) {
     JitIncomingInsn* incoming_insn = void;
-    if (((incoming_insn = jit_calloc(cast(uint) JitIncomingInsn.sizeof)) == 0))
+    if (((incoming_insn = jit_calloc_incoming(cast(uint) JitIncomingInsn.sizeof)) is null))
         return false;
     incoming_insn.insn = insn;
     incoming_insn.opnd_idx = opnd_idx;
@@ -4187,7 +4190,7 @@ bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
     jit_value = jit_value_stack_pop(
 
             &jit_block_stack_top(&cc.block_stack).value_stack);
-    bh_assert(jit_value);
+    bh_assert(jit_value !is null);
     if (jit_value.type != to_stack_value_type(type)) {
         jit_set_last_error(cc, "invalid WASM stack data type");
         jit_free(jit_value);
@@ -4224,7 +4227,7 @@ bool jit_cc_push_value(JitCompContext* cc, ubyte type, JitReg value) {
         jit_set_last_error(cc, "WASM block stack underflow");
         return false;
     }
-    if (((jit_value = jit_calloc(JitValue.sizeof)) == 0)) {
+    if (((jit_value = jit_calloc_value(JitValue.sizeof)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         return false;
     }

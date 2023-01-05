@@ -1,4 +1,4 @@
-module jit_emit_function;
+module tagion.iwasm.fast_jit.fe.jit_emit_function;
 @nogc nothrow:
 extern(C): __gshared:
 
@@ -10,11 +10,11 @@ private template HasVersion(string versionId) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import jit_emit_function;
-public import jit_emit_exception;
-public import ...jit_frontend;
-public import ...jit_codegen;
-public import ......interpreter.wasm_runtime;
+import tagion.iwasm.fast_jit.fe.jit_emit_function;
+import tagion.iwasm.fast_jit.fe.jit_emit_exception;
+import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_codegen;
+import tagion.iwasm.interpreter.wasm_runtime;
 
 private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg res, JitReg* params, uint param_count);
 
@@ -279,7 +279,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
         bh_assert(signature);
 
         /* Allocate memory for argvs*/
-        total_size = sizeof(JitReg) * (uint64)(func_type.param_count);
+        total_size = JitReg.sizeof * cast(ulong)(func_type.param_count);
         if (total_size > 0) {
             if (total_size >= UINT32_MAX
                 || ((argvs = jit_malloc(cast(uint)total_size)) == 0)) {
@@ -354,7 +354,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
 
         /* Prepare arguments of the native function */
         if (((argvs1 =
-                  jit_calloc(sizeof(JitReg) * (func_type.param_count + 1))) == 0)) {
+                  jit_calloc(JitReg.sizeof * (func_type.param_count + 1))) == 0)) {
             goto fail;
         }
         argvs1[0] = cc.exec_env_reg;
@@ -892,26 +892,3 @@ bool jit_emit_callnative(JitCompContext* cc, void* native_func, JitReg res, JitR
  */
 
  
-public import ...jit_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call);
-
-bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_idx);
-
-bool jit_compile_op_ref_null(JitCompContext* cc, uint ref_type);
-
-bool jit_compile_op_ref_is_null(JitCompContext* cc);
-
-bool jit_compile_op_ref_func(JitCompContext* cc, uint func_idx);
-
-bool jit_emit_callnative(JitCompContext* cc, void* native_func, JitReg res, JitReg* params, uint param_count);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _JIT_EMIT_FUNCTION_H_ */
