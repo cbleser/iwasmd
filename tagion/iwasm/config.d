@@ -3,9 +3,7 @@ module tagion.iwasm.config;
 extern (C):
 __gshared:
 
-private template HasVersion(string versionId) {
-    mixin("version(" ~ versionId ~ ") {enum HasVersion = true;} else {enum HasVersion = false;}");
-}
+import tagion.iwasm.basic;
 /*
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception

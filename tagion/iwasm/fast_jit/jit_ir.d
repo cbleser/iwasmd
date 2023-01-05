@@ -134,10 +134,14 @@ enum _JIT_REG_CONST_IDX_FLAG = (_JIT_REG_CONST_VAL_FLAG >> 1);
  * L32 kind must be after all normal kinds (see _const_val and _reg_ann
  * of JitCompContext).
  */
+import core.stdc.string : memset, memcpy, memcmp;
 import core.stdc.stdint : uintptr_t;
+import tagion.iwasm.interpreter.wasm_runtime : EXCE_NUM;
+import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.share.utils.bh_assert;
 import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
-
+import tagion.iwasm.fast_jit.insn_opnd;
+import tagion.iwasm.fast_jit.jit_codegen : jit_codegen_get_hreg_info;
 enum JitRegKind {
     VOID = 0x00, /* void type */
     I32 = 0x01, /* 32-bit signed or unsigned integer */
@@ -322,7 +326,7 @@ struct JitInsn {
     JitInsn* prev;
     JitInsn* next;
     /* Opcode of the instruction. */
-    ushort opcode;
+    JitOpcode opcode;
     /* Reserved field that may be used by optimizations locally. */
     ubyte flags_u8;
     /* The unique ID of the instruction. */
@@ -342,7 +346,7 @@ struct JitInsn {
 /**
  * Opcodes of IR instructions.
  */
-enum JitOpcode {
+enum JitOpcode : ubyte {
     /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -1438,7 +1442,7 @@ struct JitRegVec {
  *
  * @return the address of the i-th register in the vector
  */
-pragma(inline, true) private JitReg* jit_reg_vec_at(const(JitRegVec)* vec, uint i) {
+pragma(inline, true) const(JitReg)* jit_reg_vec_at(const(JitRegVec)* vec, uint i) {
     bh_assert(i < vec.num);
     return vec._base + vec._stride * i;
 }
@@ -3440,7 +3444,7 @@ bool jit_cc_update_cfg(JitCompContext* cc);
 //#include "jit_codegen.h"
 ////#include "jit_frontend.h"
 JitInsn* _jit_insn_new_Reg_1(JitOpcode opc, JitReg r0) {
-    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (1));
+    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + JitReg.sizeof * (1));
     if (insn) {
         insn.opcode = opc;
 
@@ -3450,7 +3454,7 @@ JitInsn* _jit_insn_new_Reg_1(JitOpcode opc, JitReg r0) {
 }
 
 JitInsn* _jit_insn_new_Reg_2(JitOpcode opc, JitReg r0, JitReg r1) {
-    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (2));
+    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + JitReg.sizeof * (2));
     if (insn) {
         insn.opcode = opc;
 
@@ -3462,7 +3466,7 @@ JitInsn* _jit_insn_new_Reg_2(JitOpcode opc, JitReg r0, JitReg r1) {
 }
 
 JitInsn* _jit_insn_new_Reg_3(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2) {
-    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (3));
+    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + JitReg.sizeof * (3));
     if (insn) {
         insn.opcode = opc;
 
@@ -3476,7 +3480,7 @@ JitInsn* _jit_insn_new_Reg_3(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2) {
 }
 
 JitInsn* _jit_insn_new_Reg_4(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
-    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (4));
+    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + JitReg.sizeof * (4));
     if (insn) {
         insn.opcode = opc;
 
@@ -3492,7 +3496,7 @@ JitInsn* _jit_insn_new_Reg_4(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2, Jit
 }
 
 JitInsn* _jit_insn_new_Reg_5(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2, JitReg r3, JitReg r4) {
-    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (5));
+    JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + JitReg.sizeof * (5));
     if (insn) {
         insn.opcode = opc;
 
@@ -3510,7 +3514,7 @@ JitInsn* _jit_insn_new_Reg_5(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2, Jit
 }
 
 JitInsn* _jit_insn_new_VReg_1(JitOpcode opc, JitReg r0, int n) {
-    JitInsn* insn = jit_calloc(offsetof(JitInsn, _opnd._opnd_VReg._reg) + sizeof(JitReg) * (1 + n));
+    JitInsn* insn = jit_calloc(cast(uint)(JitInsn._opnd._opnd_VReg._reg.offsetof + JitReg.sizeof * (1 + n)));
     if (insn) {
         insn.opcode = opc;
         insn._opnd._opnd_VReg._reg_num = 1 + n;
@@ -3521,7 +3525,7 @@ JitInsn* _jit_insn_new_VReg_1(JitOpcode opc, JitReg r0, int n) {
 }
 
 JitInsn* _jit_insn_new_VReg_2(JitOpcode opc, JitReg r0, JitReg r1, int n) {
-    JitInsn* insn = jit_calloc(offsetof(JitInsn, _opnd._opnd_VReg._reg) + sizeof(JitReg) * (2 + n));
+    JitInsn* insn = jit_calloc(cast(uint)(JitInsn._opnd._opnd_VReg._reg.offsetof + JitReg.sizeof * (2 + n)));
     if (insn) {
         insn.opcode = opc;
         insn._opnd._opnd_VReg._reg_num = 2 + n;
@@ -3535,8 +3539,8 @@ JitInsn* _jit_insn_new_VReg_2(JitOpcode opc, JitReg r0, JitReg r1, int n) {
 
 JitInsn* _jit_insn_new_LookupSwitch_1(JitOpcode opc, JitReg value, uint num) {
     JitOpndLookupSwitch* opnd = null;
-    JitInsn* insn = jit_calloc(offsetof(JitInsn, _opnd._opnd_LookupSwitch.match_pairs)
-            + sizeof(opnd.match_pairs[0]) * num);
+    JitInsn* insn = jit_calloc(cast(uint)(JitInsn._opnd._opnd_LookupSwitch.match_pairs.offsetof
+            + opnd.match_pairs[0].sizeof * num));
     if (insn) {
         insn.opcode = opc;
         opnd = jit_insn_opndls(insn);
@@ -3547,7 +3551,7 @@ JitInsn* _jit_insn_new_LookupSwitch_1(JitOpcode opc, JitReg value, uint num) {
 }
 
 void jit_insn_insert_before(JitInsn* insn1, JitInsn* insn2) {
-    bh_assert(insn1.prev);
+    bh_assert(insn1.prev !is null);
     insn1.prev.next = insn2;
     insn2.prev = insn1.prev;
     insn2.next = insn1;
@@ -3555,7 +3559,7 @@ void jit_insn_insert_before(JitInsn* insn1, JitInsn* insn2) {
 }
 
 void jit_insn_insert_after(JitInsn* insn1, JitInsn* insn2) {
-    bh_assert(insn1.next);
+    bh_assert(insn1.next !is null);
     insn1.next.prev = insn2;
     insn2.next = insn1.next;
     insn2.prev = insn1;
@@ -3563,9 +3567,9 @@ void jit_insn_insert_after(JitInsn* insn1, JitInsn* insn2) {
 }
 
 void jit_insn_unlink(JitInsn* insn) {
-    bh_assert(insn.prev);
+    bh_assert(insn.prev !is null);
     insn.prev.next = insn.next;
-    bh_assert(insn.next);
+    bh_assert(insn.next !is null);
     insn.next.prev = insn.prev;
     insn.prev = insn.next = null;
 }
@@ -3575,15 +3579,15 @@ uint jit_insn_hash(JitInsn* insn) {
     uint hash = opcode, i = void;
     /* Currently, only instructions with Reg kind operand require
        hashing.  For others, simply use opcode as the hash value.  */
-    if (insn_opnd_kind[opcode] != JIT_OPND_KIND_Reg
-        || insn_opnd_num[opcode] < 1)
+    if (insn_opnd[opcode].kind != JIT_OPND_KIND.Reg
+        || insn_opnd[opcode].num < 1)
     return hash;
     /* All the instructions with hashing support must be in the
        assignment format, i.e. the first operand is the result (hence
        being ignored) and all the others are operands.  This is also
        true for CHK instructions, whose first operand is the instruction
        pointer.  */
-    for (i = 1; i < insn_opnd_num[opcode]; i++)
+    for (i = 1; i < insn_opnd[opcode].num; i++)
     hash = ((hash << 5) - hash) + *(jit_insn_opnd(insn, i));
     return hash;
 }
@@ -3593,33 +3597,33 @@ bool jit_insn_equal(JitInsn* insn1, JitInsn* insn2) {
     uint i = void;
     if (insn2.opcode != opcode)
         return false;
-    if (insn_opnd_kind[opcode] != JIT_OPND_KIND_Reg
-        || insn_opnd_num[opcode] < 1)
+    if (insn_opnd[opcode].kind != JIT_OPND_KIND.Reg
+        || insn_opnd[opcode].num < 1)
     return false;
-    for (i = 1; i < insn_opnd_num[opcode]; i++)
+    for (i = 1; i < insn_opnd[opcode].num; i++)
     if (*(jit_insn_opnd(insn1, i)) != *(jit_insn_opnd(insn2, i)))
         return false;
     return true;
 }
 
 JitRegVec jit_insn_opnd_regs(JitInsn* insn) {
-    JitRegVec vec = {0};
+    JitRegVec vec;
     JitOpndLookupSwitch* ls = void;
     vec._stride = 1;
-    switch (insn_opnd_kind[insn.opcode]) {
-    case JIT_OPND_KIND_Reg:
-        vec.num = insn_opnd_num[insn.opcode];
+    switch (insn_opnd[insn.opcode].kind) {
+    case JIT_OPND_KIND.Reg:
+        vec.num = insn_opnd[insn.opcode].num;
         vec._base = jit_insn_opnd(insn, 0);
         break;
-        case JIT_OPND_KIND_VReg:
+        case JIT_OPND_KIND.VReg:
         vec.num = jit_insn_opndv_num(insn);
         vec._base = jit_insn_opndv(insn, 0);
         break;
-        case JIT_OPND_KIND_LookupSwitch:
+        case JIT_OPND_KIND.LookupSwitch:
         ls = jit_insn_opndls(insn);
         vec.num = ls.match_pairs_num + 2;
         vec._base = &ls.value;
-        vec._stride = sizeof(ls.match_pairs[0]) / typeof(*vec._base).sizeof;
+        vec._stride = ls.match_pairs[0].sizeof / typeof(*vec._base).sizeof;
         break;
         default:
         break;
@@ -3627,8 +3631,8 @@ JitRegVec jit_insn_opnd_regs(JitInsn* insn) {
     return vec;
 }
 
-uint jit_insn_opnd_first_use(JitInsn* insn) {
-    return insn_opnd_first_use[insn.opcode];
+ubyte jit_insn_opnd_first_use(JitInsn* insn) {
+    return insn_opnd[insn.opcode].first_use;
 }
 
 JitBasicBlock* jit_basic_block_new(JitReg label, int n) {
@@ -3705,9 +3709,9 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
     jit_annl_enable_basic_block(cc);
     /* Create entry and exit blocks.  They must be the first two
        blocks respectively.  */
-    if (((entry_block = jit_cc_new_basic_block(cc, 0)) == 0))
+    if (((entry_block = jit_cc_new_basic_block(cc, 0)) is null))
         goto fail;
-    if (((exit_block = jit_cc_new_basic_block(cc, 0)) == 0)) {
+    if (((exit_block = jit_cc_new_basic_block(cc, 0)) is null)) {
         jit_basic_block_delete(entry_block);
         goto fail;
     }
@@ -3718,16 +3722,16 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
     bh_assert(jit_reg_no(cc.entry_label) == 0
             && jit_reg_no(cc.exit_label) == 1);
     if (((cc.exce_basic_blocks =
-            jit_calloc((JitBasicBlock*).sizeof * EXCE_NUM)) == 0))
+            jit_calloc_ref((JitBasicBlock*).sizeof * EXCE_NUM)) is null))
         goto fail;
     if (((cc.incoming_insns_for_exec_bbs =
-            jit_calloc(sizeof(JitIncomingInsnList) * EXCE_NUM)) == 0))
+            jit_calloc_list(JitIncomingInsnList.sizeof * EXCE_NUM)) is null))
         goto fail;
     cc.hreg_info = jit_codegen_get_hreg_info();
     bh_assert(cc.hreg_info.info[JIT_REG_KIND_I32].num > 3);
     /* Initialize virtual registers for hard registers.  */
     for (i = JIT_REG_KIND_VOID; i < JIT_REG_KIND_L32; i++) {
-        if ((num = cc.hreg_info.info[i].num)) {
+        if ((num = cc.hreg_info.info[i].num) != 0) {
             /* Initialize the capacity to be large enough.  */
             jit_cc_new_reg(cc, i);
             bh_assert(cc._ann._reg_capacity[i] > num);
@@ -3740,8 +3744,8 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
         jit_reg_new(JIT_REG_KIND_PTR, cc.hreg_info.exec_env_hreg_index);
     cc.cmp_reg = jit_reg_new(JIT_REG_KIND_I32, cc.hreg_info.cmp_hreg_index);
     cc._const_val._hash_table_size = htab_size;
-    if (((cc._const_val._hash_table =
-            jit_calloc(htab_size * typeof(*cc._const_val._hash_table).sizeof)) == 0))
+    if ((cc._const_val._hash_table =
+            jit_calloc_reg(cast(uint)(htab_size * typeof(*cc._const_val._hash_table).sizeof))) is null)
         goto fail;
     return cc;
 fail:
@@ -3755,25 +3759,6 @@ void jit_cc_delete(JitCompContext* cc) {
         jit_free(cc);
     }
 }
-/*
- * Reallocate a memory block with the new_size.
- * TODO: replace this with imported jit_realloc when it's available.
- */
-private void* _jit_realloc(void* ptr, uint new_size, uint old_size) {
-    void* new_ptr = jit_malloc(new_size);
-    if (new_ptr) {
-        bh_assert(new_size > old_size);
-        if (ptr) {
-            memcpy(new_ptr, ptr, old_size);
-            memset(cast(ubyte*) new_ptr + old_size, 0, new_size - old_size);
-            jit_free(ptr);
-        }
-        else
-            memset(new_ptr, 0, new_size);
-    }
-    return new_ptr;
-}
-
 private uint hash_of_const(uint kind, uint size, void* val) {
     ubyte* p = cast(ubyte*) val, end = p + size;
     uint hash = kind;
@@ -3825,10 +3810,10 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
     if (num == capacity) {
         /* Increase the space of value and next.  */
         capacity = capacity > 0 ? (capacity + capacity / 2) : 16;
-        new_value = _jit_realloc(cc._const_val._value[kind], size * capacity,
+        new_value = jit_realloc_buffer(cc._const_val._value[kind], size * capacity,
         size * num);
         new_next =
-            _jit_realloc(cc._const_val._next[kind],
+            jit_realloc_buffer(cc._const_val._next[kind],
         sizeof(*new_next) * capacity, sizeof(*new_next) * num);
         if (new_value && new_next) {
             cc._const_val._value[kind] = new_value;
@@ -3852,7 +3837,7 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
 }
 
 pragma(inline, true) private int get_const_val_in_reg(JitReg reg) {
-    int shift = 8 * sizeof(reg) - _JIT_REG_KIND_SHIFT + 1;
+    int shift = 8 * reg.sizeof - _JIT_REG_KIND_SHIFT + 1;
     return (cast(int)(reg << shift)) >> shift;
 }
 
@@ -4269,19 +4254,19 @@ bool jit_cc_push_value(JitCompContext* cc, ubyte type, JitReg value) {
 
 bool _jit_insn_check_opnd_access_Reg(const(JitInsn)* insn, uint n) {
     uint opcode = insn.opcode;
-    return (insn_opnd_kind[opcode] == JIT_OPND_KIND_Reg
-        && n < insn_opnd_num[opcode]);
+    return (insn_opnd[opcode].kind == JIT_OPND_KIND.Reg
+        && n < insn_opnd[opcode].num);
 }
 
 bool _jit_insn_check_opnd_access_VReg(const(JitInsn)* insn, uint n) {
     uint opcode = insn.opcode;
-    return (insn_opnd_kind[opcode] == JIT_OPND_KIND_VReg
+    return (insn_opnd[opcode].kind == JIT_OPND_KIND.VReg
         && n < insn._opnd._opnd_VReg._reg_num);
 }
 
 bool _jit_insn_check_opnd_access_LookupSwitch(const(JitInsn)* insn) {
     uint opcode = insn.opcode;
-    return (insn_opnd_kind[opcode] == JIT_OPND_KIND_LookupSwitch);
+    return (insn_opnd[opcode].kind == JIT_OPND_KIND.LookupSwitch);
 }
 
 bool jit_lock_reg_in_insn(JitCompContext* cc, JitInsn* the_insn, JitReg reg_to_lock) {
