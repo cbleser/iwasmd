@@ -62,7 +62,7 @@ void jit_dump_reg(JitCompContext* cc, JitReg reg) {
             break;
 
         default:
-            bh_assert!("Unsupported register kind.");
+            bh_assert(0, "Unsupported register kind.");
     }
 }
 

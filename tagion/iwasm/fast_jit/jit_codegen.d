@@ -5,7 +5,7 @@ extern(C): __gshared:
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
+import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.jit_compiler;
 
 bool jit_pass_lower_cg(JitCompContext* cc) {
@@ -27,9 +27,6 @@ bool jit_pass_codegen(JitCompContext* cc) {
 import tagion.iwasm.app_framework.base.app.bh_platform;
 public import tagion.iwasm.fast_jit.jit_compiler;
 
-version (none) {
-extern (C) {
-//! #endif
 
 /**
  * Initialize codegen module, such as instruction encoder.
@@ -77,7 +74,7 @@ bool jit_codegen_gen_native(JitCompContext* cc);
  */
 bool jit_codegen_lower(JitCompContext* cc);
 
-static if (WASM_ENABLE_LAZY_JIT != 0 && WASM_ENABLE_JIT != 0) {
+static if (ver.WASM_ENABLE_LAZY_JIT && ver.WASM_ENABLE_JIT) {
 void* jit_codegen_compile_call_to_llvm_jit(const(WASMType)* func_type);
 
 void* jit_codegen_compile_call_to_fast_jit(const(WASMModule)* module_, uint func_idx);
@@ -89,10 +86,8 @@ void* jit_codegen_compile_call_to_fast_jit(const(WASMModule)* module_, uint func
  * @param begin_addr begin address of the native code
  * @param end_addr end address of the native code
  */
-void jit_codegen_dump_native(void* begin_addr, void* end_addr);
+void jit_codegen_dump_native(void* begin_addr, void* end_addr) {
+	printf("jit_codegen_dump_native not implemented [%p:%p]\n", begin_addr, end_addr);
+}
 
 int jit_codegen_interp_jitted_glue(void* self, JitInterpSwitchInfo* info, uint func_idx, void* pc);
-}
-}
-
- /* end of _JIT_CODEGEN_H_ */

@@ -1,6 +1,7 @@
-module jit_ir_tmp;
+module tagion.iwasm.fast_jit.jit_ir;
 @nogc nothrow:
-extern(C): __gshared:
+extern (C):
+__gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -44,12 +45,9 @@ extern(C): __gshared:
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-//#ifndef _JIT_IR_H_
-//#define _JIT_IR_H_
 //#include "bh_platform.h"
 //#include "../interpreter/wasm.h"
 //#include "jit_utils.h"
-import tagion.iwasm.common.wasm_runtime_common;
 /**
  * Register (operand) representation of JIT IR.
  *
@@ -109,12 +107,12 @@ alias JitReg = uint;
 /*
  * Mask and shift bits of register kind.
  */
-//#define _JIT_REG_KIND_MASK 0xf0000000
-//#define _JIT_REG_KIND_SHIFT 28
+enum _JIT_REG_KIND_MASK = 0xf0000000;
+enum _JIT_REG_KIND_SHIFT = 28;
 /*
  * Mask of register no. which must be the least significant bits.
  */
-//#define _JIT_REG_NO_MASK (~_JIT_REG_KIND_MASK)
+enum _JIT_REG_NO_MASK = (~_JIT_REG_KIND_MASK);
 /*
  * Constant value flag (the most significant bit) of register
  * no. field of integer, floating point and vector registers. If this
@@ -122,7 +120,7 @@ alias JitReg = uint;
  * no. represent a signed (27-bit) integer constant value of the
  * corresponding type of the register and the register is read-only.
  */
-//#define _JIT_REG_CONST_VAL_FLAG ((_JIT_REG_NO_MASK >> 1) + 1)
+enum _JIT_REG_CONST_VAL_FLAG = ((_JIT_REG_NO_MASK >> 1) + 1);
 /*
  * Constant index flag of non-constant-value (constant value flag is
  * not set in register no. field) integer, floating point and vector
@@ -130,12 +128,16 @@ alias JitReg = uint;
  * no. represent an index to the constant value table of the
  * corresponding type of the register and the register is read-only.
  */
-//#define _JIT_REG_CONST_IDX_FLAG (_JIT_REG_CONST_VAL_FLAG >> 1)
+enum _JIT_REG_CONST_IDX_FLAG = (_JIT_REG_CONST_VAL_FLAG >> 1);
 /**
  * Register kinds. Don't change the order of the defined values. The
  * L32 kind must be after all normal kinds (see _const_val and _reg_ann
  * of JitCompContext).
  */
+import core.stdc.stdint : uintptr_t;
+import tagion.iwasm.share.utils.bh_assert;
+import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
+
 enum JitRegKind {
     VOID = 0x00, /* void type */
     I32 = 0x01, /* 32-bit signed or unsigned integer */
@@ -148,6 +150,7 @@ enum JitRegKind {
     L32 = 0x08, /* 32-bit label address */
     NUM /* number of register kinds */
 }
+
 alias JIT_REG_KIND_VOID = JitRegKind.VOID;
 alias JIT_REG_KIND_I32 = JitRegKind.I32;
 alias JIT_REG_KIND_I64 = JitRegKind.I64;
@@ -159,6 +162,12 @@ alias JIT_REG_KIND_V256 = JitRegKind.V256;
 alias JIT_REG_KIND_L32 = JitRegKind.L32;
 alias JIT_REG_KIND_NUM = JitRegKind.NUM;
 
+static if (uintptr_t.max == ulong.max) {
+    enum JIT_REG_KIND_PTR = JIT_REG_KIND_I64;
+}
+else {
+    enum JIT_REG_KIND_PTR = JIT_REG_KIND_I32;
+}
 /**
  * Construct a new JIT IR register from the kind and no.
  *
@@ -167,7 +176,7 @@ alias JIT_REG_KIND_NUM = JitRegKind.NUM;
  *
  * @return the new register with the given kind and no.
  */
-pragma(inline, true) private JitReg jit_reg_new(uint reg_kind, uint reg_no) {
+pragma(inline, true) JitReg jit_reg_new(uint reg_kind, uint reg_no) {
     return cast(JitReg)((reg_kind << _JIT_REG_KIND_SHIFT) | reg_no);
 }
 /**
@@ -208,7 +217,7 @@ pragma(inline, true) bool jit_reg_is_value(JitReg r) {
  *
  * @return true iff register r is a constant value
  */
-pragma(inline, true) private bool jit_reg_is_const_val(JitReg r) {
+pragma(inline, true) bool jit_reg_is_const_val(JitReg r) {
     return jit_reg_is_value(r) && (r & _JIT_REG_CONST_VAL_FLAG);
 }
 /**
@@ -218,7 +227,7 @@ pragma(inline, true) private bool jit_reg_is_const_val(JitReg r) {
  *
  * @return true iff register r is a constant table index
  */
-pragma(inline, true) private bool jit_reg_is_const_idx(JitReg r) {
+pragma(inline, true) bool jit_reg_is_const_idx(JitReg r) {
     return (jit_reg_is_value(r) && !jit_reg_is_const_val(r)
             && (r & _JIT_REG_CONST_IDX_FLAG));
 }
@@ -240,7 +249,7 @@ pragma(inline, true) bool jit_reg_is_const(JitReg r) {
  *
  * @return true iff the register is a normal variable register
  */
-pragma(inline, true) private bool jit_reg_is_variable(JitReg r) {
+pragma(inline, true) bool jit_reg_is_variable(JitReg r) {
     return (jit_reg_is_value(r)
             && !(r & (_JIT_REG_CONST_VAL_FLAG | _JIT_REG_CONST_IDX_FLAG)));
 }
@@ -252,6 +261,7 @@ pragma(inline, true) private bool jit_reg_is_variable(JitReg r) {
  *
  * @return true if the register is the given kind
  */
+//#define jit_reg_is_kind(KIND, R) (jit_reg_kind(R) == JIT_REG_KIND_##KIND)
 /**
  * Construct a zero IR register with given the kind.
  *
@@ -259,7 +269,7 @@ pragma(inline, true) private bool jit_reg_is_variable(JitReg r) {
  *
  * @return a constant register of zero
  */
-pragma(inline, true) private JitReg jit_reg_new_zero(uint kind) {
+pragma(inline, true) JitReg jit_reg_new_zero(uint kind) {
     bh_assert(kind != JIT_REG_KIND_VOID && kind < JIT_REG_KIND_L32);
     return jit_reg_new(kind, _JIT_REG_CONST_VAL_FLAG);
 }
@@ -270,7 +280,7 @@ pragma(inline, true) private JitReg jit_reg_new_zero(uint kind) {
  *
  * @return true iff the register is a constant zero
  */
-pragma(inline, true) private JitReg jit_reg_is_zero(JitReg reg) {
+pragma(inline, true) JitReg jit_reg_is_zero(JitReg reg) {
     return (jit_reg_is_value(reg)
             && jit_reg_no(reg) == _JIT_REG_CONST_VAL_FLAG);
 }
@@ -300,7 +310,9 @@ struct JitOpndLookupSwitch {
     struct _Match_pairs {
         int value; /* match value of the match pair */
         JitReg target; /* target BB of the match pair */
-    }_Match_pairs[1] match_pairs; /* match pairs of the instruction */
+    }
+
+    _Match_pairs[1] match_pairs; /* match pairs of the instruction */
 }
 /**
  * Instruction of JIT IR.
@@ -323,22 +335,24 @@ struct JitInsn {
         JitOpndVReg _opnd_VReg;
         /* For lookupswitch instruction. */
         JitOpndLookupSwitch _opnd_LookupSwitch;
-    }__opnd _opnd;
+    }
+
+    __opnd _opnd;
 }
 /**
  * Opcodes of IR instructions.
  */
 enum JitOpcode {
-/*
+    /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-/**
+    /**
  * @file   jit-ir.def
  *
  * @brief  Definition of JIT IR instructions and annotations.
  */
-/**
+    /**
  * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
  *
  * Definition of IR instructions
@@ -396,127 +410,127 @@ enum JitOpcode {
  * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
  * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
  */
-/* Move and conversion instructions that transfer values among
+    /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
-JIT_OP_MOV,
-JIT_OP_PHI,
-/* conversion. will extend or truncate */
-JIT_OP_I8TOI32,
-JIT_OP_I8TOI64,
-JIT_OP_I16TOI32,
-JIT_OP_I16TOI64,
-JIT_OP_I32TOI8,
-JIT_OP_I32TOU8,
-JIT_OP_I32TOI16,
-JIT_OP_I32TOU16,
-JIT_OP_I32TOI64,
-JIT_OP_I32TOF32,
-JIT_OP_I32TOF64,
-JIT_OP_U32TOI64,
-JIT_OP_U32TOF32,
-JIT_OP_U32TOF64,
-JIT_OP_I64TOI8,
-JIT_OP_I64TOI16,
-JIT_OP_I64TOI32,
-JIT_OP_I64TOF32,
-JIT_OP_I64TOF64,
-JIT_OP_F32TOI32,
-JIT_OP_F32TOI64,
-JIT_OP_F32TOF64,
-JIT_OP_F32TOU32,
-JIT_OP_F64TOI32,
-JIT_OP_F64TOI64,
-JIT_OP_F64TOF32,
-JIT_OP_F64TOU32,
-/**
+    JIT_OP_MOV,
+    JIT_OP_PHI,
+    /* conversion. will extend or truncate */
+    JIT_OP_I8TOI32,
+    JIT_OP_I8TOI64,
+    JIT_OP_I16TOI32,
+    JIT_OP_I16TOI64,
+    JIT_OP_I32TOI8,
+    JIT_OP_I32TOU8,
+    JIT_OP_I32TOI16,
+    JIT_OP_I32TOU16,
+    JIT_OP_I32TOI64,
+    JIT_OP_I32TOF32,
+    JIT_OP_I32TOF64,
+    JIT_OP_U32TOI64,
+    JIT_OP_U32TOF32,
+    JIT_OP_U32TOF64,
+    JIT_OP_I64TOI8,
+    JIT_OP_I64TOI16,
+    JIT_OP_I64TOI32,
+    JIT_OP_I64TOF32,
+    JIT_OP_I64TOF64,
+    JIT_OP_F32TOI32,
+    JIT_OP_F32TOI64,
+    JIT_OP_F32TOF64,
+    JIT_OP_F32TOU32,
+    JIT_OP_F64TOI32,
+    JIT_OP_F64TOI64,
+    JIT_OP_F64TOF32,
+    JIT_OP_F64TOU32,
+    /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
-JIT_OP_I32CASTF32,
-JIT_OP_I64CASTF64,
-JIT_OP_F32CASTI32,
-JIT_OP_F64CASTI64,
-/* Arithmetic and bitwise instructions: */
-JIT_OP_NEG,
-JIT_OP_NOT,
-JIT_OP_ADD,
-JIT_OP_SUB,
-JIT_OP_MUL,
-JIT_OP_DIV_S,
-JIT_OP_REM_S,
-JIT_OP_DIV_U,
-JIT_OP_REM_U,
-JIT_OP_SHL,
-JIT_OP_SHRS,
-JIT_OP_SHRU,
-JIT_OP_ROTL,
-JIT_OP_ROTR,
-JIT_OP_OR,
-JIT_OP_XOR,
-JIT_OP_AND,
-JIT_OP_CMP,
-JIT_OP_MAX,
-JIT_OP_MIN,
-JIT_OP_CLZ,
-JIT_OP_CTZ,
-JIT_OP_POPCNT,
-/* Select instruction: */
-JIT_OP_SELECTEQ,
-JIT_OP_SELECTNE,
-JIT_OP_SELECTGTS,
-JIT_OP_SELECTGES,
-JIT_OP_SELECTLTS,
-JIT_OP_SELECTLES,
-JIT_OP_SELECTGTU,
-JIT_OP_SELECTGEU,
-JIT_OP_SELECTLTU,
-JIT_OP_SELECTLEU,
-/* Memory access instructions: */
-JIT_OP_LDEXECENV,
-JIT_OP_LDJITINFO,
-JIT_OP_LDI8,
-JIT_OP_LDU8,
-JIT_OP_LDI16,
-JIT_OP_LDU16,
-JIT_OP_LDI32,
-JIT_OP_LDU32,
-JIT_OP_LDI64,
-JIT_OP_LDU64,
-JIT_OP_LDF32,
-JIT_OP_LDF64,
-JIT_OP_LDPTR,
-JIT_OP_LDV64,
-JIT_OP_LDV128,
-JIT_OP_LDV256,
-JIT_OP_STI8,
-JIT_OP_STI16,
-JIT_OP_STI32,
-JIT_OP_STI64,
-JIT_OP_STF32,
-JIT_OP_STF64,
-JIT_OP_STPTR,
-JIT_OP_STV64,
-JIT_OP_STV128,
-JIT_OP_STV256,
-/* Control instructions */
-JIT_OP_JMP,
-JIT_OP_BEQ,
-JIT_OP_BNE,
-JIT_OP_BGTS,
-JIT_OP_BGES,
-JIT_OP_BLTS,
-JIT_OP_BLES,
-JIT_OP_BGTU,
-JIT_OP_BGEU,
-JIT_OP_BLTU,
-JIT_OP_BLEU,
-JIT_OP_LOOKUPSWITCH,
-/* Call and return instructions */
-JIT_OP_CALLNATIVE,
-JIT_OP_CALLBC,
-JIT_OP_RETURNBC,
-JIT_OP_RETURN,
-/**
+    JIT_OP_I32CASTF32,
+    JIT_OP_I64CASTF64,
+    JIT_OP_F32CASTI32,
+    JIT_OP_F64CASTI64,
+    /* Arithmetic and bitwise instructions: */
+    JIT_OP_NEG,
+    JIT_OP_NOT,
+    JIT_OP_ADD,
+    JIT_OP_SUB,
+    JIT_OP_MUL,
+    JIT_OP_DIV_S,
+    JIT_OP_REM_S,
+    JIT_OP_DIV_U,
+    JIT_OP_REM_U,
+    JIT_OP_SHL,
+    JIT_OP_SHRS,
+    JIT_OP_SHRU,
+    JIT_OP_ROTL,
+    JIT_OP_ROTR,
+    JIT_OP_OR,
+    JIT_OP_XOR,
+    JIT_OP_AND,
+    JIT_OP_CMP,
+    JIT_OP_MAX,
+    JIT_OP_MIN,
+    JIT_OP_CLZ,
+    JIT_OP_CTZ,
+    JIT_OP_POPCNT,
+    /* Select instruction: */
+    JIT_OP_SELECTEQ,
+    JIT_OP_SELECTNE,
+    JIT_OP_SELECTGTS,
+    JIT_OP_SELECTGES,
+    JIT_OP_SELECTLTS,
+    JIT_OP_SELECTLES,
+    JIT_OP_SELECTGTU,
+    JIT_OP_SELECTGEU,
+    JIT_OP_SELECTLTU,
+    JIT_OP_SELECTLEU,
+    /* Memory access instructions: */
+    JIT_OP_LDEXECENV,
+    JIT_OP_LDJITINFO,
+    JIT_OP_LDI8,
+    JIT_OP_LDU8,
+    JIT_OP_LDI16,
+    JIT_OP_LDU16,
+    JIT_OP_LDI32,
+    JIT_OP_LDU32,
+    JIT_OP_LDI64,
+    JIT_OP_LDU64,
+    JIT_OP_LDF32,
+    JIT_OP_LDF64,
+    JIT_OP_LDPTR,
+    JIT_OP_LDV64,
+    JIT_OP_LDV128,
+    JIT_OP_LDV256,
+    JIT_OP_STI8,
+    JIT_OP_STI16,
+    JIT_OP_STI32,
+    JIT_OP_STI64,
+    JIT_OP_STF32,
+    JIT_OP_STF64,
+    JIT_OP_STPTR,
+    JIT_OP_STV64,
+    JIT_OP_STV128,
+    JIT_OP_STV256,
+    /* Control instructions */
+    JIT_OP_JMP,
+    JIT_OP_BEQ,
+    JIT_OP_BNE,
+    JIT_OP_BGTS,
+    JIT_OP_BGES,
+    JIT_OP_BLTS,
+    JIT_OP_BLES,
+    JIT_OP_BGTU,
+    JIT_OP_BGEU,
+    JIT_OP_BLTU,
+    JIT_OP_BLEU,
+    JIT_OP_LOOKUPSWITCH,
+    /* Call and return instructions */
+    JIT_OP_CALLNATIVE,
+    JIT_OP_CALLBC,
+    JIT_OP_RETURNBC,
+    JIT_OP_RETURN,
+    /**
  * @def ANN_LABEL (TYPE, NAME)
  *
  * Definition of label annotations.
@@ -533,25 +547,25 @@ JIT_OP_RETURN,
  * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* Basic Block of a label.  */
+    /* Basic Block of a label.  */
 
-/* Predecessor number of the block that is only used in
+    /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
 
-/* Execution frequency of a block.  We can split critical edges with
+    /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
 
-/* Begin bytecode instruction pointer of the block.  */
+    /* Begin bytecode instruction pointer of the block.  */
 
-/* End bytecode instruction pointer of the block.  */
+    /* End bytecode instruction pointer of the block.  */
 
-/* Stack pointer offset at the end of the block.  */
+    /* Stack pointer offset at the end of the block.  */
 
-/* The label of the next physically adjacent block.  */
+    /* The label of the next physically adjacent block.  */
 
-/* Compiled code address of the block.  */
+    /* Compiled code address of the block.  */
 
-/**
+    /**
  * @def ANN_INSN (TYPE, NAME)
  *
  * Definition of instruction annotations.
@@ -568,11 +582,11 @@ JIT_OP_RETURN,
  * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* A private annotation for linking instructions with the same hash
+    /* A private annotation for linking instructions with the same hash
    value, which is only used by the compilation context's hash table
    of instructions.  */
 
-/**
+    /**
  * @def ANN_REG (TYPE, NAME)
  *
  * Definition of register annotations.
@@ -589,10 +603,11 @@ JIT_OP_RETURN,
  * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* Defining instruction of registers satisfying SSA property.  */
+    /* Defining instruction of registers satisfying SSA property.  */
 
     JIT_OP_OPCODE_NUMBER
 }
+
 alias JIT_OP_MOV = JitOpcode.JIT_OP_MOV;
 alias JIT_OP_PHI = JitOpcode.JIT_OP_PHI;
 alias JIT_OP_I8TOI32 = JitOpcode.JIT_OP_I8TOI32;
@@ -788,124 +803,440 @@ JitInsn* _jit_insn_new_LookupSwitch_1(JitOpcode opc, JitReg value, uint num);
  */
 /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
-pragma(inline, true) private JitInsn* jit_insn_new_MOV(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_MOV, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_PHI(JitReg r0, int n) { return _jit_insn_new_VReg_1( JIT_OP_PHI, r0, n); }
+pragma(inline, true) private JitInsn* jit_insn_new_MOV(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_MOV, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_PHI(JitReg r0, int n) {
+    return _jit_insn_new_VReg_1(JIT_OP_PHI, r0, n);
+}
 /* conversion. will extend or truncate */
-pragma(inline, true) private JitInsn* jit_insn_new_I8TOI32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I8TOI32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I8TOI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I8TOI64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I16TOI32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I16TOI32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I16TOI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I16TOI64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOI8(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOI8, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOU8(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOU8, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOI16(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOI16, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOU16(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOU16, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOI64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOF32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOF32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I32TOF64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32TOF64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_U32TOI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_U32TOI64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_U32TOF32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_U32TOF32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_U32TOF64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_U32TOF64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I64TOI8(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I64TOI8, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I64TOI16(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I64TOI16, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I64TOI32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I64TOI32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I64TOF32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I64TOF32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I64TOF64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I64TOF64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F32TOI32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F32TOI32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F32TOI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F32TOI64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F32TOF64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F32TOF64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F32TOU32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F32TOU32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F64TOI32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F64TOI32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F64TOI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F64TOI64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F64TOF32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F64TOF32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F64TOU32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F64TOU32, r0, r1); }
+pragma(inline, true) private JitInsn* jit_insn_new_I8TOI32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I8TOI32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I8TOI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I8TOI64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I16TOI32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I16TOI32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I16TOI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I16TOI64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOI8(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOI8, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOU8(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOU8, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOI16(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOI16, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOU16(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOU16, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOI64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOF32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOF32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I32TOF64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32TOF64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_U32TOI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_U32TOI64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_U32TOF32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_U32TOF32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_U32TOF64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_U32TOF64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I64TOI8(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I64TOI8, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I64TOI16(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I64TOI16, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I64TOI32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I64TOI32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I64TOF32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I64TOF32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I64TOF64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I64TOF64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F32TOI32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F32TOI32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F32TOI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F32TOI64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F32TOF64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F32TOF64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F32TOU32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F32TOU32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F64TOI32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F64TOI32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F64TOI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F64TOI64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F64TOF32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F64TOF32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F64TOU32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F64TOU32, r0, r1);
+}
 /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
-pragma(inline, true) private JitInsn* jit_insn_new_I32CASTF32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I32CASTF32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_I64CASTF64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_I64CASTF64, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F32CASTI32(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F32CASTI32, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_F64CASTI64(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_F64CASTI64, r0, r1); }
+pragma(inline, true) private JitInsn* jit_insn_new_I32CASTF32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I32CASTF32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_I64CASTF64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_I64CASTF64, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F32CASTI32(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F32CASTI32, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_F64CASTI64(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_F64CASTI64, r0, r1);
+}
 /* Arithmetic and bitwise instructions: */
-pragma(inline, true) private JitInsn* jit_insn_new_NEG(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_NEG, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_NOT(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_NOT, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_ADD(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_ADD, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_SUB(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_SUB, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_MUL(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_MUL, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_DIV_S(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_DIV_S, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_REM_S(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_REM_S, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_DIV_U(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_DIV_U, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_REM_U(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_REM_U, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_SHL(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_SHL, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_SHRS(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_SHRS, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_SHRU(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_SHRU, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_ROTL(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_ROTL, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_ROTR(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_ROTR, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_OR(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_OR, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_XOR(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_XOR, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_AND(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_AND, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_CMP(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_CMP, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_MAX(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_MAX, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_MIN(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_MIN, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_CLZ(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_CLZ, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_CTZ(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_CTZ, r0, r1); }
-pragma(inline, true) private JitInsn* jit_insn_new_POPCNT(JitReg r0, JitReg r1) { return _jit_insn_new_Reg_2( JIT_OP_POPCNT, r0, r1); }
+pragma(inline, true) private JitInsn* jit_insn_new_NEG(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_NEG, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_NOT(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_NOT, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_ADD(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_ADD, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SUB(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_SUB, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_MUL(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_MUL, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_DIV_S(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_DIV_S, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_REM_S(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_REM_S, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_DIV_U(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_DIV_U, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_REM_U(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_REM_U, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SHL(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_SHL, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SHRS(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_SHRS, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SHRU(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_SHRU, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_ROTL(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_ROTL, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_ROTR(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_ROTR, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_OR(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_OR, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_XOR(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_XOR, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_AND(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_AND, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_CMP(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_CMP, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_MAX(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_MAX, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_MIN(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_MIN, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_CLZ(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_CLZ, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_CTZ(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_CTZ, r0, r1);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_POPCNT(JitReg r0, JitReg r1) {
+    return _jit_insn_new_Reg_2(JIT_OP_POPCNT, r0, r1);
+}
 /* Select instruction: */
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTEQ(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTEQ, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTNE(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTNE, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTGTS(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTGTS, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTGES(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTGES, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTLTS(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTLTS, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTLES(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTLES, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTGTU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTGTU, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTGEU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTGEU, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTLTU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTLTU, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_SELECTLEU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_SELECTLEU, r0, r1, r2, r3); }
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTEQ(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTEQ, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTNE(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTNE, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTGTS(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTGTS, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTGES(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTGES, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTLTS(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTLTS, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTLES(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTLES, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTGTU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTGTU, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTGEU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTGEU, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTLTU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTLTU, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_SELECTLEU(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_SELECTLEU, r0, r1, r2, r3);
+}
 /* Memory access instructions: */
-pragma(inline, true) private JitInsn* jit_insn_new_LDEXECENV(JitReg r0) { return _jit_insn_new_Reg_1( JIT_OP_LDEXECENV, r0); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDJITINFO(JitReg r0) { return _jit_insn_new_Reg_1( JIT_OP_LDJITINFO, r0); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDI8(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDI8, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDU8(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDU8, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDI16(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDI16, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDU16(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDU16, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDI32(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDI32, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDU32(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDU32, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDI64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDI64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDU64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDU64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDF32(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDF32, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDF64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDF64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDPTR(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDPTR, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDV64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDV64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDV128(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDV128, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LDV256(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_LDV256, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STI8(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STI8, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STI16(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STI16, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STI32(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STI32, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STI64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STI64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STF32(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STF32, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STF64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STF64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STPTR(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STPTR, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STV64(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STV64, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STV128(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STV128, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_STV256(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_STV256, r0, r1, r2); }
+pragma(inline, true) private JitInsn* jit_insn_new_LDEXECENV(JitReg r0) {
+    return _jit_insn_new_Reg_1(JIT_OP_LDEXECENV, r0);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDJITINFO(JitReg r0) {
+    return _jit_insn_new_Reg_1(JIT_OP_LDJITINFO, r0);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDI8(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDI8, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDU8(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDU8, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDI16(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDI16, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDU16(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDU16, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDI32(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDI32, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDU32(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDU32, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDI64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDI64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDU64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDU64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDF32(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDF32, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDF64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDF64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDPTR(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDPTR, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDV64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDV64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDV128(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDV128, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LDV256(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_LDV256, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STI8(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STI8, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STI16(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STI16, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STI32(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STI32, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STI64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STI64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STF32(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STF32, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STF64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STF64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STPTR(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STPTR, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STV64(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STV64, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STV128(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STV128, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_STV256(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_STV256, r0, r1, r2);
+}
 /* Control instructions */
-pragma(inline, true) private JitInsn* jit_insn_new_JMP(JitReg r0) { return _jit_insn_new_Reg_1( JIT_OP_JMP, r0); }
-pragma(inline, true) private JitInsn* jit_insn_new_BEQ(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BEQ, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BNE(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BNE, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BGTS(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BGTS, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BGES(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BGES, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BLTS(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BLTS, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BLES(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BLES, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BGTU(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BGTU, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BGEU(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BGEU, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BLTU(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BLTU, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_BLEU(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_BLEU, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_LOOKUPSWITCH(JitReg value, uint num) { return _jit_insn_new_LookupSwitch_1( JIT_OP_LOOKUPSWITCH, value, num); }
+pragma(inline, true) private JitInsn* jit_insn_new_JMP(JitReg r0) {
+    return _jit_insn_new_Reg_1(JIT_OP_JMP, r0);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BEQ(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BEQ, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BNE(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BNE, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BGTS(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BGTS, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BGES(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BGES, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BLTS(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BLTS, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BLES(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BLES, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BGTU(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BGTU, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BGEU(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BGEU, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BLTU(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BLTU, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_BLEU(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_BLEU, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_LOOKUPSWITCH(JitReg value, uint num) {
+    return _jit_insn_new_LookupSwitch_1(JIT_OP_LOOKUPSWITCH, value, num);
+}
 /* Call and return instructions */
-pragma(inline, true) private JitInsn* jit_insn_new_CALLNATIVE(JitReg r0, JitReg r1, int n) { return _jit_insn_new_VReg_2( JIT_OP_CALLNATIVE, r0, r1, n); }
-pragma(inline, true) private JitInsn* jit_insn_new_CALLBC(JitReg r0, JitReg r1, JitReg r2, JitReg r3) { return _jit_insn_new_Reg_4( JIT_OP_CALLBC, r0, r1, r2, r3); }
-pragma(inline, true) private JitInsn* jit_insn_new_RETURNBC(JitReg r0, JitReg r1, JitReg r2) { return _jit_insn_new_Reg_3( JIT_OP_RETURNBC, r0, r1, r2); }
-pragma(inline, true) private JitInsn* jit_insn_new_RETURN(JitReg r0) { return _jit_insn_new_Reg_1( JIT_OP_RETURN, r0); }
+pragma(inline, true) private JitInsn* jit_insn_new_CALLNATIVE(JitReg r0, JitReg r1, int n) {
+    return _jit_insn_new_VReg_2(JIT_OP_CALLNATIVE, r0, r1, n);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_CALLBC(JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
+    return _jit_insn_new_Reg_4(JIT_OP_CALLBC, r0, r1, r2, r3);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_RETURNBC(JitReg r0, JitReg r1, JitReg r2) {
+    return _jit_insn_new_Reg_3(JIT_OP_RETURNBC, r0, r1, r2);
+}
+
+pragma(inline, true) private JitInsn* jit_insn_new_RETURN(JitReg r0) {
+    return _jit_insn_new_Reg_1(JIT_OP_RETURN, r0);
+}
 /**
  * @def ANN_LABEL (TYPE, NAME)
  *
@@ -1207,7 +1538,7 @@ pragma(inline, true) JitInsn* jit_basic_block_first_insn(JitBasicBlock* block) {
  *
  * @return the last instruction of the basic block
  */
-pragma(inline, true) private JitInsn* jit_basic_block_last_insn(JitBasicBlock* block) {
+pragma(inline, true) JitInsn* jit_basic_block_last_insn(JitBasicBlock* block) {
     return block.prev;
 }
 /**
@@ -1289,7 +1620,9 @@ struct JitHardRegInfo {
         const(ubyte)* caller_saved_native;
         /* Whether each register is caller-saved in the JITed ABI. */
         const(ubyte)* caller_saved_jitted;
-    }_Info[JIT_REG_KIND_L32] info;
+    }
+
+    _Info[JIT_REG_KIND_L32] info;
     /* The indexes of hard registers of frame pointer, exec_env and cmp. */
     uint fp_hreg_index;
     uint exec_env_hreg_index;
@@ -1321,14 +1654,15 @@ struct JitValueSlot {
     JitReg reg;
     /* The dirty bit of the value slot. It's set if the value in
        register is newer than the value in memory.  */
-    uint dirty;/*: 1 !!*/
+    uint dirty; /*: 1 !!*/
     /* Whether the new value in register is a reference, which is valid
        only when the dirty bit is set.  */
-    uint ref_;/*: 1 !!*/
+    uint ref_; /*: 1 !!*/
     /* Committed reference flag.  0: unknown, 1: not-reference, 2:
        reference.  */
-    uint committed_ref;/*: 2 !!*/
+    uint committed_ref; /*: 2 !!*/
 }
+
 struct JitMemRegs {
     /* The following registers should be re-loaded after
        memory.grow, callbc and callnative */
@@ -1340,6 +1674,7 @@ struct JitMemRegs {
     JitReg mem_bound_check_8bytes;
     JitReg mem_bound_check_16bytes;
 }
+
 struct JitTableRegs {
     JitReg table_elems;
     /* Should be re-loaded after table.grow,
@@ -1389,11 +1724,14 @@ struct JitFrame {
     /* Local variables */
     JitValueSlot[1] lp;
 }
+
 struct JitIncomingInsn {
     JitIncomingInsn* next;
     JitInsn* insn;
     uint opnd_idx;
-}alias JitIncomingInsnList = JitIncomingInsn*;
+}
+
+alias JitIncomingInsnList = JitIncomingInsn*;
 struct JitBlock {
     JitBlock* next;
     JitBlock* prev;
@@ -1515,7 +1853,9 @@ struct JitCompContext {
         uint _hash_table_size;
         /* Map values to JIT register. */
         JitReg* _hash_table;
-    }__const_val _const_val;
+    }
+
+    __const_val _const_val;
     /* Annotations of labels, registers and instructions. */
     struct __ann {
         /* Number of all ever created labels. */
@@ -1531,16 +1871,16 @@ struct JitCompContext {
         /* Capacity of register annotations of each kind. */
         uint[JIT_REG_KIND_L32] _reg_capacity;
         /* Storage of annotations. */
-/*
+        /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-/**
+        /**
  * @file   jit-ir.def
  *
  * @brief  Definition of JIT IR instructions and annotations.
  */
-/**
+        /**
  * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
  *
  * Definition of IR instructions
@@ -1598,127 +1938,27 @@ struct JitCompContext {
  * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
  * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
  */
-/* Move and conversion instructions that transfer values among
+        /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
 
+        /* conversion. will extend or truncate */
 
-/* conversion. will extend or truncate */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
+        /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
 
+        /* Arithmetic and bitwise instructions: */
 
+        /* Select instruction: */
 
+        /* Memory access instructions: */
 
-/* Arithmetic and bitwise instructions: */
+        /* Control instructions */
 
+        /* Call and return instructions */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Select instruction: */
-
-
-
-
-
-
-
-
-
-
-/* Memory access instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Control instructions */
-
-
-
-
-
-
-
-
-
-
-
-
-/* Call and return instructions */
-
-
-
-
-/**
+        /**
  * @def ANN_LABEL (TYPE, NAME)
  *
  * Definition of label annotations.
@@ -1735,25 +1975,25 @@ struct JitCompContext {
  * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* Basic Block of a label.  */
-JitBasicBlock** _label_basic_block;
-/* Predecessor number of the block that is only used in
+        /* Basic Block of a label.  */
+        JitBasicBlock** _label_basic_block;
+        /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
-ushort* _label_pred_num;
-/* Execution frequency of a block.  We can split critical edges with
+        ushort* _label_pred_num;
+        /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
-ushort* _label_freq;
-/* Begin bytecode instruction pointer of the block.  */
-ubyte** _label_begin_bcip;
-/* End bytecode instruction pointer of the block.  */
-ubyte** _label_end_bcip;
-/* Stack pointer offset at the end of the block.  */
-ushort* _label_end_sp;
-/* The label of the next physically adjacent block.  */
-JitReg* _label_next_label;
-/* Compiled code address of the block.  */
-void** _label_jitted_addr;
-/**
+        ushort* _label_freq;
+        /* Begin bytecode instruction pointer of the block.  */
+        ubyte** _label_begin_bcip;
+        /* End bytecode instruction pointer of the block.  */
+        ubyte** _label_end_bcip;
+        /* Stack pointer offset at the end of the block.  */
+        ushort* _label_end_sp;
+        /* The label of the next physically adjacent block.  */
+        JitReg* _label_next_label;
+        /* Compiled code address of the block.  */
+        void** _label_jitted_addr;
+        /**
  * @def ANN_INSN (TYPE, NAME)
  *
  * Definition of instruction annotations.
@@ -1770,11 +2010,11 @@ void** _label_jitted_addr;
  * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* A private annotation for linking instructions with the same hash
+        /* A private annotation for linking instructions with the same hash
    value, which is only used by the compilation context's hash table
    of instructions.  */
-JitInsn** _insn__hash_link;
-/**
+        JitInsn** _insn__hash_link;
+        /**
  * @def ANN_REG (TYPE, NAME)
  *
  * Definition of register annotations.
@@ -1791,19 +2031,19 @@ JitInsn** _insn__hash_link;
  * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* Defining instruction of registers satisfying SSA property.  */
-JitInsn**[JIT_REG_KIND_L32] _reg_def_insn;
+        /* Defining instruction of registers satisfying SSA property.  */
+        JitInsn**[JIT_REG_KIND_L32] _reg_def_insn;
         /* Flags of annotations. */
-/*
+        /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-/**
+        /**
  * @file   jit-ir.def
  *
  * @brief  Definition of JIT IR instructions and annotations.
  */
-/**
+        /**
  * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
  *
  * Definition of IR instructions
@@ -1861,127 +2101,27 @@ JitInsn**[JIT_REG_KIND_L32] _reg_def_insn;
  * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
  * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
  */
-/* Move and conversion instructions that transfer values among
+        /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
 
+        /* conversion. will extend or truncate */
 
-/* conversion. will extend or truncate */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
+        /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
 
+        /* Arithmetic and bitwise instructions: */
 
+        /* Select instruction: */
 
+        /* Memory access instructions: */
 
-/* Arithmetic and bitwise instructions: */
+        /* Control instructions */
 
+        /* Call and return instructions */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Select instruction: */
-
-
-
-
-
-
-
-
-
-
-/* Memory access instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Control instructions */
-
-
-
-
-
-
-
-
-
-
-
-
-/* Call and return instructions */
-
-
-
-
-/**
+        /**
  * @def ANN_LABEL (TYPE, NAME)
  *
  * Definition of label annotations.
@@ -1998,25 +2138,25 @@ JitInsn**[JIT_REG_KIND_L32] _reg_def_insn;
  * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* Basic Block of a label.  */
-uint _label_basic_block_enabled;/*: 1 !!*/
-/* Predecessor number of the block that is only used in
+        /* Basic Block of a label.  */
+        uint _label_basic_block_enabled; /*: 1 !!*/
+        /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
-uint _label_pred_num_enabled;/*: 1 !!*/
-/* Execution frequency of a block.  We can split critical edges with
+        uint _label_pred_num_enabled; /*: 1 !!*/
+        /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
-uint _label_freq_enabled;/*: 1 !!*/
-/* Begin bytecode instruction pointer of the block.  */
-uint _label_begin_bcip_enabled;/*: 1 !!*/
-/* End bytecode instruction pointer of the block.  */
-uint _label_end_bcip_enabled;/*: 1 !!*/
-/* Stack pointer offset at the end of the block.  */
-uint _label_end_sp_enabled;/*: 1 !!*/
-/* The label of the next physically adjacent block.  */
-uint _label_next_label_enabled;/*: 1 !!*/
-/* Compiled code address of the block.  */
-uint _label_jitted_addr_enabled;/*: 1 !!*/
-/**
+        uint _label_freq_enabled; /*: 1 !!*/
+        /* Begin bytecode instruction pointer of the block.  */
+        uint _label_begin_bcip_enabled; /*: 1 !!*/
+        /* End bytecode instruction pointer of the block.  */
+        uint _label_end_bcip_enabled; /*: 1 !!*/
+        /* Stack pointer offset at the end of the block.  */
+        uint _label_end_sp_enabled; /*: 1 !!*/
+        /* The label of the next physically adjacent block.  */
+        uint _label_next_label_enabled; /*: 1 !!*/
+        /* Compiled code address of the block.  */
+        uint _label_jitted_addr_enabled; /*: 1 !!*/
+        /**
  * @def ANN_INSN (TYPE, NAME)
  *
  * Definition of instruction annotations.
@@ -2033,11 +2173,11 @@ uint _label_jitted_addr_enabled;/*: 1 !!*/
  * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* A private annotation for linking instructions with the same hash
+        /* A private annotation for linking instructions with the same hash
    value, which is only used by the compilation context's hash table
    of instructions.  */
-uint _insn__hash_link_enabled;/*: 1 !!*/
-/**
+        uint _insn__hash_link_enabled; /*: 1 !!*/
+        /**
  * @def ANN_REG (TYPE, NAME)
  *
  * Definition of register annotations.
@@ -2054,16 +2194,20 @@ uint _insn__hash_link_enabled;/*: 1 !!*/
  * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
-/* Defining instruction of registers satisfying SSA property.  */
-uint _reg_def_insn_enabled;/*: 1 !!*/
-    }__ann _ann;
+        /* Defining instruction of registers satisfying SSA property.  */
+        uint _reg_def_insn_enabled; /*: 1 !!*/
+    }
+
+    __ann _ann;
     /* Instruction hash table. */
     struct __insn_hash_table {
         /* Size of the hash table. */
         uint _size;
         /* The hash table. */
         JitInsn** _table;
-    }__insn_hash_table _insn_hash_table;
+    }
+
+    __insn_hash_table _insn_hash_table;
     /* indicate if the last comparision is about floating-point numbers or not
      */
     bool last_cmp_on_fp;
@@ -2142,122 +2286,22 @@ uint _reg_def_insn_enabled;/*: 1 !!*/
 /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
 
-
 /* conversion. will extend or truncate */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
 
-
-
-
 /* Arithmetic and bitwise instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Select instruction: */
 
-
-
-
-
-
-
-
-
-
 /* Memory access instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Control instructions */
 
-
-
-
-
-
-
-
-
-
-
-
 /* Call and return instructions */
-
-
-
 
 /**
  * @def ANN_LABEL (TYPE, NAME)
@@ -2277,23 +2321,71 @@ uint _reg_def_insn_enabled;/*: 1 !!*/
  * is enabled
  */
 /* Basic Block of a label.  */
-pragma(inline, true) JitBasicBlock** jit_annl_basic_block(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_basic_block_enabled); return &cc._ann._label_basic_block[idx]; }
+pragma(inline, true) JitBasicBlock** jit_annl_basic_block(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_basic_block_enabled);
+    return &cc._ann._label_basic_block[idx];
+}
 /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
-pragma(inline, true) ushort* jit_annl_pred_num(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_pred_num_enabled); return &cc._ann._label_pred_num[idx]; }
+pragma(inline, true) ushort* jit_annl_pred_num(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_pred_num_enabled);
+    return &cc._ann._label_pred_num[idx];
+}
 /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
-pragma(inline, true) ushort* jit_annl_freq(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_freq_enabled); return &cc._ann._label_freq[idx]; }
+pragma(inline, true) ushort* jit_annl_freq(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_freq_enabled);
+    return &cc._ann._label_freq[idx];
+}
 /* Begin bytecode instruction pointer of the block.  */
-pragma(inline, true) ubyte** jit_annl_begin_bcip(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_begin_bcip_enabled); return &cc._ann._label_begin_bcip[idx]; }
+pragma(inline, true) ubyte** jit_annl_begin_bcip(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_begin_bcip_enabled);
+    return &cc._ann._label_begin_bcip[idx];
+}
 /* End bytecode instruction pointer of the block.  */
-pragma(inline, true) ubyte** jit_annl_end_bcip(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_end_bcip_enabled); return &cc._ann._label_end_bcip[idx]; }
+pragma(inline, true) ubyte** jit_annl_end_bcip(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_end_bcip_enabled);
+    return &cc._ann._label_end_bcip[idx];
+}
 /* Stack pointer offset at the end of the block.  */
-pragma(inline, true) ushort* jit_annl_end_sp(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_end_sp_enabled); return &cc._ann._label_end_sp[idx]; }
+pragma(inline, true) ushort* jit_annl_end_sp(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_end_sp_enabled);
+    return &cc._ann._label_end_sp[idx];
+}
 /* The label of the next physically adjacent block.  */
-pragma(inline, true) JitReg* jit_annl_next_label(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_next_label_enabled); return &cc._ann._label_next_label[idx]; }
+pragma(inline, true) JitReg* jit_annl_next_label(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_next_label_enabled);
+    return &cc._ann._label_next_label[idx];
+}
 /* Compiled code address of the block.  */
-pragma(inline, true) void** jit_annl_jitted_addr(JitCompContext* cc, JitReg label) { uint idx = jit_reg_no(label); bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32); bh_assert(idx < cc._ann._label_num); bh_assert(cc._ann._label_jitted_addr_enabled); return &cc._ann._label_jitted_addr[idx]; }
+pragma(inline, true) void** jit_annl_jitted_addr(JitCompContext* cc, JitReg label) {
+    uint idx = jit_reg_no(label);
+    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+    bh_assert(idx < cc._ann._label_num);
+    bh_assert(cc._ann._label_jitted_addr_enabled);
+    return &cc._ann._label_jitted_addr[idx];
+}
 /**
  * @def ANN_INSN (TYPE, NAME)
  *
@@ -2314,7 +2406,12 @@ pragma(inline, true) void** jit_annl_jitted_addr(JitCompContext* cc, JitReg labe
 /* A private annotation for linking instructions with the same hash
    value, which is only used by the compilation context's hash table
    of instructions.  */
-pragma(inline, true) private JitInsn** jit_anni__hash_link(JitCompContext* cc, JitInsn* insn) { uint uid = insn.uid; bh_assert(uid < cc._ann._insn_num); bh_assert(cc._ann._insn__hash_link_enabled); return &cc._ann._insn__hash_link[uid]; }
+pragma(inline, true) private JitInsn** jit_anni__hash_link(JitCompContext* cc, JitInsn* insn) {
+    uint uid = insn.uid;
+    bh_assert(uid < cc._ann._insn_num);
+    bh_assert(cc._ann._insn__hash_link_enabled);
+    return &cc._ann._insn__hash_link[uid];
+}
 /**
  * @def ANN_REG (TYPE, NAME)
  *
@@ -2333,7 +2430,14 @@ pragma(inline, true) private JitInsn** jit_anni__hash_link(JitCompContext* cc, J
  * is enabled
  */
 /* Defining instruction of registers satisfying SSA property.  */
-pragma(inline, true) private JitInsn** jit_annr_def_insn(JitCompContext* cc, JitReg reg) { uint kind = jit_reg_kind(reg); uint no = jit_reg_no(reg); bh_assert(kind < JIT_REG_KIND_L32); bh_assert(no < cc._ann._reg_num[kind]); bh_assert(cc._ann._reg_def_insn_enabled); return &cc._ann._reg_def_insn[kind][no]; }
+pragma(inline, true) private JitInsn** jit_annr_def_insn(JitCompContext* cc, JitReg reg) {
+    uint kind = jit_reg_kind(reg);
+    uint no = jit_reg_no(reg);
+    bh_assert(kind < JIT_REG_KIND_L32);
+    bh_assert(no < cc._ann._reg_num[kind]);
+    bh_assert(cc._ann._reg_def_insn_enabled);
+    return &cc._ann._reg_def_insn[kind][no];
+}
 /*
  * Annotation enabling functions jit_annl_enable_NAME,
  * jit_anni_enable_NAME and jit_annr_enable_NAME, which allocate
@@ -2409,122 +2513,22 @@ pragma(inline, true) private JitInsn** jit_annr_def_insn(JitCompContext* cc, Jit
 /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
 
-
 /* conversion. will extend or truncate */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
 
-
-
-
 /* Arithmetic and bitwise instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Select instruction: */
 
-
-
-
-
-
-
-
-
-
 /* Memory access instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Control instructions */
 
-
-
-
-
-
-
-
-
-
-
-
 /* Call and return instructions */
-
-
-
 
 /**
  * @def ANN_LABEL (TYPE, NAME)
@@ -2677,122 +2681,22 @@ bool jit_annr_enable_def_insn(JitCompContext* cc);
 /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
 
-
 /* conversion. will extend or truncate */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
 
-
-
-
 /* Arithmetic and bitwise instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Select instruction: */
 
-
-
-
-
-
-
-
-
-
 /* Memory access instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Control instructions */
 
-
-
-
-
-
-
-
-
-
-
-
 /* Call and return instructions */
-
-
-
 
 /**
  * @def ANN_LABEL (TYPE, NAME)
@@ -2944,122 +2848,22 @@ void jit_annr_disable_def_insn(JitCompContext* cc);
 /* Move and conversion instructions that transfer values among
    registers of the same kind (move) or different kinds (convert) */
 
-
 /* conversion. will extend or truncate */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Re-interpret binary presentations:
  *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
  */
 
-
-
-
 /* Arithmetic and bitwise instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Select instruction: */
 
-
-
-
-
-
-
-
-
-
 /* Memory access instructions: */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* Control instructions */
 
-
-
-
-
-
-
-
-
-
-
-
 /* Call and return instructions */
-
-
-
 
 /**
  * @def ANN_LABEL (TYPE, NAME)
@@ -3079,23 +2883,39 @@ void jit_annr_disable_def_insn(JitCompContext* cc);
  * is enabled
  */
 /* Basic Block of a label.  */
-pragma(inline, true) bool jit_annl_is_enabled_basic_block(JitCompContext* cc) { return !!cc._ann._label_basic_block_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_basic_block(JitCompContext* cc) {
+    return !!cc._ann._label_basic_block_enabled;
+}
 /* Predecessor number of the block that is only used in
    jit_cc_update_cfg for updating the CFG.  */
-pragma(inline, true) bool jit_annl_is_enabled_pred_num(JitCompContext* cc) { return !!cc._ann._label_pred_num_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_pred_num(JitCompContext* cc) {
+    return !!cc._ann._label_pred_num_enabled;
+}
 /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
-pragma(inline, true) bool jit_annl_is_enabled_freq(JitCompContext* cc) { return !!cc._ann._label_freq_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_freq(JitCompContext* cc) {
+    return !!cc._ann._label_freq_enabled;
+}
 /* Begin bytecode instruction pointer of the block.  */
-pragma(inline, true) bool jit_annl_is_enabled_begin_bcip(JitCompContext* cc) { return !!cc._ann._label_begin_bcip_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_begin_bcip(JitCompContext* cc) {
+    return !!cc._ann._label_begin_bcip_enabled;
+}
 /* End bytecode instruction pointer of the block.  */
-pragma(inline, true) bool jit_annl_is_enabled_end_bcip(JitCompContext* cc) { return !!cc._ann._label_end_bcip_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_end_bcip(JitCompContext* cc) {
+    return !!cc._ann._label_end_bcip_enabled;
+}
 /* Stack pointer offset at the end of the block.  */
-pragma(inline, true) bool jit_annl_is_enabled_end_sp(JitCompContext* cc) { return !!cc._ann._label_end_sp_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_end_sp(JitCompContext* cc) {
+    return !!cc._ann._label_end_sp_enabled;
+}
 /* The label of the next physically adjacent block.  */
-pragma(inline, true) bool jit_annl_is_enabled_next_label(JitCompContext* cc) { return !!cc._ann._label_next_label_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_next_label(JitCompContext* cc) {
+    return !!cc._ann._label_next_label_enabled;
+}
 /* Compiled code address of the block.  */
-pragma(inline, true) bool jit_annl_is_enabled_jitted_addr(JitCompContext* cc) { return !!cc._ann._label_jitted_addr_enabled; }
+pragma(inline, true) bool jit_annl_is_enabled_jitted_addr(JitCompContext* cc) {
+    return !!cc._ann._label_jitted_addr_enabled;
+}
 /**
  * @def ANN_INSN (TYPE, NAME)
  *
@@ -3116,7 +2936,9 @@ pragma(inline, true) bool jit_annl_is_enabled_jitted_addr(JitCompContext* cc) { 
 /* A private annotation for linking instructions with the same hash
    value, which is only used by the compilation context's hash table
    of instructions.  */
-pragma(inline, true) private bool jit_anni_is_enabled__hash_link(JitCompContext* cc) { return !!cc._ann._insn__hash_link_enabled; }
+pragma(inline, true) private bool jit_anni_is_enabled__hash_link(JitCompContext* cc) {
+    return !!cc._ann._insn__hash_link_enabled;
+}
 /**
  * @def ANN_REG (TYPE, NAME)
  *
@@ -3135,7 +2957,9 @@ pragma(inline, true) private bool jit_anni_is_enabled__hash_link(JitCompContext*
  * is enabled
  */
 /* Defining instruction of registers satisfying SSA property.  */
-pragma(inline, true) private bool jit_annr_is_enabled_def_insn(JitCompContext* cc) { return !!cc._ann._reg_def_insn_enabled; }
+pragma(inline, true) private bool jit_annr_is_enabled_def_insn(JitCompContext* cc) {
+    return !!cc._ann._reg_def_insn_enabled;
+}
 /**
  * Initialize a compilation context.
  *
@@ -3204,6 +3028,13 @@ pragma(inline, true) private JitReg jit_cc_new_const_I32(JitCompContext* cc, int
  * @return a constant register containing the value
  */
 JitReg jit_cc_new_const_I64(JitCompContext* cc, long val);
+static if (uintptr_t.max == ulong.max) {
+    alias jit_cc_new_const_PTR = jit_cc_new_const_I64;
+}
+else {
+    alias jit_cc_new_const_PTR = jit_cc_new_const_I32;
+}
+//#endif
 /**
  * Create a F32 constant value into the compilation context.
  *
@@ -3433,25 +3264,37 @@ JitReg jit_cc_new_reg(JitCompContext* cc, uint kind);
  * Create virtual registers with specific types in the compilation
  * context. They are more convenient than the above one.
  */
-pragma(inline, true) private JitReg jit_cc_new_reg_I32(JitCompContext* cc) {
+pragma(inline, true) JitReg jit_cc_new_reg_I32(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_I32);
 }
-pragma(inline, true) private JitReg jit_cc_new_reg_I64(JitCompContext* cc) {
+
+pragma(inline, true) JitReg jit_cc_new_reg_I64(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_I64);
 }
-pragma(inline, true) private JitReg jit_cc_new_reg_F32(JitCompContext* cc) {
+
+static if (uintptr_t.max == ulong.max) {
+    alias jit_cc_new_reg_ptr = jit_cc_new_reg_I64;
+}
+else {
+    alias jit_cc_new_reg_ptr = jit_cc_new_reg_I32;
+}
+pragma(inline, true) JitReg jit_cc_new_reg_F32(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_F32);
 }
-pragma(inline, true) private JitReg jit_cc_new_reg_F64(JitCompContext* cc) {
+
+pragma(inline, true) JitReg jit_cc_new_reg_F64(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_F64);
 }
-pragma(inline, true) private JitReg jit_cc_new_reg_V64(JitCompContext* cc) {
+
+pragma(inline, true) JitReg jit_cc_new_reg_V64(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_V64);
 }
-pragma(inline, true) private JitReg jit_cc_new_reg_V128(JitCompContext* cc) {
+
+pragma(inline, true) JitReg jit_cc_new_reg_V128(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_V128);
 }
-pragma(inline, true) private JitReg jit_cc_new_reg_V256(JitCompContext* cc) {
+
+pragma(inline, true) JitReg jit_cc_new_reg_V256(JitCompContext* cc) {
     return jit_cc_new_reg(cc, JIT_REG_KIND_V256);
 }
 /**
@@ -3516,7 +3359,7 @@ pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_native(JitCompCont
  *
  * @return true if the hard register is caller-saved-jitted
  */
-pragma(inline, true) private bool jit_cc_is_hreg_caller_saved_jitted(JitCompContext* cc, JitReg reg) {
+pragma(inline, true) bool jit_cc_is_hreg_caller_saved_jitted(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     bh_assert(jit_cc_is_hreg(cc, reg));
@@ -3542,6 +3385,7 @@ pragma(inline, true) JitBasicBlock* jit_cc_entry_basic_block(JitCompContext* cc)
 pragma(inline, true) JitBasicBlock* jit_cc_exit_basic_block(JitCompContext* cc) {
     return *(jit_annl_basic_block(cc, cc.exit_label));
 }
+
 void jit_value_stack_push(JitValueStack* stack, JitValue* value);
 JitValue* jit_value_stack_pop(JitValueStack* stack);
 void jit_value_stack_destroy(JitValueStack* stack);
@@ -3593,82 +3437,106 @@ bool jit_cc_update_cfg(JitCompContext* cc);
 /**
  * The version that includes entry and exit block.
  */
-//#endif /* end of _JIT_IR_H_ */
 //#include "jit_codegen.h"
-//#include "jit_frontend.h"
+////#include "jit_frontend.h"
 JitInsn* _jit_insn_new_Reg_1(JitOpcode opc, JitReg r0) {
     JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (1));
     if (insn) {
         insn.opcode = opc;
+
         *jit_insn_opnd(insn, 0) = r0;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_Reg_2(JitOpcode opc, JitReg r0, JitReg r1) {
     JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (2));
     if (insn) {
         insn.opcode = opc;
+
         *jit_insn_opnd(insn, 0) = r0;
+
         *jit_insn_opnd(insn, 1) = r1;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_Reg_3(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2) {
     JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (3));
     if (insn) {
         insn.opcode = opc;
+
         *jit_insn_opnd(insn, 0) = r0;
+
         *jit_insn_opnd(insn, 1) = r1;
+
         *jit_insn_opnd(insn, 2) = r2;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_Reg_4(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2, JitReg r3) {
     JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (4));
     if (insn) {
         insn.opcode = opc;
+
         *jit_insn_opnd(insn, 0) = r0;
+
         *jit_insn_opnd(insn, 1) = r1;
+
         *jit_insn_opnd(insn, 2) = r2;
+
         *jit_insn_opnd(insn, 3) = r3;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_Reg_5(JitOpcode opc, JitReg r0, JitReg r1, JitReg r2, JitReg r3, JitReg r4) {
     JitInsn* insn = jit_calloc(JitInsn._opnd.offsetof + sizeof(JitReg) * (5));
     if (insn) {
         insn.opcode = opc;
+
         *jit_insn_opnd(insn, 0) = r0;
+
         *jit_insn_opnd(insn, 1) = r1;
+
         *jit_insn_opnd(insn, 2) = r2;
+
         *jit_insn_opnd(insn, 3) = r3;
+
         *jit_insn_opnd(insn, 4) = r4;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_VReg_1(JitOpcode opc, JitReg r0, int n) {
     JitInsn* insn = jit_calloc(offsetof(JitInsn, _opnd._opnd_VReg._reg) + sizeof(JitReg) * (1 + n));
     if (insn) {
         insn.opcode = opc;
         insn._opnd._opnd_VReg._reg_num = 1 + n;
+
         *(jit_insn_opndv(insn, 0)) = r0;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_VReg_2(JitOpcode opc, JitReg r0, JitReg r1, int n) {
     JitInsn* insn = jit_calloc(offsetof(JitInsn, _opnd._opnd_VReg._reg) + sizeof(JitReg) * (2 + n));
     if (insn) {
         insn.opcode = opc;
         insn._opnd._opnd_VReg._reg_num = 2 + n;
+
         *(jit_insn_opndv(insn, 0)) = r0;
+
         *(jit_insn_opndv(insn, 1)) = r1;
     }
     return insn;
 }
+
 JitInsn* _jit_insn_new_LookupSwitch_1(JitOpcode opc, JitReg value, uint num) {
     JitOpndLookupSwitch* opnd = null;
     JitInsn* insn = jit_calloc(offsetof(JitInsn, _opnd._opnd_LookupSwitch.match_pairs)
-                   + sizeof(opnd.match_pairs[0]) * num);
+            + sizeof(opnd.match_pairs[0]) * num);
     if (insn) {
         insn.opcode = opc;
         opnd = jit_insn_opndls(insn);
@@ -3677,6 +3545,7 @@ JitInsn* _jit_insn_new_LookupSwitch_1(JitOpcode opc, JitReg value, uint num) {
     }
     return insn;
 }
+
 void jit_insn_insert_before(JitInsn* insn1, JitInsn* insn2) {
     bh_assert(insn1.prev);
     insn1.prev.next = insn2;
@@ -3684,6 +3553,7 @@ void jit_insn_insert_before(JitInsn* insn1, JitInsn* insn2) {
     insn2.next = insn1;
     insn1.prev = insn2;
 }
+
 void jit_insn_insert_after(JitInsn* insn1, JitInsn* insn2) {
     bh_assert(insn1.next);
     insn1.next.prev = insn2;
@@ -3691,6 +3561,7 @@ void jit_insn_insert_after(JitInsn* insn1, JitInsn* insn2) {
     insn2.prev = insn1;
     insn1.next = insn2;
 }
+
 void jit_insn_unlink(JitInsn* insn) {
     bh_assert(insn.prev);
     insn.prev.next = insn.next;
@@ -3698,6 +3569,7 @@ void jit_insn_unlink(JitInsn* insn) {
     insn.next.prev = insn.prev;
     insn.prev = insn.next = null;
 }
+
 uint jit_insn_hash(JitInsn* insn) {
     const(ubyte) opcode = insn.opcode;
     uint hash = opcode, i = void;
@@ -3705,16 +3577,17 @@ uint jit_insn_hash(JitInsn* insn) {
        hashing.  For others, simply use opcode as the hash value.  */
     if (insn_opnd_kind[opcode] != JIT_OPND_KIND_Reg
         || insn_opnd_num[opcode] < 1)
-        return hash;
+    return hash;
     /* All the instructions with hashing support must be in the
        assignment format, i.e. the first operand is the result (hence
        being ignored) and all the others are operands.  This is also
        true for CHK instructions, whose first operand is the instruction
        pointer.  */
     for (i = 1; i < insn_opnd_num[opcode]; i++)
-        hash = ((hash << 5) - hash) + *(jit_insn_opnd(insn, i));
+    hash = ((hash << 5) - hash) + *(jit_insn_opnd(insn, i));
     return hash;
 }
+
 bool jit_insn_equal(JitInsn* insn1, JitInsn* insn2) {
     const(ubyte) opcode = insn1.opcode;
     uint i = void;
@@ -3722,37 +3595,42 @@ bool jit_insn_equal(JitInsn* insn1, JitInsn* insn2) {
         return false;
     if (insn_opnd_kind[opcode] != JIT_OPND_KIND_Reg
         || insn_opnd_num[opcode] < 1)
-        return false;
+    return false;
     for (i = 1; i < insn_opnd_num[opcode]; i++)
-        if (*(jit_insn_opnd(insn1, i)) != *(jit_insn_opnd(insn2, i)))
-            return false;
+    if (*(jit_insn_opnd(insn1, i)) != *(jit_insn_opnd(insn2, i)))
+        return false;
     return true;
 }
+
 JitRegVec jit_insn_opnd_regs(JitInsn* insn) {
-    JitRegVec vec = { 0 };
+    JitRegVec vec = {0};
     JitOpndLookupSwitch* ls = void;
     vec._stride = 1;
     switch (insn_opnd_kind[insn.opcode]) {
-        case JIT_OPND_KIND_Reg:
-            vec.num = insn_opnd_num[insn.opcode];
-            vec._base = jit_insn_opnd(insn, 0);
-            break;
+    case JIT_OPND_KIND_Reg:
+        vec.num = insn_opnd_num[insn.opcode];
+        vec._base = jit_insn_opnd(insn, 0);
+        break;
         case JIT_OPND_KIND_VReg:
-            vec.num = jit_insn_opndv_num(insn);
-            vec._base = jit_insn_opndv(insn, 0);
-            break;
+        vec.num = jit_insn_opndv_num(insn);
+        vec._base = jit_insn_opndv(insn, 0);
+        break;
         case JIT_OPND_KIND_LookupSwitch:
-            ls = jit_insn_opndls(insn);
-            vec.num = ls.match_pairs_num + 2;
-            vec._base = &ls.value;
-            vec._stride = sizeof(ls.match_pairs[0]) / typeof(*vec._base).sizeof;
-            break;
-    default: break;}
+        ls = jit_insn_opndls(insn);
+        vec.num = ls.match_pairs_num + 2;
+        vec._base = &ls.value;
+        vec._stride = sizeof(ls.match_pairs[0]) / typeof(*vec._base).sizeof;
+        break;
+        default:
+        break;
+    }
     return vec;
 }
+
 uint jit_insn_opnd_first_use(JitInsn* insn) {
     return insn_opnd_first_use[insn.opcode];
 }
+
 JitBasicBlock* jit_basic_block_new(JitReg label, int n) {
     JitBasicBlock* block = jit_insn_new_PHI(label, n);
     if (!block)
@@ -3760,6 +3638,7 @@ JitBasicBlock* jit_basic_block_new(JitReg label, int n) {
     block.prev = block.next = block;
     return block;
 }
+
 void jit_basic_block_delete(JitBasicBlock* block) {
     JitInsn* insn = void, next_insn = void, end = void;
     if (!block)
@@ -3772,6 +3651,7 @@ void jit_basic_block_delete(JitBasicBlock* block) {
     }
     jit_insn_delete(block);
 }
+
 JitRegVec jit_basic_block_preds(JitBasicBlock* block) {
     JitRegVec vec = void;
     vec.num = jit_insn_opndv_num(block) - 1;
@@ -3779,6 +3659,7 @@ JitRegVec jit_basic_block_preds(JitBasicBlock* block) {
     vec._stride = 1;
     return vec;
 }
+
 JitRegVec jit_basic_block_succs(JitBasicBlock* block) {
     JitInsn* last_insn = jit_basic_block_last_insn(block);
     JitRegVec vec = void;
@@ -3786,36 +3667,36 @@ JitRegVec jit_basic_block_succs(JitBasicBlock* block) {
     vec._base = null;
     vec._stride = 1;
     switch (last_insn.opcode) {
-        case JIT_OP_JMP:
-            vec.num = 1;
-            vec._base = jit_insn_opnd(last_insn, 0);
-            break;
-        case JIT_OP_BEQ:
-        case JIT_OP_BNE:
-        case JIT_OP_BGTS:
-        case JIT_OP_BGES:
-        case JIT_OP_BLTS:
-        case JIT_OP_BLES:
-        case JIT_OP_BGTU:
-        case JIT_OP_BGEU:
-        case JIT_OP_BLTU:
-        case JIT_OP_BLEU:
-            vec.num = 2;
-            vec._base = jit_insn_opnd(last_insn, 1);
-            break;
-        case JIT_OP_LOOKUPSWITCH:
-        {
+    case JIT_OP_JMP:
+        vec.num = 1;
+        vec._base = jit_insn_opnd(last_insn, 0);
+        break;
+    case JIT_OP_BEQ:
+    case JIT_OP_BNE:
+    case JIT_OP_BGTS:
+    case JIT_OP_BGES:
+    case JIT_OP_BLTS:
+    case JIT_OP_BLES:
+    case JIT_OP_BGTU:
+    case JIT_OP_BGEU:
+    case JIT_OP_BLTU:
+    case JIT_OP_BLEU:
+        vec.num = 2;
+        vec._base = jit_insn_opnd(last_insn, 1);
+        break;
+    case JIT_OP_LOOKUPSWITCH: {
             JitOpndLookupSwitch* opnd = jit_insn_opndls(last_insn);
             vec.num = opnd.match_pairs_num + 1;
             vec._base = &opnd.default_target;
-            vec._stride = sizeof(opnd.match_pairs[0]) / typeof(*vec._base).sizeof;
+            vec._stride = opnd.match_pairs[0].sizeof / typeof(*vec._base).sizeof;
             break;
         }
-        default:
-            vec._stride = 0;
+    default:
+        vec._stride = 0;
     }
     return vec;
 }
+
 JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
     JitBasicBlock* entry_block = void, exit_block = void;
     uint i = void, num = void;
@@ -3835,12 +3716,12 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
     cc.entry_label = jit_basic_block_label(entry_block);
     cc.exit_label = jit_basic_block_label(exit_block);
     bh_assert(jit_reg_no(cc.entry_label) == 0
-              && jit_reg_no(cc.exit_label) == 1);
+            && jit_reg_no(cc.exit_label) == 1);
     if (((cc.exce_basic_blocks =
-              jit_calloc((JitBasicBlock*).sizeof * EXCE_NUM)) == 0))
+            jit_calloc((JitBasicBlock*).sizeof * EXCE_NUM)) == 0))
         goto fail;
     if (((cc.incoming_insns_for_exec_bbs =
-              jit_calloc(sizeof(JitIncomingInsnList) * EXCE_NUM)) == 0))
+            jit_calloc(sizeof(JitIncomingInsnList) * EXCE_NUM)) == 0))
         goto fail;
     cc.hreg_info = jit_codegen_get_hreg_info();
     bh_assert(cc.hreg_info.info[JIT_REG_KIND_I32].num > 3);
@@ -3854,19 +3735,20 @@ JitCompContext* jit_cc_init(JitCompContext* cc, uint htab_size) {
         }
     }
     /* Create registers for frame pointer, exec_env and cmp.  */
-    cc.fp_reg = jit_reg_new(JIT_REG_KIND_I64, cc.hreg_info.fp_hreg_index);
+    cc.fp_reg = jit_reg_new(JIT_REG_KIND_PTR, cc.hreg_info.fp_hreg_index);
     cc.exec_env_reg =
-        jit_reg_new(JIT_REG_KIND_I64, cc.hreg_info.exec_env_hreg_index);
+        jit_reg_new(JIT_REG_KIND_PTR, cc.hreg_info.exec_env_hreg_index);
     cc.cmp_reg = jit_reg_new(JIT_REG_KIND_I32, cc.hreg_info.cmp_hreg_index);
     cc._const_val._hash_table_size = htab_size;
     if (((cc._const_val._hash_table =
-              jit_calloc(htab_size * typeof(*cc._const_val._hash_table).sizeof)) == 0))
+            jit_calloc(htab_size * typeof(*cc._const_val._hash_table).sizeof)) == 0))
         goto fail;
     return cc;
 fail:
     jit_cc_destroy(cc);
     return null;
 }
+
 void jit_cc_delete(JitCompContext* cc) {
     if (cc && --cc._reference_count == 0) {
         jit_cc_destroy(cc);
@@ -3883,7 +3765,7 @@ private void* _jit_realloc(void* ptr, uint new_size, uint old_size) {
         bh_assert(new_size > old_size);
         if (ptr) {
             memcpy(new_ptr, ptr, old_size);
-            memset(cast(ubyte*)new_ptr + old_size, 0, new_size - old_size);
+            memset(cast(ubyte*) new_ptr + old_size, 0, new_size - old_size);
             jit_free(ptr);
         }
         else
@@ -3891,14 +3773,16 @@ private void* _jit_realloc(void* ptr, uint new_size, uint old_size) {
     }
     return new_ptr;
 }
+
 private uint hash_of_const(uint kind, uint size, void* val) {
-    ubyte* p = cast(ubyte*)val, end = p + size;
+    ubyte* p = cast(ubyte*) val, end = p + size;
     uint hash = kind;
     do
         hash = ((hash << 5) - hash) + *p++;
     while (p != end);
     return hash;
 }
+
 pragma(inline, true) private void* address_of_const(JitCompContext* cc, JitReg reg, uint size) {
     int kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
@@ -3906,6 +3790,7 @@ pragma(inline, true) private void* address_of_const(JitCompContext* cc, JitReg r
     bh_assert(jit_reg_is_const_idx(reg) && idx < cc._const_val._num[kind]);
     return cc._const_val._value[kind] + size * idx;
 }
+
 pragma(inline, true) private JitReg next_of_const(JitCompContext* cc, JitReg reg) {
     int kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
@@ -3927,23 +3812,24 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
     uint num = cc._const_val._num[kind], slot = void;
     uint capacity = cc._const_val._capacity[kind];
     ubyte* new_value = void;
-    JitReg r = void; JitReg* new_next = void;
+    JitReg r = void;
+    JitReg* new_next = void;
     bh_assert(num <= capacity);
     /* Find the existing value first.  */
     slot = hash_of_const(kind, size, val) % cc._const_val._hash_table_size;
     r = cc._const_val._hash_table[slot];
     for (; r; r = next_of_const(cc, r))
         if (jit_reg_kind(r) == kind
-            && !memcmp(val, address_of_const(cc, r, size), size))
+                && !memcmp(val, address_of_const(cc, r, size), size))
             return r;
     if (num == capacity) {
         /* Increase the space of value and next.  */
         capacity = capacity > 0 ? (capacity + capacity / 2) : 16;
         new_value = _jit_realloc(cc._const_val._value[kind], size * capacity,
-                                 size * num);
+        size * num);
         new_next =
             _jit_realloc(cc._const_val._next[kind],
-                         sizeof(*new_next) * capacity, sizeof(*new_next) * num);
+        sizeof(*new_next) * capacity, sizeof(*new_next) * num);
         if (new_value && new_next) {
             cc._const_val._value[kind] = new_value;
             cc._const_val._next[kind] = new_next;
@@ -3956,7 +3842,7 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
         }
         cc._const_val._capacity[kind] = capacity;
     }
-    bh_assert(num + 1 < cast(uint)_JIT_REG_CONST_IDX_FLAG);
+    bh_assert(num + 1 < cast(uint) _JIT_REG_CONST_IDX_FLAG);
     r = jit_reg_new(kind, _JIT_REG_CONST_IDX_FLAG | num);
     memcpy(cc._const_val._value[kind] + size * num, val, size);
     cc._const_val._next[kind][num] = cc._const_val._hash_table[slot];
@@ -3964,26 +3850,117 @@ private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* 
     cc._const_val._num[kind] = num + 1;
     return r;
 }
+
 pragma(inline, true) private int get_const_val_in_reg(JitReg reg) {
     int shift = 8 * sizeof(reg) - _JIT_REG_KIND_SHIFT + 1;
     return (cast(int)(reg << shift)) >> shift;
 }
+
+JitReg jit_cc_new_const_I32_rel(JitCompContext* cc, int val, uint rel) {
+    ulong val64 = cast(ulong) cast(uint) val | (cast(ulong) rel << 32);
+    do {
+        JitReg reg = jit_reg_new(JIT_REG_KIND_I32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val64 & ~_JIT_REG_KIND_MASK)));
+        if (cast(ulong) get_const_val_in_reg(reg) == val64)
+            return reg;
+        return _jit_cc_new_const(cc, JIT_REG_KIND_I32, val64.sizeof, &val64);
+    }
+    while (0);
+}
+
+JitReg jit_cc_new_const_I64(JitCompContext* cc, long val) {
+    do {
+        JitReg reg = jit_reg_new(JIT_REG_KIND_I64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
+        if (cast(long) get_const_val_in_reg(reg) == val)
+            return reg;
+        return _jit_cc_new_const(cc, JIT_REG_KIND_I64, val.sizeof, &val);
+    }
+    while (0);
+}
+
+JitReg jit_cc_new_const_F32(JitCompContext* cc, float val) {
+    int float_neg_zero = 0x80000000;
+    if (!memcmp(&val, &float_neg_zero, float.sizeof)) /* Create const -0.0f */
+        return _jit_cc_new_const(cc, JIT_REG_KIND_F32, float.sizeof, &val);
+    do {
+        JitReg reg = jit_reg_new(JIT_REG_KIND_F32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
+        if (cast(float) get_const_val_in_reg(reg) == val)
+            return reg;
+        return _jit_cc_new_const(cc, JIT_REG_KIND_F32, val.sizeof, &val);
+    }
+    while (0);
+}
+
+JitReg jit_cc_new_const_F64(JitCompContext* cc, double val) {
+    long double_neg_zero = 0x8000000000000000L;
+    if (!memcmp(&val, &double_neg_zero, double.sizeof)) /* Create const -0.0d */
+        return _jit_cc_new_const(cc, JIT_REG_KIND_F64, double.sizeof, &val);
+    do {
+        JitReg reg = jit_reg_new(JIT_REG_KIND_F64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
+        if (cast(double) get_const_val_in_reg(reg) == val)
+            return reg;
+        return _jit_cc_new_const(cc, JIT_REG_KIND_F64, val.sizeof, &val);
+    }
+    while (0);
+}
+
+private ulong jit_cc_get_const_I32_helper(JitCompContext* cc, JitReg reg) {
+    do {
+        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I32);
+        bh_assert(jit_reg_is_const(reg));
+        return (jit_reg_is_const_val(reg) ? cast(ulong) get_const_val_in_reg(reg) : *cast(ulong*)(
+                address_of_const(cc, reg, uint.sizeof)));
+    }
+    while (0);
+}
+
 uint jit_cc_get_const_I32_rel(JitCompContext* cc, JitReg reg) {
     return cast(uint)(jit_cc_get_const_I32_helper(cc, reg) >> 32);
 }
+
 int jit_cc_get_const_I32(JitCompContext* cc, JitReg reg) {
     return cast(int)(jit_cc_get_const_I32_helper(cc, reg));
 }
+
+long jit_cc_get_const_I64(JitCompContext* cc, JitReg reg) {
+    do {
+        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I64);
+        bh_assert(jit_reg_is_const(reg));
+        return (jit_reg_is_const_val(reg) ? cast(long) get_const_val_in_reg(reg) : *cast(long*)(
+                address_of_const(cc, reg, int.sizeof)));
+    }
+    while (0);
+}
+
+float jit_cc_get_const_F32(JitCompContext* cc, JitReg reg) {
+    do {
+        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F32);
+        bh_assert(jit_reg_is_const(reg));
+        return (jit_reg_is_const_val(reg) ? cast(float) get_const_val_in_reg(reg) : *cast(float*)(
+                address_of_const(cc, reg, float.sizeof)));
+    }
+    while (0);
+}
+
+double jit_cc_get_const_F64(JitCompContext* cc, JitReg reg) {
+    do {
+        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F64);
+        bh_assert(jit_reg_is_const(reg));
+        return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *cast(double*)(
+                address_of_const(cc, reg, double.sizeof)));
+    }
+    while (0);
+}
+
 JitBasicBlock* jit_cc_new_basic_block(JitCompContext* cc, int n) {
     JitReg label = jit_cc_new_label(cc);
     JitBasicBlock* block = null;
-    if (label && (block = jit_basic_block_new(label, n)))
-        /* Void 0 register indicates error in creation.  */
+    if (label && (block = jit_basic_block_new(label, n))) /* Void 0 register indicates error in creation.  */
         *(jit_annl_basic_block(cc, label)) = block;
     else
         jit_set_last_error(cc, "create basic block failed");
     return block;
 }
+
 JitBasicBlock* jit_cc_resize_basic_block(JitCompContext* cc, JitBasicBlock* block, int n) {
     JitReg label = jit_basic_block_label(block);
     JitInsn* insn = jit_basic_block_first_insn(block);
@@ -3996,10 +3973,12 @@ JitBasicBlock* jit_cc_resize_basic_block(JitCompContext* cc, JitBasicBlock* bloc
     if (insn != block)
         jit_insn_insert_before(insn, new_block);
     bh_assert(*(jit_annl_basic_block(cc, label)) == block);
+
     *(jit_annl_basic_block(cc, label)) = new_block;
     jit_insn_delete(block);
     return new_block;
 }
+
 bool jit_cc_enable_insn_hash(JitCompContext* cc, uint n) {
     if (jit_anni_is_enabled__hash_link(cc))
         return true;
@@ -4010,46 +3989,53 @@ bool jit_cc_enable_insn_hash(JitCompContext* cc, uint n) {
     /* Integer overflow cannot happen because n << 4G (at most several
        times of 64K in the most extreme case).  */
     if (((cc._insn_hash_table._table =
-              jit_calloc(n * typeof(*cc._insn_hash_table._table).sizeof)) == 0)) {
+            jit_calloc(n * typeof(*cc._insn_hash_table._table).sizeof)) == 0)) {
         jit_anni_disable__hash_link(cc);
         return false;
     }
     cc._insn_hash_table._size = n;
     return true;
 }
+
 void jit_cc_disable_insn_hash(JitCompContext* cc) {
     jit_anni_disable__hash_link(cc);
     jit_free(cc._insn_hash_table._table);
     cc._insn_hash_table._table = null;
     cc._insn_hash_table._size = 0;
 }
+
 void jit_cc_reset_insn_hash(JitCompContext* cc) {
     if (jit_anni_is_enabled__hash_link(cc))
         memset(cc._insn_hash_table._table, 0,
-               cc._insn_hash_table._size
-                   * typeof(*cc._insn_hash_table._table).sizeof);
+                cc._insn_hash_table._size
+                * typeof(*cc._insn_hash_table._table).sizeof);
 }
+
 JitInsn* _jit_cc_set_insn_uid_for_new_insn(JitCompContext* cc, JitInsn* insn) {
     if (jit_cc_set_insn_uid(cc, insn))
         return insn;
     jit_insn_delete(insn);
     return null;
 }
+
 char* jit_get_last_error(JitCompContext* cc) {
     return cc.last_error[0] == '\0' ? null : cc.last_error;
 }
+
 void jit_set_last_error_v(JitCompContext* cc, const(char)* format, ...) {
     va_list args = void;
     va_start(args, format);
     vsnprintf(cc.last_error, typeof(cc.last_error).sizeof, format, args);
     va_end(args);
 }
+
 void jit_set_last_error(JitCompContext* cc, const(char)* error) {
     if (error)
         snprintf(cc.last_error, typeof(cc.last_error).sizeof, "Error: %s", error);
     else
         cc.last_error[0] = '\0';
 }
+
 bool jit_cc_update_cfg(JitCompContext* cc) {
     JitBasicBlock* block = void;
     uint block_index = void, end = void, succ_index = void, idx = void;
@@ -4058,39 +4044,46 @@ bool jit_cc_update_cfg(JitCompContext* cc) {
     if (!jit_annl_enable_pred_num(cc))
         return false;
     /* Update pred_num of all blocks.  */
-    for (block_index = 0, (end) = (cc)._ann._label_num; block_index < (end); block_index++) if (((block) = (cc)._ann._label_basic_block[block_index]))
-    {
+    for (block_index = 0, end = (cc)._ann._label_num; block_index < end; block_index++)
+        if ((block = (cc)._ann._label_basic_block[block_index])) {
         JitRegVec succs = jit_basic_block_succs(block);
-        for (succ_index = 0, (target) = (succs)._base; succ_index < (succs).num; succ_index++, (target) += (succs)._stride)
-        if ((jit_reg_kind(*target) == JIT_REG_KIND_L32))
-            *(jit_annl_pred_num(cc, *target)) += 1;
+        for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
+                ._stride)
+            if (jit_reg_is_kind(L32, *target))
+
+                *(jit_annl_pred_num(cc, *target)) += 1;
     }
     /* Resize predecessor vectors of body blocks.  */
-    for (block_index = 2, (end) = (cc)._ann._label_num; block_index < (end); block_index++) if (((block) = (cc)._ann._label_basic_block[block_index]))
-    {
+    for (block_index = 2, end = (cc)._ann._label_num; block_index < end; block_index++)
+        if ((block = (cc)._ann._label_basic_block[block_index])) {
         if (!jit_cc_resize_basic_block(
                 cc, block,
+
                 *(jit_annl_pred_num(cc, jit_basic_block_label(block)))))
             goto cleanup_and_return;
     }
     /* Fill in predecessor vectors all blocks.  */
-    for (block_index = (cc)._ann._label_num; block_index > 0; block_index--) if (((block) = (cc)._ann._label_basic_block[block_index-1]))
-    {
+    for (block_index = (cc)._ann._label_num; block_index > 0; block_index--)
+        if ((block = (cc)._ann._label_basic_block[block_index - 1])) {
         JitRegVec succs = jit_basic_block_succs(block), preds = void;
-        for (succ_index = 0, (target) = (succs)._base; succ_index < (succs).num; succ_index++, (target) += (succs)._stride)
-        if ((jit_reg_kind(*target) == JIT_REG_KIND_L32)) {
-            preds = jit_basic_block_preds(*(jit_annl_basic_block(cc, *target)));
-            bh_assert(*(jit_annl_pred_num(cc, *target)) > 0);
-            idx = *(jit_annl_pred_num(cc, *target)) - 1;
-            *(jit_annl_pred_num(cc, *target)) = idx;
-            *(jit_reg_vec_at(&preds, idx)) = jit_basic_block_label(block);
-        }
+        for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
+                ._stride)
+            if (jit_reg_is_kind(L32, *target)) {
+                preds = jit_basic_block_preds(*(jit_annl_basic_block(cc, *target)));
+                bh_assert(*(jit_annl_pred_num(cc, *target)) > 0);
+                idx = *(jit_annl_pred_num(cc, *target)) - 1;
+
+                *(jit_annl_pred_num(cc, *target)) = idx;
+
+                *(jit_reg_vec_at(&preds, idx)) = jit_basic_block_label(block);
+            }
     }
     retval = true;
 cleanup_and_return:
     jit_annl_disable_pred_num(cc);
     return retval;
 }
+
 void jit_value_stack_push(JitValueStack* stack, JitValue* value) {
     if (!stack.value_list_head)
         stack.value_list_head = stack.value_list_end = value;
@@ -4100,6 +4093,7 @@ void jit_value_stack_push(JitValueStack* stack, JitValue* value) {
         stack.value_list_end = value;
     }
 }
+
 JitValue* jit_value_stack_pop(JitValueStack* stack) {
     JitValue* value = stack.value_list_end;
     bh_assert(stack.value_list_end);
@@ -4112,6 +4106,7 @@ JitValue* jit_value_stack_pop(JitValueStack* stack) {
     }
     return value;
 }
+
 void jit_value_stack_destroy(JitValueStack* stack) {
     JitValue* value = stack.value_list_head, p = void;
     while (value) {
@@ -4122,6 +4117,7 @@ void jit_value_stack_destroy(JitValueStack* stack) {
     stack.value_list_head = null;
     stack.value_list_end = null;
 }
+
 void jit_block_stack_push(JitBlockStack* stack, JitBlock* block) {
     if (!stack.block_list_head)
         stack.block_list_head = stack.block_list_end = block;
@@ -4131,9 +4127,11 @@ void jit_block_stack_push(JitBlockStack* stack, JitBlock* block) {
         stack.block_list_end = block;
     }
 }
+
 JitBlock* jit_block_stack_top(JitBlockStack* stack) {
     return stack.block_list_end;
 }
+
 JitBlock* jit_block_stack_pop(JitBlockStack* stack) {
     JitBlock* block = stack.block_list_end;
     bh_assert(stack.block_list_end);
@@ -4146,6 +4144,7 @@ JitBlock* jit_block_stack_pop(JitBlockStack* stack) {
     }
     return block;
 }
+
 void jit_block_stack_destroy(JitBlockStack* stack) {
     JitBlock* block = stack.block_list_head, p = void;
     while (block) {
@@ -4157,9 +4156,10 @@ void jit_block_stack_destroy(JitBlockStack* stack) {
     stack.block_list_head = null;
     stack.block_list_end = null;
 }
+
 bool jit_block_add_incoming_insn(JitBlock* block, JitInsn* insn, uint opnd_idx) {
     JitIncomingInsn* incoming_insn = void;
-    if (((incoming_insn = jit_calloc(cast(uint)JitIncomingInsn.sizeof)) == 0))
+    if (((incoming_insn = jit_calloc(cast(uint) JitIncomingInsn.sizeof)) == 0))
         return false;
     incoming_insn.insn = insn;
     incoming_insn.opnd_idx = opnd_idx;
@@ -4167,6 +4167,7 @@ bool jit_block_add_incoming_insn(JitBlock* block, JitInsn* insn, uint opnd_idx) 
     block.incoming_insns_for_end_bb = incoming_insn;
     return true;
 }
+
 void jit_block_destroy(JitBlock* block) {
     JitIncomingInsn* incoming_insn = void, incoming_insn_next = void;
     jit_value_stack_destroy(&block.value_stack);
@@ -4182,9 +4183,11 @@ void jit_block_destroy(JitBlock* block) {
     }
     jit_free(block);
 }
+
 pragma(inline, true) private ubyte to_stack_value_type(ubyte type) {
     return type;
 }
+
 bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
     JitValue* jit_value = null;
     JitReg value = 0;
@@ -4197,7 +4200,8 @@ bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
         return false;
     }
     jit_value = jit_value_stack_pop(
-        &jit_block_stack_top(&cc.block_stack).value_stack);
+
+            &jit_block_stack_top(&cc.block_stack).value_stack);
     bh_assert(jit_value);
     if (jit_value.type != to_stack_value_type(type)) {
         jit_set_last_error(cc, "invalid WASM stack data type");
@@ -4205,28 +4209,30 @@ bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
         return false;
     }
     switch (jit_value.type) {
-        case VALUE_TYPE_I32:
-            value = pop_i32(cc.jit_frame);
-            break;
-        case VALUE_TYPE_I64:
-            value = pop_i64(cc.jit_frame);
-            break;
-        case VALUE_TYPE_F32:
-            value = pop_f32(cc.jit_frame);
-            break;
-        case VALUE_TYPE_F64:
-            value = pop_f64(cc.jit_frame);
-            break;
-        default:
-            bh_assert(0);
-            break;
+    case VALUE_TYPE_I32:
+        value = pop_i32(cc.jit_frame);
+        break;
+    case VALUE_TYPE_I64:
+        value = pop_i64(cc.jit_frame);
+        break;
+    case VALUE_TYPE_F32:
+        value = pop_f32(cc.jit_frame);
+        break;
+    case VALUE_TYPE_F64:
+        value = pop_f64(cc.jit_frame);
+        break;
+    default:
+        bh_assert(0);
+        break;
     }
     bh_assert(cc.jit_frame.sp == jit_value.value);
     bh_assert(value == jit_value.value.reg);
+
     *p_value = value;
     jit_free(jit_value);
     return true;
 }
+
 bool jit_cc_push_value(JitCompContext* cc, ubyte type, JitReg value) {
     JitValue* jit_value = void;
     if (!jit_block_stack_top(&cc.block_stack)) {
@@ -4241,37 +4247,43 @@ bool jit_cc_push_value(JitCompContext* cc, ubyte type, JitReg value) {
     jit_value.type = to_stack_value_type(type);
     jit_value.value = cc.jit_frame.sp;
     jit_value_stack_push(&jit_block_stack_top(&cc.block_stack).value_stack,
-                         jit_value);
+            jit_value);
     switch (jit_value.type) {
-        case VALUE_TYPE_I32:
-            push_i32(cc.jit_frame, value);
-            break;
-        case VALUE_TYPE_I64:
-            push_i64(cc.jit_frame, value);
-            break;
-        case VALUE_TYPE_F32:
-            push_f32(cc.jit_frame, value);
-            break;
-        case VALUE_TYPE_F64:
-            push_f64(cc.jit_frame, value);
-            break;
-    default: break;}
+    case VALUE_TYPE_I32:
+        push_i32(cc.jit_frame, value);
+        break;
+    case VALUE_TYPE_I64:
+        push_i64(cc.jit_frame, value);
+        break;
+    case VALUE_TYPE_F32:
+        push_f32(cc.jit_frame, value);
+        break;
+    case VALUE_TYPE_F64:
+        push_f64(cc.jit_frame, value);
+        break;
+    default:
+        break;
+    }
     return true;
 }
+
 bool _jit_insn_check_opnd_access_Reg(const(JitInsn)* insn, uint n) {
     uint opcode = insn.opcode;
     return (insn_opnd_kind[opcode] == JIT_OPND_KIND_Reg
-            && n < insn_opnd_num[opcode]);
+        && n < insn_opnd_num[opcode]);
 }
+
 bool _jit_insn_check_opnd_access_VReg(const(JitInsn)* insn, uint n) {
     uint opcode = insn.opcode;
     return (insn_opnd_kind[opcode] == JIT_OPND_KIND_VReg
-            && n < insn._opnd._opnd_VReg._reg_num);
+        && n < insn._opnd._opnd_VReg._reg_num);
 }
+
 bool _jit_insn_check_opnd_access_LookupSwitch(const(JitInsn)* insn) {
     uint opcode = insn.opcode;
     return (insn_opnd_kind[opcode] == JIT_OPND_KIND_LookupSwitch);
 }
+
 bool jit_lock_reg_in_insn(JitCompContext* cc, JitInsn* the_insn, JitReg reg_to_lock) {
     bool ret = false;
     JitInsn* prevent_spill = null;

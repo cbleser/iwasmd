@@ -10,8 +10,9 @@ private template HasVersion(string versionId) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
- 
+import tagion.iwasm.basic;
 
+version(none)
 version (BH_DEBUG) {
 void bh_assert_internal(int v, const(char)* file_name, int line_number, const(char)* expr_string);
 enum string bh_assert(string expr) = ` \
@@ -32,8 +33,7 @@ enum string __has_extension(string a) = ` 0`;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-
-void bh_assert_internal(int v, const(char)* file_name, int line_number, const(char)* expr_string) {
+void bh_assert(int v, const(char)* expr_string=null,const(char)* file_name=__FILE__.ptr, int line_number=__LINE__)  {
     if (v)
         return;
 
@@ -46,5 +46,6 @@ void bh_assert_internal(int v, const(char)* file_name, int line_number, const(ch
     os_printf("\nASSERTION FAILED: %s, at file %s, line %d\n", expr_string,
               file_name, line_number);
 
-    abort();
+	assert(0);
+//    abort();
 }
