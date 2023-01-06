@@ -1,3 +1,38 @@
+/* Copyright (C) 1991-2022 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <https://www.gnu.org/licenses/>.  */
+/* This header is separate from features.h so that the compiler can
+   include it implicitly at the start of every compilation.  It must
+   not itself include <features.h> or any other header that includes
+   <features.h> because the implicit include comes before any feature
+   test macros that may be defined in a source file before it first
+   explicitly includes a system header.  GCC knows the name of this
+   header in order to preinclude it.  */
+/* glibc's intent is to support the IEC 559 math functionality, real
+   and complex.  If the GCC (4.9 and later) predefined macros
+   specifying compiler intent are available, use them to determine
+   whether the overall intent is to support these features; otherwise,
+   presume an older compiler has intent to support these features and
+   define these macros by default.  */
+/* wchar_t uses Unicode 10.0.0.  Version 10.0 of the Unicode Standard is
+   synchronized with ISO/IEC 10646:2017, fifth edition, plus
+   the following additions from Amendment 1 to the fifth edition:
+   - 56 emoji characters
+   - 285 hentaigana
+   - 3 additional Zanabazar Square characters */
 module jit_emit_variable_tmp;
 @nogc nothrow:
 extern(C): __gshared:
@@ -186,29 +221,25 @@ bool jit_compile_op_get_global(JitCompContext* cc, uint global_idx) {
         case VALUE_TYPE_I32:
         {
             value = jit_cc_new_reg_I32(cc);
-            GEN_INSN(LDI32, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         case VALUE_TYPE_I64:
         {
             value = jit_cc_new_reg_I64(cc);
-            GEN_INSN(LDI64, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         case VALUE_TYPE_F32:
         {
             value = jit_cc_new_reg_F32(cc);
-            GEN_INSN(LDF32, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         case VALUE_TYPE_F64:
         {
             value = jit_cc_new_reg_F64(cc);
-            GEN_INSN(LDF64, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         default:
@@ -238,38 +269,34 @@ bool jit_compile_op_set_global(JitCompContext* cc, uint global_idx, bool is_aux_
             if (is_aux_stack) {
                 JitReg aux_stack_bound = get_aux_stack_bound_reg(cc.jit_frame);
                 JitReg aux_stack_bottom = get_aux_stack_bottom_reg(cc.jit_frame);
-                GEN_INSN(CMP, cc.cmp_reg, value, aux_stack_bound);
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, value, aux_stack_bound)));
                 if (!(jit_emit_exception(cc, EXCE_AUX_STACK_OVERFLOW,
                                          JIT_OP_BLEU, cc.cmp_reg, null)))
                     goto fail;
-                GEN_INSN(CMP, cc.cmp_reg, value, aux_stack_bottom);
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, value, aux_stack_bottom)));
                 if (!(jit_emit_exception(cc, EXCE_AUX_STACK_UNDERFLOW,
                                          JIT_OP_BGTU, cc.cmp_reg, null)))
                     goto fail;
             }
-            GEN_INSN(STI32, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         case VALUE_TYPE_I64:
         {
             POP_I64(value);
-            GEN_INSN(STI64, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         case VALUE_TYPE_F32:
         {
             POP_F32(value);
-            GEN_INSN(STF32, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         case VALUE_TYPE_F64:
         {
             POP_F64(value);
-            GEN_INSN(STF64, value, get_module_inst_reg(cc.jit_frame),
-                     NEW_CONST(I32, data_offset));
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         default:

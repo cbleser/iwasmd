@@ -1,3 +1,38 @@
+/* Copyright (C) 1991-2022 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <https://www.gnu.org/licenses/>.  */
+/* This header is separate from features.h so that the compiler can
+   include it implicitly at the start of every compilation.  It must
+   not itself include <features.h> or any other header that includes
+   <features.h> because the implicit include comes before any feature
+   test macros that may be defined in a source file before it first
+   explicitly includes a system header.  GCC knows the name of this
+   header in order to preinclude it.  */
+/* glibc's intent is to support the IEC 559 math functionality, real
+   and complex.  If the GCC (4.9 and later) predefined macros
+   specifying compiler intent are available, use them to determine
+   whether the overall intent is to support these features; otherwise,
+   presume an older compiler has intent to support these features and
+   define these macros by default.  */
+/* wchar_t uses Unicode 10.0.0.  Version 10.0 of the Unicode Standard is
+   synchronized with ISO/IEC 10646:2017, fifth edition, plus
+   the following additions from Amendment 1 to the fifth edition:
+   - 56 emoji characters
+   - 285 hentaigana
+   - 3 additional Zanabazar Square characters */
 module jit_emit_control_tmp;
 @nogc nothrow:
 extern(C): __gshared:
@@ -219,14 +254,13 @@ private bool push_jit_block_to_stack_and_pass_params(JitCompContext* cc, JitBloc
         /* Push the new block to block stack */
         jit_block_stack_push(&cc.block_stack, block);
         if (block.label_type == LABEL_TYPE_LOOP) {
-            do { if (!GEN_INSN(JMP, jit_basic_block_label(basic_block))) { jit_set_last_error(cc, "generate jmp insn failed"); goto fail; } } while (0);
+            do { if (!_gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(basic_block))))) { jit_set_last_error(cc, "generate jmp insn failed"); goto fail; } } while (0);
         }
         else {
             /* IF block with condition br insn */
             if (insn_select && insn_cmp) {
                 /* Change `CMP + SELECTcc` into `CMP + Bcc` */
-                if (((insn = GEN_INSN(BEQ, cc.cmp_reg,
-                                      jit_basic_block_label(basic_block), 0)) == 0)) {
+                if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BEQ(cc.cmp_reg, jit_basic_block_label(basic_block), 0)))) == 0)) {
                     jit_set_last_error(cc, "generate cond br failed");
                     goto fail;
                 }
@@ -236,10 +270,9 @@ private bool push_jit_block_to_stack_and_pass_params(JitCompContext* cc, JitBloc
                 jit_insn_delete(insn_select);
             }
             else {
-                if (!GEN_INSN(CMP, cc.cmp_reg, cond, NEW_CONST(I32, 0))
+                if (!_gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cond, jit_cc_new_const_I32(cc, 0))))
                     || ((insn =
-                             GEN_INSN(BNE, cc.cmp_reg,
-                                      jit_basic_block_label(basic_block), 0)) == 0)) {
+                             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(basic_block), 0)))) == 0)) {
                     jit_set_last_error(cc, "generate cond br failed");
                     goto fail;
                 }
@@ -284,8 +317,7 @@ private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* 
                 if (i == 0 && p_first_res_reg)
                     *p_first_res_reg = value;
                 else
-                    GEN_INSN(STI32, value, dst_frame_sp,
-                             NEW_CONST(I32, offset_dst * 4));
+                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, dst_frame_sp, jit_cc_new_const_I32(cc, offset_dst * 4))));
                 offset_src++;
                 offset_dst++;
                 break;
@@ -294,8 +326,7 @@ private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* 
                 if (i == 0 && p_first_res_reg)
                     *p_first_res_reg = value;
                 else
-                    GEN_INSN(STI64, value, dst_frame_sp,
-                             NEW_CONST(I32, offset_dst * 4));
+                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, dst_frame_sp, jit_cc_new_const_I32(cc, offset_dst * 4))));
                 offset_src += 2;
                 offset_dst += 2;
                 break;
@@ -304,8 +335,7 @@ private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* 
                 if (i == 0 && p_first_res_reg)
                     *p_first_res_reg = value;
                 else
-                    GEN_INSN(STF32, value, dst_frame_sp,
-                             NEW_CONST(I32, offset_dst * 4));
+                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, dst_frame_sp, jit_cc_new_const_I32(cc, offset_dst * 4))));
                 offset_src++;
                 offset_dst++;
                 break;
@@ -314,8 +344,7 @@ private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* 
                 if (i == 0 && p_first_res_reg)
                     *p_first_res_reg = value;
                 else
-                    GEN_INSN(STF64, value, dst_frame_sp,
-                             NEW_CONST(I32, offset_dst * 4));
+                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, dst_frame_sp, jit_cc_new_const_I32(cc, offset_dst * 4))));
                 offset_src += 2;
                 offset_dst += 2;
                 break;
@@ -331,32 +360,26 @@ private bool handle_func_return(JitCompContext* cc, JitBlock* block) {
     prev_frame = jit_cc_new_reg_ptr(cc);
     prev_frame_sp = jit_cc_new_reg_ptr(cc);
     /* prev_frame = cur_frame->prev_frame */
-    GEN_INSN(LDPTR, prev_frame, cc.fp_reg,
-             NEW_CONST(I32, WASMInterpFrame.prev_frame.offsetof));
-    GEN_INSN(LDPTR, prev_frame_sp, prev_frame,
-             NEW_CONST(I32, WASMInterpFrame.sp.offsetof));
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(prev_frame, cc.fp_reg, jit_cc_new_const_I32(cc, WASMInterpFrame.prev_frame.offsetof))));
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(prev_frame_sp, prev_frame, jit_cc_new_const_I32(cc, WASMInterpFrame.sp.offsetof))));
     if (block.result_count) {
         uint cell_num = wasm_get_cell_num(block.result_types, block.result_count);
         copy_block_arities(cc, prev_frame_sp, block.result_types,
                            block.result_count, &ret_reg);
         /* prev_frame->sp += cell_num */
-        GEN_INSN(ADD, prev_frame_sp, prev_frame_sp,
-                 NEW_CONST(PTR, cell_num * 4));
-        GEN_INSN(STPTR, prev_frame_sp, prev_frame,
-                 NEW_CONST(I32, WASMInterpFrame.sp.offsetof));
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(prev_frame_sp, prev_frame_sp, jit_cc_new_const_PTR(cc, cell_num * 4))));
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(prev_frame_sp, prev_frame, jit_cc_new_const_I32(cc, WASMInterpFrame.sp.offsetof))));
     }
     /* Free stack space of the current frame:
        exec_env->wasm_stack.s.top = cur_frame */
-    GEN_INSN(STPTR, cc.fp_reg, cc.exec_env_reg,
-             NEW_CONST(I32, offsetof(WASMExecEnv, wasm_stack.s.top)));
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(cc.fp_reg, cc.exec_env_reg, jit_cc_new_const_I32(cc, offsetof(WASMExecEnv, wasm_stack.s.top)))));
     /* Set the prev_frame as the current frame:
        exec_env->cur_frame = prev_frame */
-    GEN_INSN(STPTR, prev_frame, cc.exec_env_reg,
-             NEW_CONST(I32, WASMExecEnv.cur_frame.offsetof));
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(prev_frame, cc.exec_env_reg, jit_cc_new_const_I32(cc, WASMExecEnv.cur_frame.offsetof))));
     /* fp_reg = prev_frame */
-    GEN_INSN(MOV, cc.fp_reg, prev_frame);
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MOV(cc.fp_reg, prev_frame)));
     /* return 0 */
-    GEN_INSN(RETURNBC, NEW_CONST(I32, JIT_INTERP_ACTION_NORMAL), ret_reg, 0);
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_RETURNBC(jit_cc_new_const_I32(cc, JIT_INTERP_ACTION_NORMAL), ret_reg, 0)));
     return true;
 }
 /**
@@ -437,7 +460,7 @@ private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block
            to this end basic block */
         if (!is_block_polymorphic) {
             /* Jump to the end basic block */
-            do { if (!GEN_INSN(JMP, jit_basic_block_label(block.basic_block_end))) { jit_set_last_error(cc, "generate jmp insn failed"); goto fail; } } while (0);
+            do { if (!_gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(block.basic_block_end))))) { jit_set_last_error(cc, "generate jmp insn failed"); goto fail; } } while (0);
         }
         /* Patch the INSNs which jump to this basic block */
         incoming_insn = block.incoming_insns_for_end_bb;
@@ -526,7 +549,7 @@ private bool handle_op_else(JitCompContext* cc, ubyte** p_frame_ip, bool is_bloc
            to this end basic block */
         if (!is_block_polymorphic) {
             /* Jump to end basic block */
-            if (((insn = GEN_INSN(JMP, 0)) == 0)) {
+            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)))) == 0)) {
                 jit_set_last_error(cc, "generate jmp insn failed");
                 return false;
             }
@@ -756,7 +779,7 @@ private bool handle_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip)
         frame_sp_dst = jit_cc_new_reg_ptr(cc);
         offset = WASMInterpFrame.lp.offsetof
                  + (block_dst.frame_sp_begin - jit_frame.lp) * 4;
-        GEN_INSN(ADD, frame_sp_dst, cc.fp_reg, NEW_CONST(PTR, offset));
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_sp_dst, cc.fp_reg, jit_cc_new_const_PTR(cc, offset))));
         /* No need to commit results as they will be copied to dest block */
         gen_commit_values(jit_frame, jit_frame.lp, block.frame_sp_begin);
     }
@@ -772,7 +795,7 @@ private bool handle_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip)
         }
         clear_values(jit_frame);
         /* Jump to the begin basic block */
-        do { if (!GEN_INSN(JMP, jit_basic_block_label(block_dst.basic_block_entry))) { jit_set_last_error(cc, "generate jmp insn failed"); goto fail; } } while (0);
+        do { if (!_gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(block_dst.basic_block_entry))))) { jit_set_last_error(cc, "generate jmp insn failed"); goto fail; } } while (0);
         do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1; } while (0);
     }
     else {
@@ -783,7 +806,7 @@ private bool handle_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip)
         }
         clear_values(jit_frame);
         /* Jump to the end basic block */
-        if (((insn = GEN_INSN(JMP, 0)) == 0)) {
+        if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)))) == 0)) {
             jit_set_last_error(cc, "generate jmp insn failed");
             goto fail;
         }
@@ -846,7 +869,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
     cur_basic_block = cc.cur_basic_block;
     gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
     if (!(insn_select && insn_cmp)) {
-        if (!GEN_INSN(CMP, cc.cmp_reg, cond, NEW_CONST(I32, 0))) {
+        if (!_gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cond, jit_cc_new_const_I32(cc, 0))))) {
             jit_set_last_error(cc, "generate cmp insn failed");
             goto fail;
         }
@@ -856,16 +879,13 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
     copy_arities = check_copy_arities(block_dst, jit_frame);
     if (!copy_arities) {
         if (block_dst.label_type == LABEL_TYPE_LOOP) {
-            if (((insn = GEN_INSN(
-                      BNE, cc.cmp_reg,
-                      jit_basic_block_label(block_dst.basic_block_entry),
-                      0)) == 0)) {
+            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(block_dst.basic_block_entry), 0)))) == 0)) {
                 jit_set_last_error(cc, "generate bne insn failed");
                 goto fail;
             }
         }
         else {
-            if (((insn = GEN_INSN(BNE, cc.cmp_reg, 0, 0)) == 0)) {
+            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, 0, 0)))) == 0)) {
                 jit_set_last_error(cc, "generate bne insn failed");
                 goto fail;
             }
@@ -883,8 +903,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
         return true;
     }
     do { bh_assert(!if_basic_block); if (((if_basic_block = jit_cc_new_basic_block(cc, 0)) == 0)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
-    if (((insn = GEN_INSN(BNE, cc.cmp_reg,
-                          jit_basic_block_label(if_basic_block), 0)) == 0)) {
+    if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(if_basic_block), 0)))) == 0)) {
         jit_set_last_error(cc, "generate bne insn failed");
         goto fail;
     }
@@ -932,7 +951,7 @@ bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count,
     clear_values(cc.jit_frame);
     do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cur_basic_block))) = *p_frame_ip - 1; } while (0);
     /* prepare basic blocks for br */
-    insn = GEN_INSN(LOOKUPSWITCH, value, br_count);
+    insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LOOKUPSWITCH(value, br_count)));
     if (null == insn) {
         jit_set_last_error(cc, "generate insn LOOKUPSWITCH failed");
         goto fail;

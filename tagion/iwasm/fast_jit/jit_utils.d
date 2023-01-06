@@ -41,8 +41,11 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 //#include "bh_platform.h"
+import core.stdc.string : memset, memcpy;
 import core.stdc.stdint : uintptr_t;
+import tagion.iwasm.share.utils.bh_assert;
 import tagion.iwasm.fast_jit.jit_ir;
+import tagion.iwasm.common.wasm_memory;
 /**
  * A simple fixed size bitmap.
  */
@@ -57,47 +60,30 @@ struct JitBitmap {
 pragma(inline, true) void* jit_malloc(uint size) {
     return wasm_runtime_malloc(size);
 }
-pragma(inline, true) JitInsn* jit_calloc(uint size) {
-    void* ret = wasm_runtime_malloc(size);
+ T* jit_calloc(T)(uint size) {
+    auto ret = wasm_runtime_malloc(size);
     if (ret) {
         memset(ret, 0, size);
     }
-    return ret;
+    return cast(T*)ret;
+}
+pragma(inline, true) JitInsn* jit_calloc(uint size) {
+	return jit_calloc!JitInsn(size);
 }
 pragma(inline, true) JitInsn** jit_calloc_ref(uint size) {
-    void* ret = wasm_runtime_malloc(size);
-    if (ret) {
-        memset(ret, 0, size);
-    }
-    return ret;
+	return jit_calloc!(JitInsn*)(size);
 }
 pragma(inline, true) uint* jit_calloc_reg(uint size) {
-    void* ret = wasm_runtime_malloc(size);
-    if (ret) {
-        memset(ret, 0, size);
-    }
-    return ret;
+	return jit_calloc!(uint)(size);
 }
 pragma(inline, true) JitIncomingInsn** jit_calloc_list(uint size) {
-    void* ret = wasm_runtime_malloc(size);
-    if (ret) {
-        memset(ret, 0, size);
-    }
-    return ret;
+	return jit_calloc!(JitIncomingInsn*)(size);
 }
 pragma(inline, true) JitIncomingInsn* jit_calloc_incoming(uint size) {
-    void* ret = wasm_runtime_malloc(size);
-    if (ret) {
-        memset(ret, 0, size);
-    }
-    return ret;
+	return jit_calloc!(JitIncomingInsn)(size);
 }
 pragma(inline, true) JitValue* jit_calloc_value(uint size) {
-    void* ret = wasm_runtime_malloc(size);
-    if (ret) {
-        memset(ret, 0, size);
-    }
-    return ret;
+	return jit_calloc!(JitValue)(size);
 }
 /*
  * Reallocate a memory block with the new_size.
@@ -115,7 +101,7 @@ ubyte* jit_realloc_buffer(ubyte* ptr, uint new_size, uint old_size) {
         else
             memset(new_ptr, 0, new_size);
     }
-    return new_ptr;
+    return cast(ubyte*)new_ptr;
 }
 
 uint* jit_realloc_reg(uint* ptr, uint new_size, uint old_size) {
@@ -130,7 +116,7 @@ uint* jit_realloc_reg(uint* ptr, uint new_size, uint old_size) {
         else
             memset(new_ptr, 0, new_size);
     }
-    return new_ptr;
+    return cast(uint*)new_ptr;
 }
 
 

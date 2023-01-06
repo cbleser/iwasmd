@@ -1,3 +1,38 @@
+/* Copyright (C) 1991-2022 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <https://www.gnu.org/licenses/>.  */
+/* This header is separate from features.h so that the compiler can
+   include it implicitly at the start of every compilation.  It must
+   not itself include <features.h> or any other header that includes
+   <features.h> because the implicit include comes before any feature
+   test macros that may be defined in a source file before it first
+   explicitly includes a system header.  GCC knows the name of this
+   header in order to preinclude it.  */
+/* glibc's intent is to support the IEC 559 math functionality, real
+   and complex.  If the GCC (4.9 and later) predefined macros
+   specifying compiler intent are available, use them to determine
+   whether the overall intent is to support these features; otherwise,
+   presume an older compiler has intent to support these features and
+   define these macros by default.  */
+/* wchar_t uses Unicode 10.0.0.  Version 10.0 of the Unicode Standard is
+   synchronized with ISO/IEC 10646:2017, fifth edition, plus
+   the following additions from Amendment 1 to the fifth edition:
+   - 56 emoji characters
+   - 285 hentaigana
+   - 3 additional Zanabazar Square characters */
 module tagion.iwasm.fast_jit.fe.jit_emit_compare;
 @nogc nothrow:
 extern(C): __gshared:
@@ -8,22 +43,18 @@ extern(C): __gshared:
 import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
-
 private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bool is64Bit) {
     JitReg lhs = void, rhs = void, res = void, const_zero = void, const_one = void;
-
     if (cond < INT_EQZ || cond > INT_GE_U) {
         jit_set_last_error(cc, "unsupported comparation operation");
         goto fail;
     }
-
     res = jit_cc_new_reg_I32(cc);
-    const_zero = NEW_CONST(I32, 0);
-    const_one = NEW_CONST(I32, 1);
-
+    const_zero = jit_cc_new_const_I32(cc, 0);
+    const_one = jit_cc_new_const_I32(cc, 1);
     if (is64Bit) {
         if (INT_EQZ == cond) {
-            rhs = NEW_CONST(I64, 0);
+            rhs = jit_cc_new_const_I64(cc, 0);
         }
         else {
             POP_I64(rhs);
@@ -32,116 +63,102 @@ private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bo
     }
     else {
         if (INT_EQZ == cond) {
-            rhs = NEW_CONST(I32, 0);
+            rhs = jit_cc_new_const_I32(cc, 0);
         }
         else {
             POP_I32(rhs);
         }
         POP_I32(lhs);
     }
-
-    GEN_INSN(CMP, cc.cmp_reg, lhs, rhs);
+    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
     switch (cond) {
         case INT_EQ:
         case INT_EQZ:
         {
-            GEN_INSN(SELECTEQ, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_NE:
         {
-            GEN_INSN(SELECTNE, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LT_S:
         {
-            GEN_INSN(SELECTLTS, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLTS(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LT_U:
         {
-            GEN_INSN(SELECTLTU, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLTU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_GT_S:
         {
-            GEN_INSN(SELECTGTS, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_GT_U:
         {
-            GEN_INSN(SELECTGTU, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LE_S:
         {
-            GEN_INSN(SELECTLES, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLES(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LE_U:
         {
-            GEN_INSN(SELECTLEU, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLEU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_GE_S:
         {
-            GEN_INSN(SELECTGES, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         default: /* INT_GE_U */
         {
-            GEN_INSN(SELECTGEU, res, cc.cmp_reg, const_one, const_zero);
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGEU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
     }
-
     PUSH_I32(res);
     return true;
 fail:
     return false;
 }
-
 bool jit_compile_op_i32_compare(JitCompContext* cc, IntCond cond) {
     return jit_compile_op_compare_integer(cc, cond, false);
 }
-
 bool jit_compile_op_i64_compare(JitCompContext* cc, IntCond cond) {
     return jit_compile_op_compare_integer(cc, cond, true);
 }
-
 private int float_cmp_eq(float f1, float f2) {
     if (isnan(f1) || isnan(f2))
         return 0;
-
     return f1 == f2;
 }
-
 private int float_cmp_ne(float f1, float f2) {
     if (isnan(f1) || isnan(f2))
         return 1;
-
     return f1 != f2;
 }
-
 private int double_cmp_eq(double d1, double d2) {
     if (isnan(d1) || isnan(d2))
         return 0;
-
     return d1 == d2;
 }
-
 private int double_cmp_ne(double d1, double d2) {
     if (isnan(d1) || isnan(d2))
         return 1;
-
     return d1 != d2;
 }
-
 private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond cond, JitReg lhs, JitReg rhs) {
     JitReg res = void; JitReg[2] args = void; JitReg const_zero = void, const_one = void;
     JitRegKind kind = void;
     void* func = void;
-
     if (cond == FLOAT_EQ || cond == FLOAT_NE) {
         kind = jit_reg_kind(lhs);
         if (cond == FLOAT_EQ)
@@ -150,42 +167,40 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
         else
             func = (kind == JitRegKind.F32) ? cast(void*)float_cmp_ne
                                               : cast(void*)double_cmp_ne;
-
         res = jit_cc_new_reg_I32(cc);
         args[0] = lhs;
         args[1] = rhs;
-
         if (!jit_emit_callnative(cc, func, res, args.ptr, 2)) {
             goto fail;
         }
     }
     else {
         res = jit_cc_new_reg_I32(cc);
-        const_zero = NEW_CONST(I32, 0);
-        const_one = NEW_CONST(I32, 1);
+        const_zero = jit_cc_new_const_I32(cc, 0);
+        const_one = jit_cc_new_const_I32(cc, 1);
         switch (cond) {
             case FLOAT_LT:
             {
-                GEN_INSN(CMP, cc.cmp_reg, rhs, lhs);
-                GEN_INSN(SELECTGTS, res, cc.cmp_reg, const_one, const_zero);
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, rhs, lhs)));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             case FLOAT_GT:
             {
-                GEN_INSN(CMP, cc.cmp_reg, lhs, rhs);
-                GEN_INSN(SELECTGTS, res, cc.cmp_reg, const_one, const_zero);
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             case FLOAT_LE:
             {
-                GEN_INSN(CMP, cc.cmp_reg, rhs, lhs);
-                GEN_INSN(SELECTGES, res, cc.cmp_reg, const_one, const_zero);
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, rhs, lhs)));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             case FLOAT_GE:
             {
-                GEN_INSN(CMP, cc.cmp_reg, lhs, rhs);
-                GEN_INSN(SELECTGES, res, cc.cmp_reg, const_one, const_zero);
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             default:
@@ -196,26 +211,20 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
         }
     }
     PUSH_I32(res);
-
     return true;
 fail:
     return false;
 }
-
 bool jit_compile_op_f32_compare(JitCompContext* cc, FloatCond cond) {
     JitReg res = void, const_zero = void, const_one = void;
     JitReg lhs = void, rhs = void;
-
     POP_F32(rhs);
     POP_F32(lhs);
-
     if (jit_reg_is_const_val(lhs) && jit_reg_is_const_val(rhs)) {
         float32 lvalue = jit_cc_get_const_F32(cc, lhs);
         float32 rvalue = jit_cc_get_const_F32(cc, rhs);
-
-        const_zero = NEW_CONST(I32, 0);
-        const_one = NEW_CONST(I32, 1);
-
+        const_zero = jit_cc_new_const_I32(cc, 0);
+        const_one = jit_cc_new_const_I32(cc, 1);
         switch (cond) {
             case FLOAT_EQ:
             {
@@ -253,30 +262,23 @@ bool jit_compile_op_f32_compare(JitCompContext* cc, FloatCond cond) {
                 goto fail;
             }
         }
-
         PUSH_I32(res);
         return true;
     }
-
     return jit_compile_op_compare_float_point(cc, cond, lhs, rhs);
 fail:
     return false;
 }
-
 bool jit_compile_op_f64_compare(JitCompContext* cc, FloatCond cond) {
     JitReg res = void, const_zero = void, const_one = void;
     JitReg lhs = void, rhs = void;
-
     POP_F64(rhs);
     POP_F64(lhs);
-
     if (jit_reg_is_const_val(lhs) && jit_reg_is_const_val(rhs)) {
         float64 lvalue = jit_cc_get_const_F64(cc, lhs);
         float64 rvalue = jit_cc_get_const_F64(cc, rhs);
-
-        const_zero = NEW_CONST(I32, 0);
-        const_one = NEW_CONST(I32, 1);
-
+        const_zero = jit_cc_new_const_I32(cc, 0);
+        const_one = jit_cc_new_const_I32(cc, 1);
         switch (cond) {
             case FLOAT_EQ:
             {
@@ -314,11 +316,9 @@ bool jit_compile_op_f64_compare(JitCompContext* cc, FloatCond cond) {
                 goto fail;
             }
         }
-
         PUSH_I32(res);
         return true;
     }
-
     return jit_compile_op_compare_float_point(cc, cond, lhs, rhs);
 fail:
     return false;
@@ -327,5 +327,3 @@ fail:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
- 
