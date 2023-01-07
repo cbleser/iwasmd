@@ -23,11 +23,11 @@ nothrow:
         JitValue* jit_value = null;
         JitReg value = 0;
         if (!jit_block_stack_top(&cc.block_stack)) {
-            jit_set_last_error(cc, "WASM block stack underflow");
+            jit_set_last_error("WASM block stack underflow");
             return false;
         }
         if (!jit_block_stack_top(&cc.block_stack).value_stack.value_list_end) {
-            jit_set_last_error(cc, "WASM data stack underflow");
+            jit_set_last_error("WASM data stack underflow");
             return false;
         }
         jit_value = jit_value_stack_pop(
@@ -35,7 +35,7 @@ nothrow:
                 &jit_block_stack_top(&cc.block_stack).value_stack);
         bh_assert(jit_value !is null);
         if (jit_value.type != to_stack_value_type(type)) {
-            jit_set_last_error(cc, "invalid WASM stack data type");
+            jit_set_last_error("invalid WASM stack data type");
             jit_free(jit_value);
             return false;
         }
@@ -582,7 +582,7 @@ nothrow:
         if (insn)
             jit_basic_block_append_insn(cc.cur_basic_block, insn);
         else
-            jit_set_last_error(cc, "generate insn failed");
+            jit_set_last_error("generate insn failed");
         return insn;
     }
     /**
@@ -610,11 +610,11 @@ nothrow:
  * context. They are more convenient than the above one.
  */
     JitReg new_reg_I32() {
-        return new_reg(cc, JIT_REG_KIND_I32);
+        return new_reg(JIT_REG_KIND_I32);
     }
 
     JitReg new_reg_I64() {
-        return new_reg(cc, JIT_REG_KIND_I64);
+        return new_reg(JIT_REG_KIND_I64);
     }
 
     static if (uintptr_t.max == ulong.max) {
@@ -624,23 +624,23 @@ nothrow:
         alias new_reg_ptr = new_reg_I32;
     }
     JitReg new_reg_F32() {
-        return new_reg(cc, JIT_REG_KIND_F32);
+        return new_reg(JIT_REG_KIND_F32);
     }
 
     JitReg new_reg_F64() {
-        return new_reg(cc, JIT_REG_KIND_F64);
+        return new_reg(JIT_REG_KIND_F64);
     }
 
     JitReg new_reg_V64() {
-        return new_reg(cc, JIT_REG_KIND_V64);
+        return new_reg(JIT_REG_KIND_V64);
     }
 
     JitReg new_reg_V128() {
-        return new_reg(cc, JIT_REG_KIND_V128);
+        return new_reg(JIT_REG_KIND_V128);
     }
 
     JitReg new_reg_V256() {
-        return new_reg(cc, JIT_REG_KIND_V256);
+        return new_reg(JIT_REG_KIND_V256);
     }
     /**
  * Get the hard register numbe of the given kind
@@ -679,7 +679,7 @@ nothrow:
     bool is_hreg_fixed(JitReg reg) {
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
-        bh_assert(is_hreg(cc, reg));
+        bh_assert(is_hreg(reg));
         return !!cc.hreg_info.info[kind].fixed[no];
     }
     /**
@@ -693,7 +693,7 @@ nothrow:
     bool is_hreg_caller_saved_native(JitReg reg) {
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
-        bh_assert(is_hreg(cc, reg));
+        bh_assert(is_hreg(reg));
         return !!cc.hreg_info.info[kind].caller_saved_native[no];
     }
     /**
@@ -707,7 +707,7 @@ nothrow:
     bool is_hreg_caller_saved_jitted(JitReg reg) {
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
-        bh_assert(is_hreg(cc, reg));
+        bh_assert(is_hreg(reg));
         return !!cc.hreg_info.info[kind].caller_saved_jitted[no];
     }
     /**
@@ -718,7 +718,7 @@ nothrow:
  * @return the entry block of the compilation context
  */
     JitBasicBlock* entry_basic_block() {
-        return *(jit_annl_basic_block(cc, cc.entry_label));
+        return *(jit_annl_basic_block(cc.entry_label));
     }
     /**
  * Return the exit block of the compilation context.
@@ -728,11 +728,11 @@ nothrow:
  * @return the exit block of the compilation context
  */
     JitBasicBlock* exit_basic_block() {
-        return *(jit_annl_basic_block(cc, cc.exit_label));
+        return *(jit_annl_basic_block(cc.exit_label));
     }
 
     JitReg new_reg(uint kind) {
-        uint num = reg_num(cc, kind);
+        uint num = reg_num(kind);
         uint capacity = cc._ann._reg_capacity[kind];
         bool successful = true;
         bh_assert(num <= capacity);
@@ -892,7 +892,7 @@ nothrow:
                     successful = false;
             }
             if (!successful) {
-                jit_set_last_error(cc, "create register failed");
+                jit_set_last_error("create register failed");
                 return 0;
             }
             cc._ann._reg_capacity[kind] = capacity;
@@ -1002,7 +1002,7 @@ nothrow:
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_basic_block = jit_calloc(cc._ann._label_capacity * (JitBasicBlock*)
                 .sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "basic_block" ~ "failed");
+            jit_set_last_error("annl enable " ~ "basic_block" ~ "failed");
             return false;
         }
         cc._ann._label_basic_block_enabled = 1;
@@ -1014,7 +1014,7 @@ nothrow:
         if (cc._ann._label_pred_num_enabled)
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_pred_num = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "pred_num" ~ "failed");
+            jit_set_last_error("annl enable " ~ "pred_num" ~ "failed");
             return false;
         }
         cc._ann._label_pred_num_enabled = 1;
@@ -1026,7 +1026,7 @@ nothrow:
         if (cc._ann._label_freq_enabled)
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_freq = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "freq" ~ "failed");
+            jit_set_last_error("annl enable " ~ "freq" ~ "failed");
             return false;
         }
         cc._ann._label_freq_enabled = 1;
@@ -1038,7 +1038,7 @@ nothrow:
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_begin_bcip = jit_calloc(cc._ann._label_capacity * (ubyte*)
                 .sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "begin_bcip" ~ "failed");
+            jit_set_last_error("annl enable " ~ "begin_bcip" ~ "failed");
             return false;
         }
         cc._ann._label_begin_bcip_enabled = 1;
@@ -1050,7 +1050,7 @@ nothrow:
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_end_bcip = jit_calloc(cc._ann._label_capacity * (ubyte*)
                 .sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "end_bcip" ~ "failed");
+            jit_set_last_error("annl enable " ~ "end_bcip" ~ "failed");
             return false;
         }
         cc._ann._label_end_bcip_enabled = 1;
@@ -1061,7 +1061,7 @@ nothrow:
         if (cc._ann._label_end_sp_enabled)
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_end_sp = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "end_sp" ~ "failed");
+            jit_set_last_error("annl enable " ~ "end_sp" ~ "failed");
             return false;
         }
         cc._ann._label_end_sp_enabled = 1;
@@ -1073,7 +1073,7 @@ nothrow:
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_next_label = jit_calloc(cc._ann._label_capacity * JitReg
                 .sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "next_label" ~ "failed");
+            jit_set_last_error("annl enable " ~ "next_label" ~ "failed");
             return false;
         }
         cc._ann._label_next_label_enabled = 1;
@@ -1085,7 +1085,7 @@ nothrow:
             return true;
         if (cc._ann._label_capacity > 0 && ((cc._ann._label_jitted_addr = jit_calloc(cc._ann._label_capacity * (void*)
                 .sizeof)) == 0)) {
-            jit_set_last_error(cc, "annl enable " ~ "jitted_addr" ~ "failed");
+            jit_set_last_error("annl enable " ~ "jitted_addr" ~ "failed");
             return false;
         }
         cc._ann._label_jitted_addr_enabled = 1;
@@ -1116,7 +1116,7 @@ nothrow:
             return true;
         if (cc._ann._insn_capacity > 0 && ((cc._ann._insn__hash_link = jit_calloc(cc._ann._insn_capacity * (JitInsn*)
                 .sizeof)) == 0)) {
-            jit_set_last_error(cc, "anni enable " ~ "_hash_link" ~ "failed");
+            jit_set_last_error("anni enable " ~ "_hash_link" ~ "failed");
             return false;
         }
         cc._ann._insn__hash_link_enabled = 1;
@@ -1147,8 +1147,8 @@ nothrow:
         for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++)
             if (cc._ann._reg_capacity[k] > 0 && ((cc._ann._reg_def_insn[k] = jit_calloc(cc._ann._reg_capacity[k] * (JitInsn*)
             .sizeof)) == 0)) {
-            jit_set_last_error(cc, "annr enable " ~ "def_insn" ~ "failed");
-            jit_annr_disable_def_insn(cc);
+            jit_set_last_error("annr enable " ~ "def_insn" ~ "failed");
+            jit_annr_disable_def_insn;
             return false;
         }
         cc._ann._reg_def_insn_enabled = 1;
@@ -1358,7 +1358,7 @@ nothrow:
         JitInsn* indicate_using = null;
         if (!the_insn)
             goto just_return;
-        if (is_hreg_fixed(cc, reg_to_lock)) {
+        if (is_hreg_fixed(reg_to_lock)) {
             ret = true;
             goto just_return;
         }
@@ -1381,7 +1381,7 @@ nothrow:
         ret = true;
     just_return:
         if (!ret)
-            jit_set_last_error(cc, "generate insn failed");
+            jit_set_last_error("generate insn failed");
         return ret;
     }
 
@@ -1545,7 +1545,7 @@ nothrow:
  */
                 /* Defining instruction of registers satisfying SSA property.  */
                 if (!successful) {
-                    jit_set_last_error(cc, "set insn uid failed");
+                    jit_set_last_error("set insn uid failed");
                     return null;
                 }
                 cc._ann._insn_capacity = capacity;
@@ -1555,221 +1555,220 @@ nothrow:
         }
         return insn;
     }
-JitReg new_const_I32_rel( int val, ulong rel) {
-    ulong val64 = cast(ulong) val | rel << 32;
-    do {
-        JitReg reg = jit_reg_new(JIT_REG_KIND_I32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val64 & ~_JIT_REG_KIND_MASK)));
-        if (cast(ulong) get_const_val_in_reg(reg) == val64)
-            return reg;
-        return _cc.new_const( JIT_REG_KIND_I32, val64.sizeof, &val64);
+
+    JitReg new_const_I32_rel(int val, ulong rel) {
+        ulong val64 = cast(ulong) val | rel << 32;
+        do {
+            JitReg reg = jit_reg_new(JIT_REG_KIND_I32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val64 & ~_JIT_REG_KIND_MASK)));
+            if (cast(ulong) get_const_val_in_reg(reg) == val64)
+                return reg;
+            return _cc.new_const(JIT_REG_KIND_I32, val64.sizeof, &val64);
+        }
+        while (0);
     }
-    while (0);
-}
 
-JitReg new_const_I64( long val) {
-    do {
-        JitReg reg = jit_reg_new(JIT_REG_KIND_I64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
-        if (cast(long) get_const_val_in_reg(reg) == val)
-            return reg;
-        return _cc.new_const( JIT_REG_KIND_I64, val.sizeof, &val);
+    JitReg new_const_I64(long val) {
+        do {
+            JitReg reg = jit_reg_new(JIT_REG_KIND_I64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
+            if (cast(long) get_const_val_in_reg(reg) == val)
+                return reg;
+            return _cc.new_const(JIT_REG_KIND_I64, val.sizeof, &val);
+        }
+        while (0);
     }
-    while (0);
-}
 
-JitReg new_const_F32( float val) {
-    int float_neg_zero = 0x80000000;
-    if (!memcmp(&val, &float_neg_zero, float.sizeof)) /* Create const -0.0f */
-        return _cc.new_const( JIT_REG_KIND_F32, float.sizeof, &val);
-    do {
-        JitReg reg = jit_reg_new(JIT_REG_KIND_F32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
-        if (cast(float) get_const_val_in_reg(reg) == val)
-            return reg;
-        return _cc.new_const( JIT_REG_KIND_F32, val.sizeof, &val);
+    JitReg new_const_F32(float val) {
+        int float_neg_zero = 0x80000000;
+        if (!memcmp(&val, &float_neg_zero, float.sizeof)) /* Create const -0.0f */
+            return _cc.new_const(JIT_REG_KIND_F32, float.sizeof, &val);
+        do {
+            JitReg reg = jit_reg_new(JIT_REG_KIND_F32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
+            if (cast(float) get_const_val_in_reg(reg) == val)
+                return reg;
+            return _cc.new_const(JIT_REG_KIND_F32, val.sizeof, &val);
+        }
+        while (0);
     }
-    while (0);
-}
 
-JitReg new_const_F64( double val) {
-    long double_neg_zero = 0x8000000000000000L;
-    if (!memcmp(&val, &double_neg_zero, double.sizeof)) /* Create const -0.0d */
-        return _cc.new_const( JIT_REG_KIND_F64, double.sizeof, &val);
-    do {
-        JitReg reg = jit_reg_new(JIT_REG_KIND_F64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
-        if (cast(double) get_const_val_in_reg(reg) == val)
-            return reg;
-        return _cc.new_const( JIT_REG_KIND_F64, val.sizeof, &val);
+    JitReg new_const_F64(double val) {
+        long double_neg_zero = 0x8000000000000000L;
+        if (!memcmp(&val, &double_neg_zero, double.sizeof)) /* Create const -0.0d */
+            return _cc.new_const(JIT_REG_KIND_F64, double.sizeof, &val);
+        do {
+            JitReg reg = jit_reg_new(JIT_REG_KIND_F64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
+            if (cast(double) get_const_val_in_reg(reg) == val)
+                return reg;
+            return _cc.new_const(JIT_REG_KIND_F64, val.sizeof, &val);
+        }
+        while (0);
     }
-    while (0);
-}
 
-private ulong get_const_I32_helper( JitReg reg) {
-    do {
-        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I32);
-        bh_assert(jit_reg_is_const(reg));
-        return (jit_reg_is_const_val(reg) ? cast(ulong) get_const_val_in_reg(reg) : *cast(ulong*)(
-                address_of_const(cc, reg, uint.sizeof)));
+    private ulong get_const_I32_helper(JitReg reg) {
+        do {
+            bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I32);
+            bh_assert(jit_reg_is_const(reg));
+            return (jit_reg_is_const_val(reg) ? cast(ulong) get_const_val_in_reg(reg) : *cast(ulong*)(
+                    address_of_const(reg, uint.sizeof)));
+        }
+        while (0);
     }
-    while (0);
-}
 
-uint get_const_I32_rel( JitReg reg) {
-    return cast(uint)(cc.get_const_I32_helper( reg) >> 32);
-}
-
-int get_const_I32( JitReg reg) {
-    return cast(int)(cc.get_const_I32_helper( reg));
-}
-
-long get_const_I64( JitReg reg) {
-    do {
-        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I64);
-        bh_assert(jit_reg_is_const(reg));
-        return (jit_reg_is_const_val(reg) ? cast(long) get_const_val_in_reg(reg) : *cast(long*)(
-                address_of_const(cc, reg, int.sizeof)));
+    uint get_const_I32_rel(JitReg reg) {
+        return cast(uint)(cc.get_const_I32_helper(reg) >> 32);
     }
-    while (0);
-}
 
-float get_const_F32( JitReg reg) {
-    do {
-        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F32);
-        bh_assert(jit_reg_is_const(reg));
-        return (jit_reg_is_const_val(reg) ? cast(float) get_const_val_in_reg(reg) : *cast(float*)(
-                address_of_const(cc, reg, float.sizeof)));
+    int get_const_I32(JitReg reg) {
+        return cast(int)(cc.get_const_I32_helper(reg));
     }
-    while (0);
-}
 
-double get_const_F64( JitReg reg) {
-    do {
-        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F64);
-        bh_assert(jit_reg_is_const(reg));
-        return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *cast(double*)(
-                address_of_const(cc, reg, double.sizeof)));
+    long get_const_I64(JitReg reg) {
+        do {
+            bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I64);
+            bh_assert(jit_reg_is_const(reg));
+            return (jit_reg_is_const_val(reg) ? cast(long) get_const_val_in_reg(reg) : *cast(long*)(
+                    address_of_const(reg, int.sizeof)));
+        }
+        while (0);
     }
-    while (0);
-}
 
-JitBasicBlock* new_basic_block( int n) {
-    JitReg label = new_label(cc);
-    JitBasicBlock* block = null;
-    if (label && ((block = jit_basic_block_new(label, n)) !is null)) /* Void 0 register indicates error in creation.  */
-        *(jit_annl_basic_block(cc, label)) = block;
-    else
-        jit_set_last_error(cc, "create basic block failed");
-    return block;
-}
+    float get_const_F32(JitReg reg) {
+        do {
+            bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F32);
+            bh_assert(jit_reg_is_const(reg));
+            return (jit_reg_is_const_val(reg) ? cast(float) get_const_val_in_reg(reg) : *cast(float*)(
+                    address_of_const(reg, float.sizeof)));
+        }
+        while (0);
+    }
 
-JitBasicBlock* resize_basic_block( JitBasicBlock* block, int n) {
-    JitReg label = jit_basic_block_label(block);
-    JitInsn* insn = jit_basic_block_first_insn(block);
-    JitBasicBlock* new_block = jit_basic_block_new(label, n);
-    if (!new_block) {
-        jit_set_last_error(cc, "resize basic block failed");
+    double get_const_F64(JitReg reg) {
+        do {
+            bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F64);
+            bh_assert(jit_reg_is_const(reg));
+            return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *cast(double*)(
+                    address_of_const(reg, double.sizeof)));
+        }
+        while (0);
+    }
+
+    JitBasicBlock* new_basic_block(int n) {
+        JitReg label = new_label;
+        JitBasicBlock* block = null;
+        if (label && ((block = jit_basic_block_new(label, n)) !is null)) /* Void 0 register indicates error in creation.  */
+            *(jit_annl_basic_block(label)) = block;
+        else
+            jit_set_last_error("create basic block failed");
+        return block;
+    }
+
+    JitBasicBlock* resize_basic_block(JitBasicBlock* block, int n) {
+        JitReg label = jit_basic_block_label(block);
+        JitInsn* insn = jit_basic_block_first_insn(block);
+        JitBasicBlock* new_block = jit_basic_block_new(label, n);
+        if (!new_block) {
+            jit_set_last_error("resize basic block failed");
+            return null;
+        }
+        jit_insn_unlink(block);
+        if (insn != block)
+            jit_insn_insert_before(insn, new_block);
+        bh_assert(*(jit_annl_basic_block(label)) == block);
+
+        *(jit_annl_basic_block(label)) = new_block;
+        jit_insn_delete(block);
+        return new_block;
+    }
+
+    bool enable_insn_hash(uint n) {
+        if (jit_anni_is_enabled__hash_link)
+            return true;
+        if (!jit_anni_enable__hash_link)
+            return false;
+        /* The table must not exist.  */
+        bh_assert(!cc._insn_hash_table._table);
+        /* Integer overflow cannot happen because n << 4G (at most several
+       times of 64K in the most extreme case).  */
+        if (((cc._insn_hash_table._table =
+                jit_calloc_ref(cast(uint)(n * typeof(*cc._insn_hash_table._table).sizeof))) is null)) {
+            jit_anni_disable__hash_link;
+            return false;
+        }
+        cc._insn_hash_table._size = n;
+        return true;
+    }
+
+    void disable_insn_hash() {
+        jit_anni_disable__hash_link;
+        jit_free(cc._insn_hash_table._table);
+        cc._insn_hash_table._table = null;
+        cc._insn_hash_table._size = 0;
+    }
+
+    void reset_insn_hash() {
+        if (jit_anni_is_enabled__hash_link)
+            memset(cc._insn_hash_table._table, 0,
+                    cc._insn_hash_table._size
+                    * typeof(*cc._insn_hash_table._table).sizeof);
+    }
+
+    JitInsn* _set_insn_uid_for_new_insn(JitInsn* insn) {
+        if (cc.set_insn_uid(insn))
+            return insn;
+        jit_insn_delete(insn);
         return null;
     }
-    jit_insn_unlink(block);
-    if (insn != block)
-        jit_insn_insert_before(insn, new_block);
-    bh_assert(*(jit_annl_basic_block(cc, label)) == block);
 
-    *(jit_annl_basic_block(cc, label)) = new_block;
-    jit_insn_delete(block);
-    return new_block;
-}
-
-bool enable_insn_hash( uint n) {
-    if (jit_anni_is_enabled__hash_link(cc))
-        return true;
-    if (!jit_anni_enable__hash_link(cc))
-        return false;
-    /* The table must not exist.  */
-    bh_assert(!cc._insn_hash_table._table);
-    /* Integer overflow cannot happen because n << 4G (at most several
-       times of 64K in the most extreme case).  */
-    if (((cc._insn_hash_table._table =
-            jit_calloc_ref(cast(uint)(n * typeof(*cc._insn_hash_table._table).sizeof))) is null)) {
-        jit_anni_disable__hash_link(cc);
-        return false;
+    char* jit_get_last_error() {
+        return cc.last_error[0] == '\0' ? null : cc.last_error.ptr;
     }
-    cc._insn_hash_table._size = n;
-    return true;
-}
 
-void disable_insn_hash() {
-    jit_anni_disable__hash_link(cc);
-    jit_free(cc._insn_hash_table._table);
-    cc._insn_hash_table._table = null;
-    cc._insn_hash_table._size = 0;
-}
+    bool update_cfg() {
+        JitBasicBlock* block = void;
+        uint block_index = void, end = void, succ_index = void;
+        ushort idx = void;
+        JitReg* target = void;
+        bool retval = false;
+        if (!jit_annl_enable_pred_num)
+            return false;
+        /* Update pred_num of all blocks.  */
+        for (block_index = 0, end = (cc)._ann._label_num; block_index < end; block_index++)
+            if ((block = (cc)._ann._label_basic_block[block_index]) !is null) {
+            JitRegVec succs = jit_basic_block_succs(block);
+            for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
+                    ._stride)
+                if (*target is JitRegKind.L32)
 
-void reset_insn_hash() {
-    if (jit_anni_is_enabled__hash_link(cc))
-        memset(cc._insn_hash_table._table, 0,
-                cc._insn_hash_table._size
-                * typeof(*cc._insn_hash_table._table).sizeof);
-}
+                    *(jit_annl_pred_num(*target)) += 1;
+        }
+        /* Resize predecessor vectors of body blocks.  */
+        for (block_index = 2, end = (cc)._ann._label_num; block_index < end; block_index++)
+            if ((block = (cc)._ann._label_basic_block[block_index]) !is null) {
+            if (!resize_basic_block(
+                    cc, block,
 
-JitInsn* _set_insn_uid_for_new_insn( JitInsn* insn) {
-    if (cc.set_insn_uid( insn))
-        return insn;
-    jit_insn_delete(insn);
-    return null;
-}
+                    *(jit_annl_pred_num(jit_basic_block_label(block)))))
+                goto cleanup_and_return;
+        }
+        /* Fill in predecessor vectors all blocks.  */
+        for (block_index = (cc)._ann._label_num; block_index > 0; block_index--)
+            if ((block = (cc)._ann._label_basic_block[block_index - 1]) !is null) {
+            JitRegVec succs = jit_basic_block_succs(block), preds = void;
+            for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
+                    ._stride)
+                if (*target is JitRegKind.L32) {
+                    preds = jit_basic_block_preds(*(jit_annl_basic_block(*target)));
+                    bh_assert(*(jit_annl_pred_num(*target)) > 0);
+                    idx = cast(ushort)(*(jit_annl_pred_num(*target)) - 1);
 
-char* jit_get_last_error() {
-    return cc.last_error[0] == '\0' ? null : cc.last_error.ptr;
-}
+                    *(jit_annl_pred_num(*target)) = idx;
 
-
-bool update_cfg() {
-    JitBasicBlock* block = void;
-    uint block_index = void, end = void, succ_index = void;
-	ushort idx = void;
-    JitReg* target = void;
-    bool retval = false;
-    if (!jit_annl_enable_pred_num(cc))
-        return false;
-    /* Update pred_num of all blocks.  */
-    for (block_index = 0, end = (cc)._ann._label_num; block_index < end; block_index++)
-        if ((block = (cc)._ann._label_basic_block[block_index]) !is null) {
-        JitRegVec succs = jit_basic_block_succs(block);
-        for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
-                ._stride)
-            if (*target is JitRegKind.L32)
-
-                *(jit_annl_pred_num(cc, *target)) += 1;
+                    *(jit_reg_vec_at(&preds, idx)) = jit_basic_block_label(block);
+                }
+        }
+        retval = true;
+    cleanup_and_return:
+        jit_annl_disable_pred_num;
+        return retval;
     }
-    /* Resize predecessor vectors of body blocks.  */
-    for (block_index = 2, end = (cc)._ann._label_num; block_index < end; block_index++)
-        if ((block = (cc)._ann._label_basic_block[block_index]) !is null) {
-        if (!resize_basic_block(
-                cc, block,
-
-                *(jit_annl_pred_num(cc, jit_basic_block_label(block)))))
-            goto cleanup_and_return;
-    }
-    /* Fill in predecessor vectors all blocks.  */
-    for (block_index = (cc)._ann._label_num; block_index > 0; block_index--)
-        if ((block = (cc)._ann._label_basic_block[block_index - 1]) !is null) {
-        JitRegVec succs = jit_basic_block_succs(block), preds = void;
-        for (succ_index = 0, target = succs._base; succ_index < succs.num; succ_index++, target += succs
-                ._stride)
-            if (*target is JitRegKind.L32) {
-                preds = jit_basic_block_preds(*(jit_annl_basic_block(cc, *target)));
-                bh_assert(*(jit_annl_pred_num(cc, *target)) > 0);
-                idx = cast(ushort)(*(jit_annl_pred_num(cc, *target)) - 1);
-
-                *(jit_annl_pred_num(cc, *target)) = idx;
-
-                *(jit_reg_vec_at(&preds, idx)) =  jit_basic_block_label(block);
-            }
-    }
-    retval = true;
-cleanup_and_return:
-    jit_annl_disable_pred_num(cc);
-    return retval;
-}
-
 
 }
