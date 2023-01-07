@@ -61,6 +61,9 @@ struct JitBitmap {
 pragma(inline, true) void* jit_malloc(size_t size) {
     return wasm_runtime_malloc(size);
 }
+T* jit_malloc(T)(size_t size) {
+    return cast(T*)wasm_runtime_malloc(cast(uint)size);
+}
  T* jit_calloc(T)(size_t size) {
     auto ret = wasm_runtime_malloc(cast(uint)size);
     if (ret) {

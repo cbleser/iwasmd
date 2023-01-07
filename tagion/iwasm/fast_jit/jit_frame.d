@@ -46,6 +46,9 @@ struct JitFrame {
     JitTableRegs* table_regs;
     /* Local variables */
     JitValueSlot* lp;
+	ptrdiff_t local_offset() const pure {
+	return sp-lp;
+}
     JitReg module_inst_reg() {
         if (!_module_inst_reg) {
             _module_inst_reg = cc.module_inst_reg;

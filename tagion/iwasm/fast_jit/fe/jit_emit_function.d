@@ -47,8 +47,11 @@ import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
 import tagion.iwasm.fast_jit.jit_context;
 import tagion.iwasm.fast_jit.jit_frame;
+import tagion.iwasm.fast_jit.jit_utils;
+import tagion.iwasm.share.utils.bh_assert; 
 //import tagion.iwasm.interpreter.wasm_runtime;
 import tagion.iwasm.interpreter.wasm;
+import tagion.iwasm.common.wasm_exec_env : WASMExecEnv;
 private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg res, JitReg* params, uint param_count);
 /* Prepare parameters for the function to call */
 private bool pre_call(JitCompContext* cc, const(WASMType)* func_type) {
@@ -261,7 +264,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
             arg_regs[0] = cc.exec_env_reg;
             arg_regs[1] = jit_cc_new_const_I32(cc, func_idx);
             arg_regs[2] = cc.fp_reg;
-            if (!jit_emit_callnative(cc, fast_jit_invoke_native, ret, arg_regs.ptr,
+            if (!jit_emit_callnative(cc, &fast_jit_invoke_native, ret, arg_regs.ptr,
                                      3)) {
                 goto fail;
             }
@@ -281,12 +284,12 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
         /* Import function was registered as normal mode, and its argument count
            is no more than 5, we directly call it */
         signature = func_import.signature;
-        bh_assert(signature);
+        bh_assert(signature !is null);
         /* Allocate memory for argvs*/
         total_size = JitReg.sizeof * cast(ulong)(func_type.param_count);
         if (total_size > 0) {
-            if (total_size >= UINT32_MAX
-                || ((argvs = jit_malloc(cast(uint)total_size)) == 0)) {
+            if (total_size >= uint.max
+                || ((argvs = jit_malloc!uint(total_size)) is null)) {
                 goto fail;
             }
         }
@@ -295,7 +298,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
             goto fail;
         }
         ret = jit_cc_new_reg_I32(cc);
-        func_params[0] = module_inst_reg = get_module_inst_reg(jit_frame);
+        func_params[0] = module_inst_reg = jit_frame.module_inst_reg;
         func_params[4] = native_addr_ptr = jit_cc_new_reg_ptr(cc);
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(native_addr_ptr, cc.exec_env_reg, jit_cc_new_const_PTR(cc, WASMExecEnv.jit_cache.offsetof))));
         /* Traverse each pointer/str argument, call
@@ -326,7 +329,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
                 func_params[3] = jit_cc_new_const_I32(cc, 1);
             }
             if (is_pointer_arg) {
-                if (!jit_emit_callnative(cc, jit_check_app_addr_and_convert,
+                if (!jit_emit_callnative(cc, &jit_check_app_addr_and_convert,
                                          ret, func_params.ptr, 5)) {
                     goto fail;
                 }
@@ -347,7 +350,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
         res = create_first_res_reg(cc, func_type);
         /* Prepare arguments of the native function */
         if (((argvs1 =
-                  jit_calloc(JitReg.sizeof * (func_type.param_count + 1))) == 0)) {
+                  jit_calloc_reg(JitReg.sizeof * (func_type.param_count + 1))) is null)) {
             goto fail;
         }
         argvs1[0] = cc.exec_env_reg;
@@ -379,7 +382,7 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
                    .functions[func_idx - wasm_module.import_function_count];
         func_type = func.func_type;
         /* jitted_code = func_ptrs[func_idx - import_function_count] */
-        fast_jit_func_ptrs = get_fast_jit_func_ptrs_reg(jit_frame);
+        fast_jit_func_ptrs = jit_frame.fast_jit_func_ptrs_reg;
         jitted_code = jit_cc_new_reg_ptr(cc);
         jitted_func_idx = func_idx - wasm_module.import_function_count;
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(jitted_code, fast_jit_func_ptrs, jit_cc_new_const_I32(cc, cast(uint)(void*).sizeof * jitted_func_idx))));
@@ -394,9 +397,10 @@ bool jit_compile_op_call(JitCompContext* cc, uint func_idx, bool tail_call) {
     }
     /* Clear part of memory regs and table regs as their values
        may be changed in the function call */
+	pragma(msg, "fixme(cbr): why is the memory cleared two times");
     if (cc.cur_wasm_module.possible_memory_grow)
-        clear_memory_regs(jit_frame);
-    clear_table_regs(jit_frame);
+        jit_frame.clear_memory_regs;
+    jit_frame.clear_table_regs;
     /* Ignore tail call currently */
     cast(void)tail_call;
     return_value = true;
@@ -428,16 +432,16 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
     JitReg offset1_i32 = void, offset1 = void, func_type_idx1 = void, res = void;
     JitReg import_func_ptrs = void, jitted_code_idx = void, jitted_code = void;
     WASMType* func_type = void;
-    uint n = void;
-    POP_I32(elem_idx);
+//    uint n = void;
+    if (cc.pop_i32(elem_idx)) goto fail;
     /* check elem_idx */
-    tbl_size = get_table_cur_size_reg(jit_frame, tbl_idx);
+    tbl_size = jit_frame.table_cur_size_reg( tbl_idx);
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, elem_idx, tbl_size)));
     if (!jit_emit_exception(cc, EXCE_UNDEFINED_ELEMENT, JIT_OP_BGEU,
                             cc.cmp_reg, null))
         goto fail;
     /* check func_idx */
-    if (UINTPTR_MAX == UINT64_MAX) {
+    if (uintptr_t.max == ulong.max) {
         offset_i32 = jit_cc_new_reg_I32(cc);
         offset = jit_cc_new_reg_I64(cc);
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(offset_i32, elem_idx, jit_cc_new_const_I32(cc, 2))));
@@ -448,7 +452,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(offset, elem_idx, jit_cc_new_const_I32(cc, 2))));
     }
     func_idx = jit_cc_new_reg_I32(cc);
-    tbl_elems = get_table_elems_reg(jit_frame, tbl_idx);
+    tbl_elems = jit_frame.table_elems_reg( tbl_idx);
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(func_idx, tbl_elems, offset)));
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, func_idx, jit_cc_new_const_I32(cc, -1))));
     if (!jit_emit_exception(cc, EXCE_UNINITIALIZED_ELEMENT, JIT_OP_BEQ,
@@ -461,7 +465,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
         goto fail;
     /* check func_type */
     /* get func_type_idx from func_type_indexes */
-    if (UINTPTR_MAX == UINT64_MAX) {
+    if (uintptr_t.max == ulong.max) {
         offset1_i32 = jit_cc_new_reg_I32(cc);
         offset1 = jit_cc_new_reg_I64(cc);
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(offset1_i32, func_idx, jit_cc_new_const_I32(cc, 2))));
@@ -471,7 +475,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
         offset1 = jit_cc_new_reg_I32(cc);
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(offset1, func_idx, jit_cc_new_const_I32(cc, 2))));
     }
-    func_type_indexes = get_func_type_indexes_reg(jit_frame);
+    func_type_indexes = jit_frame.func_type_indexes_reg;
     func_type_idx = jit_cc_new_reg_I32(cc);
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(func_type_idx, func_type_indexes, offset1)));
     type_idx = wasm_get_smallest_type_idx(wasm_module.types,
@@ -496,9 +500,9 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
         goto fail;
     }
     /* Commit register values to locals and stacks */
-    gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+    jit_frame.gen_commit_values;//( jit_frame.lp, jit_frame.sp);
     /* Clear frame values */
-    clear_values(jit_frame);
+    jit_frame.clear_values;
     /* jump to block_import or block_nonimport */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, func_idx, jit_cc_new_const_I32(cc, cc.cur_wasm_module.import_function_count))));
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLTU(cc.cmp_reg, jit_basic_block_label(block_import), jit_basic_block_label(block_nonimport))));
@@ -518,9 +522,9 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
     arg_regs[3] = jit_cc_new_const_I32(cc, type_idx);
     arg_regs[4] = jit_cc_new_const_I32(cc, func_type.param_cell_num);
     arg_regs[5] = argv;
-    import_func_ptrs = get_import_func_ptrs_reg(jit_frame);
+    import_func_ptrs = jit_frame.import_func_ptrs_reg;
     func_import = jit_cc_new_reg_ptr(cc);
-    if (UINTPTR_MAX == UINT64_MAX) {
+    if (uintptr_t.max == ulong.max) {
         JitReg func_import_offset = jit_cc_new_reg_I32(cc);
         JitReg func_import_offset_i64 = jit_cc_new_reg_I64(cc);
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(func_import_offset, func_idx, jit_cc_new_const_I32(cc, 3))));
@@ -532,7 +536,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(func_import_offset, func_idx, jit_cc_new_const_I32(cc, 2))));
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(func_import, import_func_ptrs, func_import_offset)));
     }
-    if (!jit_emit_callnative(cc, fast_jit_call_indirect, native_ret, arg_regs.ptr,
+    if (!jit_emit_callnative(cc, &fast_jit_call_indirect, native_ret, arg_regs.ptr,
                              6)) {
         goto fail;
     }
@@ -546,7 +550,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
     }
     /* Store res into current frame, so that post_return in
         block func_return can get the value */
-    n = cc.jit_frame.sp - cc.jit_frame.lp;
+ //   n = cc.jit_frame.sp - cc.jit_frame.lp;
     if (func_type.result_count > 0) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
@@ -556,40 +560,40 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
 }
                 res = jit_cc_new_reg_I32(cc);
                 _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(res, argv, jit_cc_new_const_I32(cc, 0))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             case VALUE_TYPE_I64:
                 res = jit_cc_new_reg_I64(cc);
                 _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(res, argv, jit_cc_new_const_I32(cc, 0))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             case VALUE_TYPE_F32:
                 res = jit_cc_new_reg_F32(cc);
                 _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF32(res, argv, jit_cc_new_const_I32(cc, 0))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             case VALUE_TYPE_F64:
                 res = jit_cc_new_reg_F64(cc);
                 _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF64(res, argv, jit_cc_new_const_I32(cc, 0))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             default:
                 bh_assert(0);
                 goto fail;
         }
     }
-    gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
-    clear_values(jit_frame);
+    jit_frame.gen_commit_values;
+    jit_frame.clear_values;
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(func_return))));
     /* basic_block non_import */
     cc.cur_basic_block = block_nonimport;
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(func_idx, cc.exec_env_reg, jit_cc_new_const_I32(cc, WASMExecEnv.jit_cache.offsetof + 4))));
     /* get jitted_code */
-    fast_jit_func_ptrs = get_fast_jit_func_ptrs_reg(jit_frame);
+    fast_jit_func_ptrs = jit_frame.fast_jit_func_ptrs_reg;
     jitted_code_idx = jit_cc_new_reg_I32(cc);
     jitted_code = jit_cc_new_reg_ptr(cc);
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(jitted_code_idx, func_idx, jit_cc_new_const_I32(cc, cc.cur_wasm_module.import_function_count))));
-    if (UINTPTR_MAX == UINT64_MAX) {
+    if (uintptr_t.max == ulong.max) {
         JitReg jitted_code_offset = jit_cc_new_reg_I32(cc);
         JitReg jitted_code_offset_64 = jit_cc_new_reg_I64(cc);
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(jitted_code_offset, jitted_code_idx, jit_cc_new_const_I32(cc, 3))));
@@ -628,7 +632,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CALLBC(res, 0, jitted_code, func_idx)));
     /* Store res into current frame, so that post_return in
         block func_return can get the value */
-    n = cc.jit_frame.sp - cc.jit_frame.lp;
+//    n = cc.jit_frame.sp - cc.jit_frame.lp;
     if (func_type.result_count > 0) {
         switch (func_type.types[func_type.param_count]) {
             case VALUE_TYPE_I32:
@@ -636,16 +640,16 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             case VALUE_TYPE_I64:
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             case VALUE_TYPE_F32:
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             case VALUE_TYPE_F64:
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(n)))));
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(res, cc.fp_reg, jit_cc_new_const_I32(cc, offset_of_local(cc.jit_frame.local_offset)))));
                 break;
             default:
                 bh_assert(0);
@@ -653,8 +657,8 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
         }
     }
     /* commit and clear jit frame, then jump to block func_ret */
-    gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
-    clear_values(jit_frame);
+    jit_frame.gen_commit_values;
+    jit_frame.clear_values;
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(func_return))));
     /* translate block func_return */
     cc.cur_basic_block = func_return;
@@ -663,9 +667,10 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
     }
     /* Clear part of memory regs and table regs as their values
        may be changed in the function call */
+	pragma(msg, "fix,e(cbr): Again why double clean");
     if (cc.cur_wasm_module.possible_memory_grow)
-        clear_memory_regs(cc.jit_frame);
-    clear_table_regs(cc.jit_frame);
+        cc.jit_frame.clear_memory_regs;
+    cc.jit_frame.clear_table_regs;
     return true;
 fail:
     return false;

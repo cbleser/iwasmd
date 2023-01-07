@@ -610,7 +610,7 @@ pragma(inline, true) uint align_uint(uint v, uint b) {
 /**
  * Return the hash value of c string.
  */
-pragma(inline, true) private uint wasm_string_hash(const(char)* str) {
+ uint wasm_string_hash(const(char)* str) {
     uint h = cast(uint) strlen(str);
     const(ubyte)* p = cast(ubyte*) str;
     const(ubyte)* end = p + h;
@@ -623,7 +623,7 @@ pragma(inline, true) private uint wasm_string_hash(const(char)* str) {
 /**
  * Whether two c strings are equal.
  */
-pragma(inline, true) private bool wasm_string_equal(const(char)* s1, const(char)* s2) {
+ bool wasm_string_equal(const(char)* s1, const(char)* s2) {
     return strcmp(s1, s2) == 0 ? true : false;
 }
 
@@ -631,7 +631,7 @@ pragma(inline, true) private bool wasm_string_equal(const(char)* s1, const(char)
  * Return the byte size of value type.
  *
  */
-pragma(inline, true) private uint wasm_value_type_size(ubyte value_type) {
+ uint wasm_value_type_size(ubyte value_type) {
     switch (value_type) {
     case VALUE_TYPE_I32:
     case VALUE_TYPE_F32:
@@ -655,11 +655,11 @@ pragma(inline, true) private uint wasm_value_type_size(ubyte value_type) {
     return 0;
 }
 
-pragma(inline, true) private ushort wasm_value_type_cell_num(ubyte value_type) {
+ ushort wasm_value_type_cell_num(ubyte value_type) {
     return wasm_value_type_size(value_type) / 4;
 }
 
-pragma(inline, true) private uint wasm_get_cell_num(const(ubyte)* types, uint type_count) {
+ uint wasm_get_cell_num(const(ubyte)* types, uint type_count) {
     uint cell_num = 0;
     uint i = void;
     for (i = 0; i < type_count; i++)
@@ -668,7 +668,7 @@ pragma(inline, true) private uint wasm_get_cell_num(const(ubyte)* types, uint ty
 }
 
 static if (ver.WASM_ENABLE_REF_TYPES) {
-    pragma(inline, true) private ushort wasm_value_type_cell_num_outside(ubyte value_type) {
+     ushort wasm_value_type_cell_num_outside(ubyte value_type) {
         if (VALUE_TYPE_EXTERNREF == value_type) {
             return uintptr_t.sizeof / uint32.sizeof;
         }
@@ -678,7 +678,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
     }
 }
 
-pragma(inline, true) private bool wasm_type_equal(const(WASMType)* type1, const(WASMType)* type2) {
+ bool wasm_type_equal(const(WASMType)* type1, const(WASMType)* type2) {
     if (type1 == type2) {
         return true;
     }
@@ -690,7 +690,7 @@ pragma(inline, true) private bool wasm_type_equal(const(WASMType)* type1, const(
         ? true : false;
 }
 
-pragma(inline, true) private uint wasm_get_smallest_type_idx(WASMType** types, uint type_count, uint cur_type_idx) {
+ uint wasm_get_smallest_type_idx(WASMType** types, uint type_count, uint cur_type_idx) {
     uint i = void;
 
     for (i = 0; i < cur_type_idx; i++) {
@@ -701,7 +701,7 @@ pragma(inline, true) private uint wasm_get_smallest_type_idx(WASMType** types, u
     return cur_type_idx;
 }
 
-pragma(inline, true) private uint block_type_get_param_types(BlockType* block_type, ubyte** p_param_types) {
+ uint block_type_get_param_types(BlockType* block_type, ubyte** p_param_types) {
     uint param_count = 0;
     if (!block_type.is_value_type) {
         WASMType* wasm_type = block_type.u.type;
@@ -716,7 +716,7 @@ pragma(inline, true) private uint block_type_get_param_types(BlockType* block_ty
     return param_count;
 }
 
-pragma(inline, true) private uint block_type_get_result_types(BlockType* block_type, ubyte** p_result_types) {
+ uint block_type_get_result_types(BlockType* block_type, ubyte** p_result_types) {
     uint result_count = 0;
     if (block_type.is_value_type) {
         if (block_type.u.value_type != VALUE_TYPE_VOID) {

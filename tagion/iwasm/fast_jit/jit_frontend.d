@@ -1836,7 +1836,7 @@ uint jit_frontend_get_module_inst_extra_offset(const(WASMModule)* module_);
  *
  * @return the offset from frame pointer to the local variable slot
  */
-pragma(inline, true) private uint offset_of_local(size_t n) {
+uint offset_of_local(size_t n) {
     return cast(uint)(WASMInterpFrame.lp.offsetof + n * 4);
 }
 enum string POP(string jit_value, string value_type) = ` do { if (!jit_cc_pop_value(cc, value_type, &jit_value)) goto fail; } while (0)`;
