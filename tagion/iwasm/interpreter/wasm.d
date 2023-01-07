@@ -15,18 +15,34 @@ public import tagion.iwasm.share.utils.bh_assert;
 import tagion.iwasm.share.utils.bh_list;
 
 /** Value Type */
-enum VALUE_TYPE_I32 = 0x7F;
+enum ValueType {
+    I32 = 0x7F,
+    I64 = 0X7E,
+    F32 = 0x7D,
+    F64 = 0x7C,
+    V128 = 0x7B,
+    FUNCREF = 0x70,
+    EXTERNREF = 0x6F,
+    VOID = 0x40,
+    /* Used by AOT */
+    I1 = 0x41,
+    /*  Used by loader to represent any type of i32/i64/f32/f64 */
+    ANY = 0x42,
+
+}
+
+enum VALUE_TYPE_I32 = ValueType.I32;
 enum VALUE_TYPE_I64 = 0X7E;
-enum VALUE_TYPE_F32 = 0x7D;
-enum VALUE_TYPE_F64 = 0x7C;
-enum VALUE_TYPE_V128 = 0x7B;
-enum VALUE_TYPE_FUNCREF = 0x70;
-enum VALUE_TYPE_EXTERNREF = 0x6F;
-enum VALUE_TYPE_VOID = 0x40;
+enum VALUE_TYPE_F32 = ValueType.F32;
+enum VALUE_TYPE_F64 = ValueType.F64;
+enum VALUE_TYPE_V128 = ValueType.V128;
+enum VALUE_TYPE_FUNCREF = ValueType.FUNCREF;
+enum VALUE_TYPE_EXTERNREF = ValueType.EXTERNREF;
+enum VALUE_TYPE_VOID = ValueType.VOID;
 /* Used by AOT */
-enum VALUE_TYPE_I1 = 0x41;
+enum VALUE_TYPE_I1 = ValueType.I1;
 /*  Used by loader to represent any type of i32/i64/f32/f64 */
-enum VALUE_TYPE_ANY = 0x42;
+enum VALUE_TYPE_ANY = ValueType.ANY;
 
 enum DEFAULT_NUM_BYTES_PER_PAGE = 65536;
 enum DEFAULT_MAX_PAGES = 65536;
@@ -63,7 +79,7 @@ enum SECTION_TYPE_ELEM = 9;
 enum SECTION_TYPE_CODE = 10;
 enum SECTION_TYPE_DATA = 11;
 //version (WASM_ENABLE_BULK_MEMORY) {
-    enum SECTION_TYPE_DATACOUNT = 12;
+enum SECTION_TYPE_DATACOUNT = 12;
 //}
 
 enum SUB_SECTION_TYPE_MODULE = 0;
@@ -120,12 +136,12 @@ struct WASMType {
     ushort param_cell_num;
     ushort ret_cell_num;
     ushort ref_count;
-//    static if (ver.WASM_ENABLE_FAST_JIT && ver.WASM_ENABLE_JIT
-//            && ver.WASM_ENABLE_LAZY_JIT) {
-        /* Code block to call llvm jit functions of this
+    //    static if (ver.WASM_ENABLE_FAST_JIT && ver.WASM_ENABLE_JIT
+    //            && ver.WASM_ENABLE_LAZY_JIT) {
+    /* Code block to call llvm jit functions of this
        kind of function type from fast jit jitted code */
-        void* call_to_llvm_jit_from_fast_jit;
-//    }
+    void* call_to_llvm_jit_from_fast_jit;
+    //    }
     /* types of params and results */
     ubyte[1] types;
 }
@@ -208,9 +224,9 @@ struct WASMGlobalImport {
         WASMGlobal* import_global_linked;
     }
     //static if (ver.WASM_ENABLE_FAST_JIT) {
-        /* The data offset of current global in global data */
-        uint data_offset;
-   // }
+    /* The data offset of current global in global data */
+    uint data_offset;
+    // }
 }
 
 struct WASMImport {
@@ -290,8 +306,8 @@ struct WASMGlobal {
     bool is_mutable;
     InitializerExpression init_expr;
     //static if (ver.WASM_ENABLE_FAST_JIT) {
-        /* The data offset of current global in global data */
-        uint data_offset;
+    /* The data offset of current global in global data */
+    uint data_offset;
     //}
 }
 
@@ -399,7 +415,6 @@ static if (ver.WASM_ENABLE_FAST_JIT || ver.WASM_ENABLE_JIT) {
     }
 }
 
-
 struct WASMModule {
     /* Module type, for module loaded from WASM bytecode binary,
        this field is Wasm_Module_Bytecode;
@@ -500,11 +515,11 @@ struct WASMModule {
         ubyte* buf_code;
         ulong buf_code_size;
     }
-//    static if (ver.WASM_ENABLE_DEBUG_INTERP || ver.WASM_ENABLE_DEBUG_AOT
-//            || ver.WASM_ENABLE_FAST_JIT) {
-        ubyte* load_addr;
-        ulong load_size;
-//    }
+    //    static if (ver.WASM_ENABLE_DEBUG_INTERP || ver.WASM_ENABLE_DEBUG_AOT
+    //            || ver.WASM_ENABLE_FAST_JIT) {
+    ubyte* load_addr;
+    ulong load_size;
+    //    }
 
     static if (ver.WASM_ENABLE_DEBUG_INTERP
             || (ver.WASM_ENABLE_FAST_JIT && WASM_ENABLE_JIT
@@ -610,7 +625,7 @@ pragma(inline, true) uint align_uint(uint v, uint b) {
 /**
  * Return the hash value of c string.
  */
- uint wasm_string_hash(const(char)* str) {
+uint wasm_string_hash(const(char)* str) {
     uint h = cast(uint) strlen(str);
     const(ubyte)* p = cast(ubyte*) str;
     const(ubyte)* end = p + h;
@@ -623,7 +638,7 @@ pragma(inline, true) uint align_uint(uint v, uint b) {
 /**
  * Whether two c strings are equal.
  */
- bool wasm_string_equal(const(char)* s1, const(char)* s2) {
+bool wasm_string_equal(const(char)* s1, const(char)* s2) {
     return strcmp(s1, s2) == 0 ? true : false;
 }
 
@@ -631,7 +646,7 @@ pragma(inline, true) uint align_uint(uint v, uint b) {
  * Return the byte size of value type.
  *
  */
- uint wasm_value_type_size(ubyte value_type) {
+uint wasm_value_type_size(ubyte value_type) {
     switch (value_type) {
     case VALUE_TYPE_I32:
     case VALUE_TYPE_F32:
@@ -655,11 +670,11 @@ pragma(inline, true) uint align_uint(uint v, uint b) {
     return 0;
 }
 
- ushort wasm_value_type_cell_num(ubyte value_type) {
+ushort wasm_value_type_cell_num(ubyte value_type) {
     return wasm_value_type_size(value_type) / 4;
 }
 
- uint wasm_get_cell_num(const(ubyte)* types, uint type_count) {
+uint wasm_get_cell_num(const(ubyte)* types, uint type_count) {
     uint cell_num = 0;
     uint i = void;
     for (i = 0; i < type_count; i++)
@@ -668,7 +683,7 @@ pragma(inline, true) uint align_uint(uint v, uint b) {
 }
 
 static if (ver.WASM_ENABLE_REF_TYPES) {
-     ushort wasm_value_type_cell_num_outside(ubyte value_type) {
+    ushort wasm_value_type_cell_num_outside(ubyte value_type) {
         if (VALUE_TYPE_EXTERNREF == value_type) {
             return uintptr_t.sizeof / uint32.sizeof;
         }
@@ -678,7 +693,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
     }
 }
 
- bool wasm_type_equal(const(WASMType)* type1, const(WASMType)* type2) {
+bool wasm_type_equal(const(WASMType)* type1, const(WASMType)* type2) {
     if (type1 == type2) {
         return true;
     }
@@ -690,7 +705,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
         ? true : false;
 }
 
- uint wasm_get_smallest_type_idx(WASMType** types, uint type_count, uint cur_type_idx) {
+uint wasm_get_smallest_type_idx(WASMType** types, uint type_count, uint cur_type_idx) {
     uint i = void;
 
     for (i = 0; i < cur_type_idx; i++) {
@@ -701,7 +716,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
     return cur_type_idx;
 }
 
- uint block_type_get_param_types(BlockType* block_type, ubyte** p_param_types) {
+uint block_type_get_param_types(BlockType* block_type, ubyte** p_param_types) {
     uint param_count = 0;
     if (!block_type.is_value_type) {
         WASMType* wasm_type = block_type.u.type;
@@ -716,7 +731,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
     return param_count;
 }
 
- uint block_type_get_result_types(BlockType* block_type, ubyte** p_result_types) {
+uint block_type_get_result_types(BlockType* block_type, ubyte** p_result_types) {
     uint result_count = 0;
     if (block_type.is_value_type) {
         if (block_type.u.value_type != VALUE_TYPE_VOID) {
