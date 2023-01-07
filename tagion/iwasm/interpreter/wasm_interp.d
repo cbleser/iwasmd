@@ -68,10 +68,10 @@ static if (ver.WASM_ENABLE_FAST_INTERP) {
 pragma(inline, true) uint wasm_interp_interp_frame_size(size_t all_cell_num) {
     uint frame_size = void;
 
-static if (WASM_ENABLE_FAST_INTERP == 0) {
-    frame_size = cast(uint)WASMInterpFrame.lp.offsetof + all_cell_num * 4;
+static if (!ver.WASM_ENABLE_FAST_INTERP) {
+    frame_size = cast(uint)(WASMInterpFrame.lp.offsetof + all_cell_num * 4);
 } else {
-    frame_size = cast(uint)WASMInterpFrame.operand.offsetof + all_cell_num * 4;
+    frame_size = cast(uint)(WASMInterpFrame.operand.offsetof + all_cell_num * 4);
 }
     return align_uint(frame_size, 4);
 }

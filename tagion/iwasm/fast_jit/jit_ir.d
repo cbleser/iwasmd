@@ -137,6 +137,7 @@ enum _JIT_REG_CONST_IDX_FLAG = (_JIT_REG_CONST_VAL_FLAG >> 1);
 import core.stdc.string : memset, memcpy, memcmp;
 import core.stdc.stdint : uintptr_t;
 import core.stdc.stdarg;
+import core.stdc.stdio : snprintf, vsnprintf;
 import tagion.iwasm.interpreter.wasm_runtime : EXCE_NUM;
 import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.share.utils.bh_assert;
@@ -3844,8 +3845,8 @@ pragma(inline, true) int get_const_val_in_reg(JitReg reg) {
     return (cast(int)(reg << shift)) >> shift;
 }
 
-JitReg jit_cc_new_const_I32_rel(JitCompContext* cc, int val, uint rel) {
-    ulong val64 = cast(ulong) cast(uint) val | (cast(ulong) rel << 32);
+JitReg jit_cc_new_const_I32_rel(JitCompContext* cc, int val, ulong rel) {
+    ulong val64 = cast(ulong) val | rel << 32;
     do {
         JitReg reg = jit_reg_new(JIT_REG_KIND_I32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val64 & ~_JIT_REG_KIND_MASK)));
         if (cast(ulong) get_const_val_in_reg(reg) == val64)
