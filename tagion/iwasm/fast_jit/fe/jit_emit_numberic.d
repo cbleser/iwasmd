@@ -33,7 +33,7 @@
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-module tagion.iwasm.fast_jit.fe.jit_emit_numberic_tmp;
+module tagion.iwasm.fast_jit.fe.jit_emit_numberic;
 @nogc nothrow:
 extern(C): __gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
