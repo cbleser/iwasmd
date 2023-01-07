@@ -8,6 +8,7 @@ extern(C): __gshared:
 import tagion.iwasm.basic;
 import tagion.iwasm.include.platform_api_vmcore;
 import tagion.iwasm.share.mem_alloc.mem_alloc;
+import tagion.iwasm.fast_jit.jit_context;
 import tagion.iwasm.fast_jit.jit_compiler;
 
 private void* code_cache_pool = null;

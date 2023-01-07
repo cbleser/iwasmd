@@ -79,8 +79,16 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-import tagion.iwasm.fast_jit.jit_ir : JitCompContext;
+import tagion.iwasm.config : BLOCK_ADDR_CACHE_SIZE, BLOCK_ADDR_CONFLICT_SIZE;
+import tagion.iwasm.interpreter.wasm : BlockAddr,LABEL_TYPE_BLOCK, LABEL_TYPE_LOOP, LABEL_TYPE_IF;
+import tagion.iwasm.interpreter.wasm_loader : wasm_loader_find_block_addr;
+import tagion.iwasm.fast_jit.jit_context : JitCompContext;
+import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.fast_jit.jit_compiler;
+import tagion.iwasm.fast_jit.jit_frontend : POP_I32, POP_I64;
+import tagion.iwasm.fast_jit.fe.jit_emit_exception : jit_emit_exception;
+import tagion.iwasm.share.utils.bh_assert;
+
 bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_ip_end, uint label_type, uint param_count, ubyte* param_types, uint result_count, ubyte* result_types, bool merge_cmp_and_if);
 bool jit_compile_op_else(JitCompContext* cc, ubyte** p_frame_ip);
 bool jit_compile_op_end(JitCompContext* cc, ubyte** p_frame_ip);
@@ -630,15 +638,15 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
         return false;
     }
     /* Allocate memory */
-    if (((block = jit_calloc(JitBlock.sizeof)) == 0)) {
+    if (((block = jit_calloc_block(JitBlock.sizeof)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         return false;
     }
-    if (param_count && ((block.param_types = jit_calloc(param_count)) == 0)) {
+    if (param_count && ((block.param_types = jit_calloc_buffer(param_count)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         goto fail;
     }
-    if (result_count && ((block.result_types = jit_calloc(result_count)) == 0)) {
+    if (result_count && ((block.result_types = jit_calloc_buffer(result_count)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         goto fail;
     }
@@ -663,7 +671,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
             goto fail;
     }
     else if (label_type == LABEL_TYPE_LOOP) {
-        do { bh_assert(!block.basic_block_entry); if (((block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) == 0)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
+        do { bh_assert(!block.basic_block_entry); if (((block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) is null)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
         do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1; } while (0);
         do { *(jit_annl_begin_bcip(cc, jit_basic_block_label(block.basic_block_entry))) = *p_frame_ip; } while (0);
         /* Push the new jit block to block stack and continue to
@@ -677,7 +685,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
         if (!jit_reg_is_const_val(value)) {
             /* Compare value is not constant, create condition br IR */
             /* Create entry block */
-            do { bh_assert(!block.basic_block_entry); if (((block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) == 0)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
+            do { bh_assert(!block.basic_block_entry); if (((block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) is null)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
             do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1; } while (0);
             do { *(jit_annl_begin_bcip(cc, jit_basic_block_label(block.basic_block_entry))) = *p_frame_ip; } while (0);
             if (!push_jit_block_to_stack_and_pass_params(
@@ -857,7 +865,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
     JitBasicBlock* cur_basic_block = void, if_basic_block = null;
     JitInsn* insn = void, insn_select = null, insn_cmp = null;
     bool copy_arities = void;
-    if (((block_dst = get_target_block(cc, br_depth)) == 0)) {
+    if (((block_dst = get_target_block(cc, br_depth)) is null)) {
         return false;
     }
     /* append IF to current basic block */
@@ -879,7 +887,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
     copy_arities = check_copy_arities(block_dst, jit_frame);
     if (!copy_arities) {
         if (block_dst.label_type == LABEL_TYPE_LOOP) {
-            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(block_dst.basic_block_entry), 0)))) == 0)) {
+            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(block_dst.basic_block_entry), 0)))) is null)) {
                 jit_set_last_error(cc, "generate bne insn failed");
                 goto fail;
             }

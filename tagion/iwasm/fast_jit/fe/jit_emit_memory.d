@@ -42,11 +42,12 @@ extern(C): __gshared:
  */
 import core.stdc.stdint : uintptr_t;
 import tagion.iwasm.basic;
-public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
-public import tagion.iwasm.fast_jit.fe.jit_emit_function;
-public import tagion.iwasm.fast_jit.jit_frontend;
-public import tagion.iwasm.fast_jit.jit_codegen;
-public import tagion.iwasm.interpreter.wasm_runtime;
+import tagion.iwasm.fast_jit.fe.jit_emit_exception;
+import tagion.iwasm.fast_jit.fe.jit_emit_function;
+import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_codegen;
+import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.interpreter.wasm_runtime;
 version (OS_ENABLE_HW_BOUND_CHECK) {} else {
 private JitReg get_memory_boundary(JitCompContext* cc, uint mem_idx, uint bytes) {
     JitReg memory_boundary = void;

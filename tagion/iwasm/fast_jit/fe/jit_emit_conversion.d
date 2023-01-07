@@ -75,7 +75,8 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-import tagion.iwasm.fast_jit.jit_ir : JitCompContext, JitReg;
+import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_ir :  JitReg;
 //#include "jit_emit_conversion.h #include "jit_emit_exception.h"
 //#include "jit_emit_function.h"
 //#include "../jit_codegen.h"

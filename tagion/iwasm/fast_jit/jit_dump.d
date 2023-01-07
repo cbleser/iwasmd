@@ -13,7 +13,9 @@ import tagion.iwasm.basic : os_printf;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_codegen;
 import tagion.iwasm.fast_jit.jit_ir;
-//import tagion.iwasm.share.utils.bh_assert;
+import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.share.utils.bh_assert;
+import tagion.iwasm.interpreter.wasm : WASMModule, EXPORT_KIND_FUNC;
 void jit_dump_reg(JitCompContext* cc, JitReg reg) {
     uint kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);

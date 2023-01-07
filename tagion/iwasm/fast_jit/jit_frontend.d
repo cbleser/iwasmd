@@ -47,6 +47,7 @@ import tagion.iwasm.app_framework.base.app.bh_platform : bh_memcpy_s;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_utils;
+import tagion.iwasm.fast_jit.jit_context;
 import tagion.iwasm.fast_jit.fe.jit_emit_compare;
 import tagion.iwasm.fast_jit.fe.jit_emit_const;
 import tagion.iwasm.fast_jit.fe.jit_emit_control;

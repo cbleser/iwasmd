@@ -7,6 +7,7 @@ extern(C): __gshared:
  */
 import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.jit_ir;
+import tagion.iwasm.fast_jit.jit_context;
 import tagion.iwasm.fast_jit.jit_codecache;
 import tagion.iwasm.interpreter.wasm;
 

@@ -43,6 +43,7 @@ extern(C): __gshared:
 import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
+import tagion.iwasm.fast_jit.jit_context;
 private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bool is64Bit) {
     JitReg lhs = void, rhs = void, res = void, const_zero = void, const_one = void;
     if (cond < INT_EQZ || cond > INT_GE_U) {

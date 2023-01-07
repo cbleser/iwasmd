@@ -41,6 +41,7 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_context;
 //import tagion.iwasm.fast_jit.jit_ir : JitCompContext, JitReg, JitBasicBlock, JitInsn, JitIncomingInsn,
 //_gen_insn, JitOpcode, _jit_cc_set_insn_uid_for_new_insn;
 import tagion.iwasm.fast_jit.jit_ir;

@@ -40,7 +40,8 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-import tagion.iwasm.fast_jit.jit_ir : JitCompContext, JitReg;
+import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_ir :  JitReg;
 public import tagion.iwasm.fast_jit.jit_frontend;
 private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg* p_value, ubyte* p_type) {
     JitValue* jit_value = void;

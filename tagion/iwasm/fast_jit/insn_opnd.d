@@ -72,7 +72,8 @@ __gshared:
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-import tagion.iwasm.fast_jit.jit_ir : JitCompContext, JitReg, JitInsn;
+import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_ir : JitReg, JitInsn;
 /**
  * Operand kinds of instructions.
  */
@@ -103,6 +104,7 @@ immutable(JitOpnd[]) insn_opnd = [
  *
  * Definition of IR instructions
  *
+ * @param NAME name of the opcode
  * @param NAME name of the opcode
  * @param OPND_KIND kind of the operand(s)
  * @param OPND_NUM number of the operand(s)

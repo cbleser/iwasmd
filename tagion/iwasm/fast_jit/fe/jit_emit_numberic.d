@@ -81,6 +81,7 @@ extern(C): __gshared:
  */
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_context;
 bool jit_compile_op_i32_clz(JitCompContext* cc);
 bool jit_compile_op_i32_ctz(JitCompContext* cc);
 bool jit_compile_op_i32_popcnt(JitCompContext* cc);

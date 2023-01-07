@@ -7,7 +7,7 @@ extern(C): __gshared:
  */
 
 import tagion.iwasm.fast_jit.jit_frontend;
-import tagion.iwasm.fast_jit.jit_ir : JitCompContext;
+import tagion.iwasm.fast_jit.jit_context : JitCompContext;
 
 bool jit_compile_op_i32_const(JitCompContext* cc, int i32_const) {
     JitReg value = NEW_CONST(I32, i32_const);

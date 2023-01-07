@@ -7,6 +7,7 @@ extern(C): __gshared:
  */
 import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.jit_compiler;
+import tagion.iwasm.fast_jit.jit_context;
 
 bool jit_pass_lower_cg(JitCompContext* cc) {
     return jit_codegen_lower(cc);
