@@ -26,30 +26,30 @@ static if (!ver.BUILD_TARGET_X86_64
         && !ver.BUILD_TARGET_RISCV32_ILP32
         && !ver.BUILD_TARGET_ARC) {
     /* clang-format on */
-    static if (ver.__x86_64__ || ver.__x86_64) {
+    static if (ver.X86_64) {
         version = BUILD_TARGET_X86_64;
     }
-    else static if (ver.__amd64__ || ver.__amd64) {
+    else static if (ver.amd64) {
         version = BUILD_TARGET_AMD_64;
     }
-    else version (__aarch64__) {
+    else static if (ver.__aarch64__) {
         version = BUILD_TARGET_AARCH64;
     }
     else static if (ver.__i386__ || ver.__i386 || ver.i386) {
         version = BUILD_TARGET_X86_32;
     }
-    else version (__thumb__) {
+    else static if (ver.__thumb__) {
         version = BUILD_TARGET_THUMB;
         enum BUILD_TARGET = "THUMBV4T";
     }
-    else version (__arm__) {
+    else static if (ver.__arm__) {
         version = BUILD_TARGET_ARM;
         enum BUILD_TARGET = "ARMV4T";
     }
     else static if (ver.__mips__ || ver.__mips || ver.mips) {
         version = BUILD_TARGET_MIPS;
     }
-    else version (__XTENSA__) {
+    else static if (ver.__XTENSA__) {
         version = BUILD_TARGET_XTENSA;
     }
     else static if (ver.__riscv && (__riscv_xlen == 64)) {
@@ -58,7 +58,7 @@ static if (!ver.BUILD_TARGET_X86_64
     else static if (ver.__riscv && (__riscv_xlen == 32)) {
         version = BUILD_TARGET_RISCV32_ILP32D;
     }
-    else version (__arc__) {
+    else static if (ver.__arc__) {
         version = BUILD_TARGET_ARC;
     }
     else {

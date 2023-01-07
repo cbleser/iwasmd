@@ -1,6 +1,41 @@
 module tagion.iwasm.common.wasm_exec_env;
 @nogc nothrow:
 extern(C): __gshared:
+/* Copyright (C) 1991-2022 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <https://www.gnu.org/licenses/>.  */
+/* This header is separate from features.h so that the compiler can
+   include it implicitly at the start of every compilation.  It must
+   not itself include <features.h> or any other header that includes
+   <features.h> because the implicit include comes before any feature
+   test macros that may be defined in a source file before it first
+   explicitly includes a system header.  GCC knows the name of this
+   header in order to preinclude it.  */
+/* glibc's intent is to support the IEC 559 math functionality, real
+   and complex.  If the GCC (4.9 and later) predefined macros
+   specifying compiler intent are available, use them to determine
+   whether the overall intent is to support these features; otherwise,
+   presume an older compiler has intent to support these features and
+   define these macros by default.  */
+/* wchar_t uses Unicode 10.0.0.  Version 10.0 of the Unicode Standard is
+   synchronized with ISO/IEC 10646:2017, fifth edition, plus
+   the following additions from Amendment 1 to the fifth edition:
+   - 56 emoji characters
+   - 285 hentaigana
+   - 3 additional Zanabazar Square characters */
 /*
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -241,27 +276,23 @@ struct WASMJmpBuf {
 struct WASMExecEnv {
     /* Next thread's exec env of a WASM module instance. */
     WASMExecEnv* next;
-
     /* Previous thread's exec env of a WASM module instance. */
     WASMExecEnv* prev;
-
     /* Note: field module_inst, argv_buf, native_stack_boundary,
        suspend_flags, aux_stack_boundary, aux_stack_bottom, and
        native_symbol are used by AOTed code, don't change the
        places of them */
-
     /* The WASM module instance of current thread */
     WASMModuleInstanceCommon* module_inst;
 
-static if (ver.WASM_ENABLE_AOT) {
+//static if (ver.WASM_ENABLE_AOT) {
     uint* argv_buf;
-}
+//}
 
     /* The boundary of native stack. When runtime detects that native
        frame may overrun this boundary, it throws stack overflow
        exception. */
     ubyte* native_stack_boundary;
-
     /* Used to terminate or suspend current thread
         bit 0: need to terminate
         bit 1: need to suspend
@@ -271,25 +302,23 @@ static if (ver.WASM_ENABLE_AOT) {
         uint flags;
         uintptr_t __padding__;
     }_Suspend_flags suspend_flags;
-
     /* Auxiliary stack boundary */
     union _Aux_stack_boundary {
         uint boundary;
         uintptr_t __padding__;
     }_Aux_stack_boundary aux_stack_boundary;
-
     /* Auxiliary stack bottom */
     union _Aux_stack_bottom {
         uint bottom;
         uintptr_t __padding__;
     }_Aux_stack_bottom aux_stack_bottom;
 
-static if (ver.WASM_ENABLE_AOT) {
+//static if (ver.WASM_ENABLE_AOT) {
     /* Native symbol list, reserved */
     void** native_symbol;
-}
+//}
 
-static if (ver.WASM_ENABLE_FAST_JIT) {
+//static if (ver.WASM_ENABLE_FAST_JIT) {
     /**
      * Cache for
      * - jit native operations in 32-bit target which hasn't 64-bit
@@ -298,7 +327,7 @@ static if (ver.WASM_ENABLE_FAST_JIT) {
      * - SSE instructions.
      **/
     ulong[2] jit_cache;
-}
+//}
 
 static if (ver.WASM_ENABLE_THREAD_MGR) {
     /* thread return value */
@@ -327,12 +356,9 @@ static if (ver.WASM_ENABLE_DEBUG_INTERP) {
 
     /* attachment for native function */
     void* attachment;
-
     void* user_data;
-
     /* Current interpreter frame of current thread */
     WASMInterpFrame* cur_frame;
-
     /* The native thread handle of current thread */
     korp_tid handle;
 
@@ -352,32 +378,23 @@ static if (ver.WASM_ENABLE_MEMORY_PROFILING) {
 
     /* The WASM stack size */
     uint wasm_stack_size;
-
     /* The WASM stack of current thread */
     union _Wasm_stack {
         ulong __make_it_8_byte_aligned_;
-
         struct _S {
             /* The top boundary of the stack. */
             ubyte* top_boundary;
-
             /* Top cell index which is free. */
             ubyte* top;
-
             /* The WASM stack. */
             ubyte[1] bottom;
         }_S s;
     }_Wasm_stack wasm_stack;
 }
-
 WASMExecEnv* wasm_exec_env_create_internal(WASMModuleInstanceCommon* module_inst, uint stack_size);
-
 void wasm_exec_env_destroy_internal(WASMExecEnv* exec_env);
-
 WASMExecEnv* wasm_exec_env_create(WASMModuleInstanceCommon* module_inst, uint stack_size);
-
 void wasm_exec_env_destroy(WASMExecEnv* exec_env);
-
 /**
  * Allocate a WASM frame from the WASM stack.
  *
@@ -389,9 +406,7 @@ void wasm_exec_env_destroy(WASMExecEnv* exec_env);
  */
 pragma(inline, true) private void* wasm_exec_env_alloc_wasm_frame(WASMExecEnv* exec_env, uint size) {
     ubyte* addr = exec_env.wasm_stack.s.top;
-
     bh_assert(!(size & 3));
-
     /* For classic interpreter, the outs area doesn't contain the const cells,
        its size cannot be larger than the frame size, so here checking stack
        overflow with multiplying by 2 is enough. For fast interpreter, since
@@ -403,7 +418,6 @@ pragma(inline, true) private void* wasm_exec_env_alloc_wasm_frame(WASMExecEnv* e
         /* WASM stack overflow. */
         return null;
     }
-
     exec_env.wasm_stack.s.top += size;
 
 static if (ver.WASM_ENABLE_MEMORY_PROFILING) {
@@ -415,12 +429,10 @@ static if (ver.WASM_ENABLE_MEMORY_PROFILING) {
 }
     return addr;
 }
-
 pragma(inline, true) private void wasm_exec_env_free_wasm_frame(WASMExecEnv* exec_env, void* prev_top) {
     bh_assert(cast(ubyte*)prev_top >= exec_env.wasm_stack.s.bottom);
     exec_env.wasm_stack.s.top = cast(ubyte*)prev_top;
 }
-
 /**
  * Get the current WASM stack top pointer.
  *
@@ -431,7 +443,6 @@ pragma(inline, true) private void wasm_exec_env_free_wasm_frame(WASMExecEnv* exe
 pragma(inline, true) private void* wasm_exec_env_wasm_stack_top(WASMExecEnv* exec_env) {
     return exec_env.wasm_stack.s.top;
 }
-
 /**
  * Set the current frame pointer.
  *
@@ -441,7 +452,6 @@ pragma(inline, true) private void* wasm_exec_env_wasm_stack_top(WASMExecEnv* exe
 pragma(inline, true) private void wasm_exec_env_set_cur_frame(WASMExecEnv* exec_env, WASMInterpFrame* frame) {
     exec_env.cur_frame = frame;
 }
-
 /**
  * Get the current frame pointer.
  *
@@ -452,22 +462,3 @@ pragma(inline, true) private void wasm_exec_env_set_cur_frame(WASMExecEnv* exec_
 pragma(inline, true) private WASMInterpFrame* wasm_exec_env_get_cur_frame(WASMExecEnv* exec_env) {
     return exec_env.cur_frame;
 }
-
-WASMModuleInstanceCommon* wasm_exec_env_get_module_inst(WASMExecEnv* exec_env);
-
-void wasm_exec_env_set_module_inst(WASMExecEnv* exec_env, WASMModuleInstanceCommon* module_inst);
-
-void wasm_exec_env_set_thread_info(WASMExecEnv* exec_env);
-
-static if (ver.WASM_ENABLE_THREAD_MGR) {
-void* wasm_exec_env_get_thread_arg(WASMExecEnv* exec_env);
-
-void wasm_exec_env_set_thread_arg(WASMExecEnv* exec_env, void* thread_arg);
-}
-
-version (OS_ENABLE_HW_BOUND_CHECK) {
-void wasm_exec_env_push_jmpbuf(WASMExecEnv* exec_env, WASMJmpBuf* jmpbuf);
-
-WASMJmpBuf* wasm_exec_env_pop_jmpbuf(WASMExecEnv* exec_env);
-}
-

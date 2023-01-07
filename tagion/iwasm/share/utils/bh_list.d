@@ -80,13 +80,6 @@ bh_list_status bh_list_remove(bh_list* list, void* elem);
  */
 uint bh_list_length(bh_list* list);
 
-/**
- * Get the first elem in the list.
- *
- * @param list    pointer to list.
- * @return        pointer to the first node.
- */
-void* bh_list_first_elem(bh_list* list);
 
 /**
  * Get the next elem of given list input elem.
@@ -168,13 +161,26 @@ bh_list_status bh_list_remove(bh_list* list, void* elem) {
 uint bh_list_length(bh_list* list) {
     return (list ? list.len : 0);
 }
-
+/**
+ * Get the first elem in the list.
+ *
+ * @param list    pointer to list.
+ * @return        pointer to the first node.
+ */
 void* bh_list_first_elem(bh_list* list) {
     return (list ? (list.head).next : null);
 }
 
+T* bh_list_first_elemT(T)(bh_list* list) {
+    return cast(T*)(list ? (list.head).next : null);
+}
+
 void* bh_list_elem_next(void* node) {
     return (node ? (cast(bh_list_link*)node).next : null);
+}
+
+T* bh_list_elem_nextT(T)(void* node) {
+    return cast(T*)(node ? (cast(bh_list_link*)node).next : null);
 }
 
 static if (ver.BH_DEBUG) {

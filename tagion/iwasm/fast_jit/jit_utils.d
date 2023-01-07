@@ -57,33 +57,48 @@ struct JitBitmap {
     /* The bitmap.  */
     ubyte[1] map;
 }
-pragma(inline, true) void* jit_malloc(uint size) {
+pragma(inline, true) void* jit_malloc(size_t size) {
     return wasm_runtime_malloc(size);
 }
- T* jit_calloc(T)(uint size) {
+ T* jit_calloc(T)(size_t size) {
     auto ret = wasm_runtime_malloc(size);
     if (ret) {
         memset(ret, 0, size);
     }
     return cast(T*)ret;
 }
-pragma(inline, true) JitInsn* jit_calloc(uint size) {
+pragma(inline, true) JitInsn* jit_calloc(size_t size) {
 	return jit_calloc!JitInsn(size);
 }
-pragma(inline, true) JitInsn** jit_calloc_ref(uint size) {
+pragma(inline, true) JitInsn** jit_calloc_ref(size_t size) {
 	return jit_calloc!(JitInsn*)(size);
 }
-pragma(inline, true) uint* jit_calloc_reg(uint size) {
+pragma(inline, true) uint* jit_calloc_reg(size_t size) {
 	return jit_calloc!(uint)(size);
 }
-pragma(inline, true) JitIncomingInsn** jit_calloc_list(uint size) {
+pragma(inline, true) ubyte* jit_calloc_buffer(size_t size) {
+	return jit_calloc!(ubyte)(size);
+}
+pragma(inline, true) JitIncomingInsn** jit_calloc_list(size_t size) {
 	return jit_calloc!(JitIncomingInsn*)(size);
 }
-pragma(inline, true) JitIncomingInsn* jit_calloc_incoming(uint size) {
+pragma(inline, true) JitIncomingInsn* jit_calloc_incoming(size_t size) {
 	return jit_calloc!(JitIncomingInsn)(size);
 }
-pragma(inline, true) JitValue* jit_calloc_value(uint size) {
+pragma(inline, true) JitValue* jit_calloc_value(size_t size) {
 	return jit_calloc!(JitValue)(size);
+}
+pragma(inline, true) JitMemRegs* jit_calloc_memregs(size_t size) {
+	return jit_calloc!(JitMemRegs)(size);
+}
+pragma(inline, true) JitTableRegs* jit_calloc_tableregs(size_t size) {
+	return jit_calloc!(JitTableRegs)(size);
+}
+pragma(inline, true) JitFrame* jit_calloc_frame(size_t size) {
+	return jit_calloc!(JitFrame)(size);
+}
+pragma(inline, true) JitBlock* jit_calloc_block(size_t size) {
+	return jit_calloc!(JitBlock)(size);
 }
 /*
  * Reallocate a memory block with the new_size.

@@ -40,6 +40,7 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import core.stdc.stdint : uintptr_t;
 import tagion.iwasm.basic;
 public import tagion.iwasm.fast_jit.fe.jit_emit_exception;
 public import tagion.iwasm.fast_jit.fe.jit_emit_function;
@@ -91,7 +92,7 @@ fail:
     return 0;
 }
 }
-static if (UINTPTR_MAX == UINT64_MAX) {
+static if (uintptr_t.max == ulong.max) {
 private JitReg check_and_seek_on_64bit_platform(JitCompContext* cc, JitReg addr, JitReg offset, JitReg memory_boundary) {
     JitReg long_addr = void, offset1 = void;
     /* long_addr = (int64_t)addr */

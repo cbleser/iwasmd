@@ -7,7 +7,8 @@ extern(C): __gshared:
  */
 
 import tagion.iwasm.basic; 
-public import tagion.iwasm.interpreter.wasm;
+import tagion.iwasm.interpreter.wasm;
+import tagion.iwasm.common.wasm_exec_env : WASMExecEnv;
 import tagion.iwasm.interpreter.wasm_runtime;
 
 struct WASMInterpFrame {
@@ -20,9 +21,9 @@ struct WASMInterpFrame {
     /* Instruction pointer of the bytecode array.  */
     ubyte* ip;
 
-static if (ver.WASM_ENABLE_FAST_JIT) {
+//static if (ver.WASM_ENABLE_FAST_JIT) {
     ubyte* jitted_return_addr;
-}
+//}
 
 static if (ver.WASM_ENABLE_PERF_PROFILING) {
     ulong time_started;
@@ -64,7 +65,7 @@ static if (ver.WASM_ENABLE_FAST_INTERP) {
  *
  * @return the size of interpreter area of the frame
  */
-pragma(inline, true) private uint wasm_interp_interp_frame_size(uint all_cell_num) {
+pragma(inline, true) uint wasm_interp_interp_frame_size(size_t all_cell_num) {
     uint frame_size = void;
 
 static if (WASM_ENABLE_FAST_INTERP == 0) {

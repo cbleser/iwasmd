@@ -745,7 +745,7 @@ wasm_valkind_t wasm_valtype_kind(const(wasm_valtype_t)* val_type) {
     return val_type ? val_type.kind : WASM_ANYREF;
 }
 
-private wasm_functype_t* wasm_functype_new_internal(WASMType* type_rt) {
+wasm_functype_t* wasm_functype_new_internal(WASMType* type_rt) {
     wasm_functype_t* type = null;
     wasm_valtype_t* param_type = null, result_type = null;
     uint i = 0;

@@ -1,12 +1,12 @@
-module aot;
+module tagion.iwasm.compilation.aot;
 @nogc nothrow:
 extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
-public import aot;
+import tagion.iwasm.basic;
+import tagion.iwasm.share.utils.bh_list;
 
 private char[128] aot_error = 0;
 
@@ -61,7 +61,7 @@ private AOTMemInitData** aot_create_mem_init_data_list(const(WASMModule)* module
             goto fail;
         }
 
-static if (WASM_ENABLE_BULK_MEMORY != 0) {
+static if (ver.WASM_ENABLE_BULK_MEMORY) {
         data_list[i].is_passive = module_.data_segments[i].is_passive;
         data_list[i].memory_index = module_.data_segments[i].memory_index;
 }
@@ -485,7 +485,7 @@ AOTCompData* aot_create_comp_data(WASMModule* module_) {
     if (comp_data.func_count && ((comp_data.funcs = aot_create_funcs(module_)) == 0))
         goto fail;
 
-static if (WASM_ENABLE_CUSTOM_NAME_SECTION != 0) {
+static if (ver.WASM_ENABLE_CUSTOM_NAME_SECTION) {
     /* Create custom name section */
     comp_data.name_section_buf = module_.name_section_buf;
     comp_data.name_section_buf_end = module_.name_section_buf_end;
@@ -566,14 +566,11 @@ void aot_destroy_comp_data(AOTCompData* comp_data) {
  */
 
  
-public import bh_platform;
-public import bh_assert;
-public import ...common.wasm_runtime_common;
-public import ...interpreter.wasm;
+public import tagion.iwasm.app_framework.base.app.bh_platform;
+public import tagion.iwasm.share.utils.bh_assert;
+public import tagion.iwasm.common.wasm_runtime_common;
+public import tagion.iwasm.interpreter.wasm;
 
-version (none) {
-extern "C" {
-//! #endif
 
 version (AOT_FUNC_PREFIX) {} else {
 enum AOT_FUNC_PREFIX = "aot_func#";
@@ -583,7 +580,7 @@ alias AOTInitExpr = InitializerExpression;
 alias AOTFuncType = WASMType;
 alias AOTExport = WASMExport;
 
-static if (WASM_ENABLE_DEBUG_AOT != 0) {
+static if (ver.WASM_ENABLE_DEBUG_AOT) {
 alias dwar_extractor_handle_t = void*;
 }
 
@@ -658,7 +655,7 @@ struct AOTMemory {
  * A segment of memory init data
  */
 struct AOTMemInitData {
-static if (WASM_ENABLE_BULK_MEMORY != 0) {
+static if (ver.WASM_ENABLE_BULK_MEMORY) {
     /* Passive flag */
     bool is_passive;
     /* memory index */
@@ -844,7 +841,7 @@ struct AOTCompData {
     uint aux_stack_size;
 
     WASMModule* wasm_module;
-static if (WASM_ENABLE_DEBUG_AOT != 0) {
+static if (ver.WASM_ENABLE_DEBUG_AOT) {
     dwar_extractor_handle_t extractor;
 }
 }
@@ -865,7 +862,7 @@ void aot_set_last_error(const(char)* error);
 
 void aot_set_last_error_v(const(char)* format, ...);
 
-static if (BH_DEBUG != 0) {
+static if (ver.BH_DEBUG) {
 enum string HANDLE_FAILURE(string callee) = `                                    \
     do {                                                          \
         aot_set_last_error_v("call %s failed in %s:%d", (callee), \
@@ -879,7 +876,7 @@ enum string HANDLE_FAILURE(string callee) = `                            \
 }
 
 pragma(inline, true) private uint aot_get_imp_tbl_data_slots(const(AOTImportTable)* tbl, bool is_jit_mode) {
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
     if (is_jit_mode)
         return tbl.table_max_size;
 } else {
@@ -889,7 +886,7 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
 }
 
 pragma(inline, true) private uint aot_get_tbl_data_slots(const(AOTTable)* tbl, bool is_jit_mode) {
-static if (WASM_ENABLE_MULTI_MODULE != 0) {
+static if (ver.WASM_ENABLE_MULTI_MODULE) {
     if (is_jit_mode)
         return tbl.table_max_size;
 } else {
@@ -898,8 +895,3 @@ static if (WASM_ENABLE_MULTI_MODULE != 0) {
     return tbl.possible_grow ? tbl.table_max_size : tbl.table_init_size;
 }
 
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _AOT_H_ */

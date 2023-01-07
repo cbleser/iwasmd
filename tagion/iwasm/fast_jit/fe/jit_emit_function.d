@@ -36,19 +36,17 @@
 module tagion.iwasm.fast_jit.fe.jit_emit_function;
 @nogc nothrow:
 extern(C): __gshared:
-private template HasVersion(string versionId) {
- mixin("version("~versionId~") {enum HasVersion = true;} else {enum HasVersion = false;}");
-}
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import core.stdc.stdint : uintptr_t;
 import tagion.iwasm.basic;
-import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.fe.jit_emit_exception;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
-import tagion.iwasm.interpreter.wasm_runtime;
+//import tagion.iwasm.interpreter.wasm_runtime;
+import tagion.iwasm.interpreter.wasm;
 private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg res, JitReg* params, uint param_count);
 /* Prepare parameters for the function to call */
 private bool pre_call(JitCompContext* cc, const(WASMType)* func_type) {
@@ -696,7 +694,7 @@ fail:
     return false;
 }
 }
-static if (HasVersion!"BUILD_TARGET_X86_64" || HasVersion!"BUILD_TARGET_AMD_64") {
+static if (ver.BUILD_TARGET_X86_64 || ver.BUILD_TARGET_AMD_64) {
 private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg res, JitReg* params, uint param_count) {
     JitInsn* insn = void;
     char*[6] i64_arg_names = [ "rdi", "rsi", "rdx", "rcx", "r8", "r9" ];

@@ -34,7 +34,9 @@ ushort htons(ushort value);
 ushort ntohs(ushort value);
 
 // We are not worried for the WASM world since the sandbox will catch it.
-enum string bh_memcpy_s(string dst, string dst_len, string src, string src_len) = ` memcpy(dst, src, src_len)`;
+void* bh_memcpy_s(return scope void* dst, const size_t dst_len, scope const(void*) src, const size_t src_len) {
+return memcpy(dst, src, src_len);
+}
 
 version (NDEBUG) {
 enum string bh_assert(string v) = ` (void)0`;

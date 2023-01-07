@@ -41,9 +41,12 @@ __gshared:
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import std.traits : isIntegral;
 import tagion.iwasm.basic;
+import tagion.iwasm.app_framework.base.app.bh_platform : bh_memcpy_s;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.fast_jit.fe.jit_emit_compare;
 import tagion.iwasm.fast_jit.fe.jit_emit_const;
 import tagion.iwasm.fast_jit.fe.jit_emit_control;
@@ -59,9 +62,11 @@ import tagion.iwasm.interpreter.wasm_interp;
 import tagion.iwasm.interpreter.wasm_opcode;
 import tagion.iwasm.interpreter.wasm_runtime;
 import tagion.iwasm.common.wasm_exec_env;
+import tagion.iwasm.share.utils.bh_list;
+//import tagion.iwasm.share.utils.bh_assert;
 
 private uint get_global_base_offset(const(WASMModule)* module_) {
-    uint module_inst_struct_size = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes);
+    uint module_inst_struct_size = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof;
     uint mem_inst_size = cast(uint) WASMMemoryInstance.sizeof
         * (module_.import_memory_count + module_.memory_count);
     static if (ver.WASM_ENABLE_JIT) {
@@ -94,13 +99,13 @@ uint jit_frontend_get_table_inst_offset(const(WASMModule)* module_, uint tbl_idx
     uint offset = void, i = 0;
     offset = get_first_table_inst_offset(module_);
     while (i < tbl_idx && i < module_.import_table_count) {
-        WASMTableImport* import_table = &module_.import_tables[i].u.table;
+        const import_table = &module_.import_tables[i].u.table;
         offset += cast(uint) WASMTableInstance.elems.offsetof;
         static if (ver.WASM_ENABLE_MULTI_MODULE) {
-            offset += cast(uint) uint32.sizeof * import_table.max_size;
+            offset += cast(uint) uint.sizeof * import_table.max_size;
         }
         else {
-            offset += cast(uint) uint32.sizeof
+            offset += cast(uint) uint.sizeof
                 * (import_table.possible_grow ? import_table.max_size : import_table.init_size);
         }
         i++;
@@ -111,13 +116,13 @@ uint jit_frontend_get_table_inst_offset(const(WASMModule)* module_, uint tbl_idx
     tbl_idx -= module_.import_table_count;
     i -= module_.import_table_count;
     while (i < tbl_idx && i < module_.table_count) {
-        WASMTable* table = module_.tables + i;
+        const table = module_.tables + i;
         offset += cast(uint) WASMTableInstance.elems.offsetof;
         static if (ver.WASM_ENABLE_MULTI_MODULE) {
-            offset += cast(uint) uint32.sizeof * table.max_size;
+            offset += cast(uint) uint.sizeof * table.max_size;
         }
         else {
-            offset += cast(uint) uint32.sizeof
+            offset += cast(uint) uint.sizeof
                 * (table.possible_grow ? table.max_size : table.init_size);
         }
         i++;
@@ -190,7 +195,7 @@ JitReg get_aux_stack_bound_reg(JitFrame* frame) {
     if (!frame.aux_stack_bound_reg) {
         frame.aux_stack_bound_reg = cc.aux_stack_bound_reg;
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(frame.aux_stack_bound_reg, cc
-                .exec_env_reg, jit_cc_new_const_I32(cc, offsetof(WASMExecEnv, aux_stack_boundary.boundary)))));
+                .exec_env_reg, jit_cc_new_const_I32(cc, WASMExecEnv.aux_stack_boundary.boundary.offsetof))));
     }
     return frame.aux_stack_bound_reg;
 }
@@ -200,7 +205,7 @@ JitReg get_aux_stack_bottom_reg(JitFrame* frame) {
     if (!frame.aux_stack_bottom_reg) {
         frame.aux_stack_bottom_reg = cc.aux_stack_bottom_reg;
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(frame.aux_stack_bottom_reg, cc
-                .exec_env_reg, jit_cc_new_const_I32(cc, offsetof(WASMExecEnv, aux_stack_bottom.bottom)))));
+                .exec_env_reg, jit_cc_new_const_I32(cc, WASMExecEnv.aux_stack_bottom.bottom.offsetof))));
     }
     return frame.aux_stack_bottom_reg;
 }
@@ -208,7 +213,7 @@ JitReg get_aux_stack_bottom_reg(JitFrame* frame) {
 JitReg get_memory_data_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint memory_data_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint memory_data_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.memory_data.offsetof;
     bh_assert(mem_idx == 0);
@@ -224,7 +229,7 @@ JitReg get_memory_data_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_memory_data_end_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint memory_data_end_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint memory_data_end_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.memory_data_end.offsetof;
     bh_assert(mem_idx == 0);
@@ -240,14 +245,14 @@ JitReg get_memory_data_end_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_mem_bound_check_1byte_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_1byte_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint mem_bound_check_1byte_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.mem_bound_check_1byte.offsetof;
     bh_assert(mem_idx == 0);
     if (!frame.memory_regs[mem_idx].mem_bound_check_1byte) {
         frame.memory_regs[mem_idx].mem_bound_check_1byte =
             cc.memory_regs[mem_idx].mem_bound_check_1byte;
-        static if (UINTPTR_MAX == UINT64_MAX) {
+        static if (UINTPTR_MAX == ulong.max) {
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(frame.memory_regs[mem_idx].mem_bound_check_1byte, module_inst_reg, jit_cc_new_const_I32(
                     cc, mem_bound_check_1byte_offset))));
         }
@@ -262,14 +267,14 @@ JitReg get_mem_bound_check_1byte_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_mem_bound_check_2bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_2bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint mem_bound_check_2bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.mem_bound_check_2bytes.offsetof;
     bh_assert(mem_idx == 0);
     if (!frame.memory_regs[mem_idx].mem_bound_check_2bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_2bytes =
             cc.memory_regs[mem_idx].mem_bound_check_2bytes;
-        static if (UINTPTR_MAX == UINT64_MAX) {
+        static if (UINTPTR_MAX == ulong.max) {
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(frame.memory_regs[mem_idx].mem_bound_check_2bytes, module_inst_reg, jit_cc_new_const_I32(
                     cc, mem_bound_check_2bytes_offset))));
         }
@@ -284,14 +289,14 @@ JitReg get_mem_bound_check_2bytes_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_mem_bound_check_4bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_4bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint mem_bound_check_4bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.mem_bound_check_4bytes.offsetof;
     bh_assert(mem_idx == 0);
     if (!frame.memory_regs[mem_idx].mem_bound_check_4bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_4bytes =
             cc.memory_regs[mem_idx].mem_bound_check_4bytes;
-        static if (UINTPTR_MAX == UINT64_MAX) {
+        static if (UINTPTR_MAX == ulong.max) {
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(frame.memory_regs[mem_idx].mem_bound_check_4bytes, module_inst_reg, jit_cc_new_const_I32(
                     cc, mem_bound_check_4bytes_offset))));
         }
@@ -306,14 +311,14 @@ JitReg get_mem_bound_check_4bytes_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_mem_bound_check_8bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_8bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint mem_bound_check_8bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.mem_bound_check_8bytes.offsetof;
     bh_assert(mem_idx == 0);
     if (!frame.memory_regs[mem_idx].mem_bound_check_8bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_8bytes =
             cc.memory_regs[mem_idx].mem_bound_check_8bytes;
-        static if (UINTPTR_MAX == UINT64_MAX) {
+        static if (UINTPTR_MAX == ulong.max) {
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(frame.memory_regs[mem_idx].mem_bound_check_8bytes, module_inst_reg, jit_cc_new_const_I32(
                     cc, mem_bound_check_8bytes_offset))));
         }
@@ -328,14 +333,14 @@ JitReg get_mem_bound_check_8bytes_reg(JitFrame* frame, uint mem_idx) {
 JitReg get_mem_bound_check_16bytes_reg(JitFrame* frame, uint mem_idx) {
     JitCompContext* cc = frame.cc;
     JitReg module_inst_reg = get_module_inst_reg(frame);
-    uint mem_bound_check_16bytes_offset = cast(uint) offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint mem_bound_check_16bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(
                 uint) WASMMemoryInstance.mem_bound_check_16bytes.offsetof;
     bh_assert(mem_idx == 0);
     if (!frame.memory_regs[mem_idx].mem_bound_check_16bytes) {
         frame.memory_regs[mem_idx].mem_bound_check_16bytes =
             cc.memory_regs[mem_idx].mem_bound_check_16bytes;
-        static if (UINTPTR_MAX == UINT64_MAX) {
+        static if (UINTPTR_MAX == ulong.max) {
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(frame.memory_regs[mem_idx].mem_bound_check_16bytes, module_inst_reg, jit_cc_new_const_I32(
                     cc, mem_bound_check_16bytes_offset))));
         }
@@ -469,7 +474,7 @@ JitReg gen_load_f64(JitFrame* frame, ptrdiff_t n) {
 void gen_commit_values(JitFrame* frame, JitValueSlot* begin, JitValueSlot* end) {
     JitCompContext* cc = frame.cc;
     JitValueSlot* p = void;
-    int n = void;
+    ptrdiff_t n = void;
     for (p = begin; p < end; p++) {
         if (!p.dirty)
             continue;
@@ -538,8 +543,8 @@ private bool create_fixed_virtual_regs(JitCompContext* cc) {
     count = module_.import_memory_count + module_.memory_count;
     if (count > 0) {
         total_size = cast(ulong) JitMemRegs.sizeof * count;
-        if (total_size > UINT32_MAX
-                || ((cc.memory_regs = jit_calloc(cast(uint) total_size)) == 0)) {
+        if (total_size > uint.max
+                || ((cc.memory_regs = jit_calloc_memregs( total_size)) is null)) {
             jit_set_last_error(cc, "allocate memory failed");
             return false;
         }
@@ -556,8 +561,8 @@ private bool create_fixed_virtual_regs(JitCompContext* cc) {
     count = module_.import_table_count + module_.table_count;
     if (count > 0) {
         total_size = cast(ulong) JitTableRegs.sizeof * count;
-        if (total_size > UINT32_MAX
-                || ((cc.table_regs = jit_calloc(cast(uint) total_size)) == 0)) {
+        if (total_size > uint.max
+                || ((cc.table_regs = jit_calloc_tableregs( total_size)) is null)) {
             jit_set_last_error(cc, "allocate memory failed");
             return false;
         }
@@ -577,13 +582,13 @@ private bool form_and_translate_func(JitCompContext* cc) {
     uint i = void;
     if (!create_fixed_virtual_regs(cc))
         return false;
-    if (((func_entry_basic_block = jit_frontend_translate_func(cc)) == 0))
+    if (((func_entry_basic_block = jit_frontend_translate_func(cc)) is null))
         return false;
     jit_cc_reset_insn_hash(cc);
     /* The label of the func entry basic block. */
     func_entry_label = jit_basic_block_label(func_entry_basic_block);
     /* Create a JMP instruction jumping to the func entry. */
-    if (((insn = _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(func_entry_label))) == 0))
+    if (((insn = _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(func_entry_label))) is null))
         return false;
     /* Insert the instruction into the cc entry block. */
     jit_basic_block_append_insn(jit_cc_entry_basic_block(cc), insn);
@@ -591,7 +596,7 @@ private bool form_and_translate_func(JitCompContext* cc) {
     for (i = 0; i < EXCE_NUM; i++) {
         incoming_insn = cc.incoming_insns_for_exec_bbs[i];
         if (incoming_insn) {
-            if (((cc.exce_basic_blocks[i] = jit_cc_new_basic_block(cc, 0)) == 0)) {
+            if (((cc.exce_basic_blocks[i] = jit_cc_new_basic_block(cc, 0)) is null)) {
                 jit_set_last_error(cc, "create basic block failed");
                 return false;
             }
@@ -615,7 +620,7 @@ private bool form_and_translate_func(JitCompContext* cc) {
                 _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(module_inst_reg, cc
                         .exec_env_reg, jit_cc_new_const_I32(cc, WASMExecEnv.module_inst.offsetof))));
                 insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CALLNATIVE(0, jit_cc_new_const_PTR(
-                        cc, cast(uintptr_t) jit_set_exception_with_id), 2)));
+                        cc, cast(long)&jit_set_exception_with_id), 2)));
                 if (insn) {
                     *(jit_insn_opndv(insn, 2)) = module_inst_reg;
                     *(jit_insn_opndv(insn, 3)) = jit_cc_new_const_I32(cc, i);
@@ -670,27 +675,27 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     uint frame_size = void, outs_size = void, local_size = void, count = void;
     uint i = void, local_off = void;
     ulong total_size = void;
-    static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
+    static if (ver.WASM_ENABLE_DUMP_CALL_STACK || ver.WASM_ENABLE_PERF_PROFILING) {
         JitReg module_inst = void, func_inst = void;
         uint func_insts_offset = void;
         static if (ver.WASM_ENABLE_PERF_PROFILING) {
             JitReg time_started = void;
         }
     }
-    if (cast(ulong) max_locals + cast(ulong) max_stacks >= UINT32_MAX
-            || total_cell_num >= UINT32_MAX
-            || ((jit_frame = jit_calloc(JitFrame.lp.offsetof
-                + sizeof(*jit_frame.lp)
-                * (max_locals + max_stacks))) == 0)) {
+    if (cast(ulong) max_locals + cast(ulong) max_stacks >= uint.max
+            || total_cell_num >= uint.max
+            || ((jit_frame = jit_calloc_frame(JitFrame.lp.offsetof
+                + (*jit_frame.lp).sizeof
+                * (max_locals + max_stacks))) is null)) {
         os_printf("allocate jit frame failed\n");
         return null;
     }
     count =
         cur_wasm_module.import_memory_count + cur_wasm_module.memory_count;
     if (count > 0) {
-        total_size = cast(ulong) JitMemRegs.sizeof * count;
-        if (total_size > UINT32_MAX
-                || ((jit_frame.memory_regs = jit_calloc(cast(uint) total_size)) == 0)) {
+        total_size =  JitMemRegs.sizeof * count;
+        if (total_size > uint.max
+                || ((jit_frame.memory_regs = jit_calloc_memregs( total_size)) is null)) {
             jit_set_last_error(cc, "allocate memory failed");
             jit_free(jit_frame);
             return null;
@@ -699,8 +704,8 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     count = cur_wasm_module.import_table_count + cur_wasm_module.table_count;
     if (count > 0) {
         total_size = cast(ulong) JitTableRegs.sizeof * count;
-        if (total_size > UINT32_MAX
-                || ((jit_frame.table_regs = jit_calloc(cast(uint) total_size)) == 0)) {
+        if (total_size > uint.max
+                || ((jit_frame.table_regs = jit_calloc_tableregs( total_size)) is null)) {
             jit_set_last_error(cc, "allocate memory failed");
             if (jit_frame.memory_regs)
                 jit_free(jit_frame.memory_regs);
@@ -721,7 +726,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     cc.spill_cache_offset = wasm_interp_interp_frame_size(total_cell_num);
     /* Set spill cache size according to max local cell num, max stack cell
        num and virtual fixed register num */
-    cc.spill_cache_size = (max_locals + max_stacks) * 4 + (void*).sizeof * 5;
+    cc.spill_cache_size = cast(uint)((max_locals + max_stacks) * 4 + (void*).sizeof * 5);
     cc.total_frame_size = cc.spill_cache_offset + cc.spill_cache_size;
     cc.jitted_return_address_offset =
         WASMInterpFrame.jitted_return_addr.offsetof;
@@ -734,7 +739,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     new_top = jit_cc_new_reg_ptr(cc);
     frame_boundary = jit_cc_new_reg_ptr(cc);
     frame_sp = jit_cc_new_reg_ptr(cc);
-    static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
+    static if (ver.WASM_ENABLE_DUMP_CALL_STACK || ver.WASM_ENABLE_PERF_PROFILING) {
         module_inst = jit_cc_new_reg_ptr(cc);
         func_inst = jit_cc_new_reg_ptr(cc);
         static if (ver.WASM_ENABLE_PERF_PROFILING) {
@@ -750,10 +755,10 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     }
     /* top = exec_env->wasm_stack.s.top */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(top, cc.exec_env_reg, jit_cc_new_const_I32(
-            cc, offsetof(WASMExecEnv, wasm_stack.s.top)))));
+            cc, WASMExecEnv.wasm_stack.s.top.offsetof))));
     /* top_boundary = exec_env->wasm_stack.s.top_boundary */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(top_boundary, cc.exec_env_reg, jit_cc_new_const_I32(
-            cc, offsetof(WASMExecEnv, wasm_stack.s.top_boundary)))));
+            cc, WASMExecEnv.wasm_stack.s.top_boundary.offsetof))));
     /* frame_boundary = top + frame_size + outs_size */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_boundary, top, jit_cc_new_const_PTR(cc, frame_size + outs_size))));
     /* if frame_boundary > top_boundary, throw stack overflow exception */
@@ -767,7 +772,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(new_top, frame_boundary, jit_cc_new_const_PTR(cc, outs_size))));
     /* exec_env->wasm_stack.s.top = new_top */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(new_top, cc.exec_env_reg, jit_cc_new_const_I32(
-            cc, offsetof(WASMExecEnv, wasm_stack.s.top)))));
+            cc, WASMExecEnv.wasm_stack.s.top.offsetof))));
     /* frame_sp = frame->lp + local_size */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_sp, top, jit_cc_new_const_PTR(cc, WASMInterpFrame
             .lp.offsetof + local_size))));
@@ -777,7 +782,7 @@ private JitFrame* init_func_translation(JitCompContext* cc) {
     /* frame->prev_frame = fp_reg */
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(cc.fp_reg, top, jit_cc_new_const_I32(cc, WASMInterpFrame
             .prev_frame.offsetof))));
-    static if (WASM_ENABLE_DUMP_CALL_STACK != 0 || WASM_ENABLE_PERF_PROFILING != 0) {
+    static if (ver.WASM_ENABLE_DUMP_CALL_STACK || ver.WASM_ENABLE_PERF_PROFILING) {
         /* module_inst = exec_env->module_inst */
         _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(module_inst, cc.exec_env_reg, jit_cc_new_const_I32(
                 cc, WASMExecEnv.module_inst.offsetof))));
@@ -832,31 +837,31 @@ private JitBasicBlock* create_func_block(JitCompContext* cc) {
     WASMType* func_type = cur_func.func_type;
     uint param_count = func_type.param_count;
     uint result_count = func_type.result_count;
-    if (((jit_block = jit_calloc(JitBlock.sizeof)) == 0)) {
+    if (((jit_block = jit_calloc_block(JitBlock.sizeof)) is null)) {
         return null;
     }
-    if (param_count && ((jit_block.param_types = jit_calloc(param_count)) == 0)) {
+    if (param_count && ((jit_block.param_types = jit_calloc_buffer(param_count)) is null)) {
         goto fail;
     }
-    if (result_count && ((jit_block.result_types = jit_calloc(result_count)) == 0)) {
+    if (result_count && ((jit_block.result_types = jit_calloc_buffer(result_count)) is null)) {
         goto fail;
     }
     /* Set block data */
     jit_block.label_type = LABEL_TYPE_FUNCTION;
     jit_block.param_count = param_count;
     if (param_count) {
-        bh_memcpy_s(jit_block.param_types, param_count, func_type.types,
+        bh_memcpy_s(jit_block.param_types, param_count, func_type.types.ptr,
                 param_count);
     }
     jit_block.result_count = result_count;
     if (result_count) {
         bh_memcpy_s(jit_block.result_types, result_count,
-                func_type.types + param_count, result_count);
+                &func_type.types + param_count, result_count);
     }
     jit_block.wasm_code_end = cur_func.code + cur_func.code_size;
     jit_block.frame_sp_begin = cc.jit_frame.sp;
     /* Add function entry block */
-    if (((jit_block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) == 0)) {
+    if (((jit_block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) is null)) {
         goto fail;
     }
     *(jit_annl_begin_bcip(
@@ -871,13 +876,22 @@ fail:
 }
 
 enum string CHECK_BUF(string buf, string buf_end, string length) = ` do { if (buf + length > buf_end) { jit_set_last_error(cc, "read leb failed: unexpected end."); return false; } } while (0)`;
-private bool read_leb(JitCompContext* cc, const(ubyte)* buf, const(ubyte)* buf_end, uint* p_offset, uint maxbits, bool sign, ulong* p_result) {
+
+bool check_buf(JitCompContext* cc, scope const(void*) buf, scope const(void*) end, const size_t size) {
+	if ((buf + size) > end) {
+	jit_set_last_error(cc, "read led failed: unexpetced end.");
+		return false;
+	}
+	return true;
+}
+private bool read_leb(JitCompContext* cc, scope const(ubyte)* buf, scope const(ubyte)* buf_end, uint* p_offset, uint maxbits, bool sign, ulong* p_result) {
     ulong result = 0;
     uint shift = 0;
     uint bcnt = 0;
     ulong byte_ = void;
     while (true) {
-        CHECK_BUF(buf, buf_end, 1);
+		if (check_buf(cc, buf, buf_end, 1)) return false;
+//        CHECK_BUF(buf, buf_end, 1);
         byte_ = buf[*p_offset];
         *p_offset += 1;
         result |= ((byte_ & 0x7f) << shift);
@@ -900,9 +914,23 @@ private bool read_leb(JitCompContext* cc, const(ubyte)* buf, const(ubyte)* buf_e
     return true;
 }
 
-enum string read_leb_uint32(string p, string p_end, string res) = ` do { uint32 off = 0; uint64 res64; if (!read_leb(cc, p, p_end, &off, 32, false, &res64)) return false; p += off; res = cast(uint)res64; } while (0)`;
-enum string read_leb_int32(string p, string p_end, string res) = ` do { uint32 off = 0; uint64 res64; if (!read_leb(cc, p, p_end, &off, 32, true, &res64)) return false; p += off; res = (int32)res64; } while (0)`;
-enum string read_leb_int64(string p, string p_end, string res) = ` do { uint32 off = 0; uint64 res64; if (!read_leb(cc, p, p_end, &off, 64, true, &res64)) return false; p += off; res = (int64)res64; } while (0)`;
+bool read_lebT(T)(JitCompContext* cc, ref ubyte* p, scope const(ubyte*) p_end, ref T res)  if (isIntegral!T) { 
+	uint off; 
+	ulong res64;
+	enum max_bits=T.sizeof * 8;
+if (!read_leb(cc, p, p_end, &off, max_bits, false, &res64))  {
+		return false; 
+		p += off; 
+		res = cast(T)res64; 
+	}
+	return true;
+}
+
+version(none) {
+enum string read_leb_int32(cc, string p, string p_end, string res) = ` do { uint off = 0; ulong res64; if (!read_leb(cc, p, p_end, &off, 32, true, &res64)) return false; p += off; res = (int32)res64; } while (0)`;
+enum string read_leb_int64(cc, string p, string p_end, string res) = ` do { uint off = 0; ulong res64; if (!read_leb(cc, p, p_end, &off, 64, true, &res64)) return false; p += off; res = (int64)res64; } while (0)`;
+}
+
 private bool jit_compile_func(JitCompContext* cc) {
     WASMFunction* cur_func = cc.cur_wasm_func;
     WASMType* func_type = null;
@@ -922,8 +950,8 @@ private bool jit_compile_func(JitCompContext* cc) {
     bool sign = true;
     int i32_const = void;
     long i64_const = void;
-    float32 f32_const = void;
-    float64 f64_const = void;
+    float f32_const = void;
+    double f64_const = void;
     while (frame_ip < frame_ip_end) {
         cc.jit_frame.ip = frame_ip;
         opcode = *frame_ip++;
@@ -982,12 +1010,13 @@ private bool jit_compile_func(JitCompContext* cc) {
         case EXT_OP_BLOCK:
         case EXT_OP_LOOP:
         case EXT_OP_IF: {
-                read_leb_uint32(frame_ip, frame_ip_end, type_idx);
+                read_lebT!uint(cc, frame_ip, frame_ip_end, type_idx);
                 func_type = cc.cur_wasm_module.types[type_idx];
                 param_count = func_type.param_count;
-                param_types = func_type.types;
+				pragma(msg, typeof(func_type.types.ptr), " ", typeof(param_types));
+                param_types = func_type.types.ptr;
                 result_count = func_type.result_count;
-                result_types = func_type.types + param_count;
+                result_types = func_type.types.ptr + param_count;
                 if (!jit_compile_op_block(
                         cc, &frame_ip, frame_ip_end,
                         cast(uint)(LABEL_TYPE_BLOCK + opcode - EXT_OP_BLOCK),
@@ -1007,12 +1036,12 @@ private bool jit_compile_func(JitCompContext* cc) {
                 return false;
             break;
         case WASM_OP_BR:
-            read_leb_uint32(frame_ip, frame_ip_end, br_depth);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, br_depth);
             if (!jit_compile_op_br(cc, br_depth, &frame_ip))
                 return false;
             break;
         case WASM_OP_BR_IF:
-            read_leb_uint32(frame_ip, frame_ip_end, br_depth);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, br_depth);
             if (!jit_compile_op_br_if(cc, br_depth, merge_cmp_and_br_if,
                     &frame_ip))
                 return false;
@@ -1020,15 +1049,15 @@ private bool jit_compile_func(JitCompContext* cc) {
             merge_cmp_and_br_if = false;
             break;
         case WASM_OP_BR_TABLE:
-            read_leb_uint32(frame_ip, frame_ip_end, br_count);
-            if (((br_depths = jit_calloc(cast(uint) uint32.sizeof
-                    * (br_count + 1))) == 0)) {
+            read_lebT!uint(cc, frame_ip, frame_ip_end, br_count);
+            if (((br_depths = jit_calloc_reg( uint.sizeof
+                    * (br_count + 1))) is null)) {
                 jit_set_last_error(cc, "allocate memory failed.");
                 goto fail;
             }
             static if (ver.WASM_ENABLE_FAST_INTERP) {
                 for (i = 0; i <= br_count; i++)
-                    read_leb_uint32(frame_ip, frame_ip_end, br_depths[i]);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, br_depths[i]);
             }
             else {
                 for (i = 0; i <= br_count; i++)
@@ -1041,17 +1070,17 @@ private bool jit_compile_func(JitCompContext* cc) {
             }
             jit_free(br_depths);
             break;
-            static if (WASM_ENABLE_FAST_INTERP == 0) {
+            //static if (!ver.WASM_ENABLE_FAST_INTERP) {
         case EXT_OP_BR_TABLE_CACHE: {
-                    BrTableCache* node = bh_list_first_elem(
+                    BrTableCache* node = bh_list_first_elemT!BrTableCache(
                             cc.cur_wasm_module.br_table_cache_list);
                     BrTableCache* node_next = void;
                     ubyte* p_opcode = frame_ip - 1;
-                    read_leb_uint32(frame_ip, frame_ip_end, br_count);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, br_count);
                     while (node) {
-                        node_next = bh_list_elem_next(node);
+                        node_next = bh_list_elem_nextT!(BrTableCache)(node);
                         if (node.br_table_op_addr == p_opcode) {
-                            br_depths = node.br_depths;
+                            br_depths = node.br_depths.ptr;
                             if (!jit_compile_op_br_table(cc, br_depths, br_count,
                                     &frame_ip)) {
                                 return false;
@@ -1060,24 +1089,24 @@ private bool jit_compile_func(JitCompContext* cc) {
                         }
                         node = node_next;
                     }
-                    bh_assert(node);
+                    bh_assert(node !is null);
                     break;
                 }
-            }
+            //}
         case WASM_OP_RETURN:
             if (!jit_compile_op_return(cc, &frame_ip))
                 return false;
             break;
         case WASM_OP_CALL:
-            read_leb_uint32(frame_ip, frame_ip_end, func_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, func_idx);
             if (!jit_compile_op_call(cc, func_idx, false))
                 return false;
             break;
         case WASM_OP_CALL_INDIRECT: {
                 uint tbl_idx = void;
-                read_leb_uint32(frame_ip, frame_ip_end, type_idx);
+                read_lebT!uint(cc, frame_ip, frame_ip_end, type_idx);
                 static if (ver.WASM_ENABLE_REF_TYPES) {
-                    read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                 }
                 else {
                     frame_ip++;
@@ -1089,7 +1118,7 @@ private bool jit_compile_func(JitCompContext* cc) {
             }
             static if (ver.WASM_ENABLE_TAIL_CALL) {
         case WASM_OP_RETURN_CALL:
-                read_leb_uint32(frame_ip, frame_ip_end, func_idx);
+                read_lebT!uint(cc, frame_ip, frame_ip_end, func_idx);
                 if (!jit_compile_op_call(cc, func_idx, true))
                     return false;
                 if (!jit_compile_op_return(cc, &frame_ip))
@@ -1097,9 +1126,9 @@ private bool jit_compile_func(JitCompContext* cc) {
                 break;
         case WASM_OP_RETURN_CALL_INDIRECT: {
                     uint tbl_idx = void;
-                    read_leb_uint32(frame_ip, frame_ip_end, type_idx);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, type_idx);
                     static if (ver.WASM_ENABLE_REF_TYPES) {
-                        read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                        read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                     }
                     else {
                         frame_ip++;
@@ -1131,7 +1160,7 @@ private bool jit_compile_func(JitCompContext* cc) {
             static if (ver.WASM_ENABLE_REF_TYPES) {
         case WASM_OP_SELECT_T: {
                     uint vec_len = void;
-                    read_leb_uint32(frame_ip, frame_ip_end, vec_len);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, vec_len);
                     bh_assert(vec_len == 1);
                     cast(void) vec_len;
                     type_idx = *frame_ip++;
@@ -1143,21 +1172,21 @@ private bool jit_compile_func(JitCompContext* cc) {
                 }
         case WASM_OP_TABLE_GET: {
                     uint tbl_idx = void;
-                    read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                     if (!jit_compile_op_table_get(cc, tbl_idx))
                         return false;
                     break;
                 }
         case WASM_OP_TABLE_SET: {
                     uint tbl_idx = void;
-                    read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                     if (!jit_compile_op_table_set(cc, tbl_idx))
                         return false;
                     break;
                 }
         case WASM_OP_REF_NULL: {
                     uint ref_type = void;
-                    read_leb_uint32(frame_ip, frame_ip_end, ref_type);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, ref_type);
                     if (!jit_compile_op_ref_null(cc, ref_type))
                         return false;
                     break;
@@ -1168,37 +1197,37 @@ private bool jit_compile_func(JitCompContext* cc) {
                     break;
                 }
         case WASM_OP_REF_FUNC: {
-                    read_leb_uint32(frame_ip, frame_ip_end, func_idx);
+                    read_lebT!uint(cc, frame_ip, frame_ip_end, func_idx);
                     if (!jit_compile_op_ref_func(cc, func_idx))
                         return false;
                     break;
                 }
             }
         case WASM_OP_GET_LOCAL:
-            read_leb_uint32(frame_ip, frame_ip_end, local_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, local_idx);
             if (!jit_compile_op_get_local(cc, local_idx))
                 return false;
             break;
         case WASM_OP_SET_LOCAL:
-            read_leb_uint32(frame_ip, frame_ip_end, local_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, local_idx);
             if (!jit_compile_op_set_local(cc, local_idx))
                 return false;
             break;
         case WASM_OP_TEE_LOCAL:
-            read_leb_uint32(frame_ip, frame_ip_end, local_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, local_idx);
             if (!jit_compile_op_tee_local(cc, local_idx))
                 return false;
             break;
         case WASM_OP_GET_GLOBAL:
         case WASM_OP_GET_GLOBAL_64:
-            read_leb_uint32(frame_ip, frame_ip_end, global_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, global_idx);
             if (!jit_compile_op_get_global(cc, global_idx))
                 return false;
             break;
         case WASM_OP_SET_GLOBAL:
         case WASM_OP_SET_GLOBAL_64:
         case WASM_OP_SET_GLOBAL_AUX_STACK:
-            read_leb_uint32(frame_ip, frame_ip_end, global_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, global_idx);
             if (!jit_compile_op_set_global(
                     cc, global_idx,
                     opcode == WASM_OP_SET_GLOBAL_AUX_STACK ? true : false))
@@ -1218,8 +1247,8 @@ private bool jit_compile_func(JitCompContext* cc) {
             bytes = 2;
             sign = (opcode == WASM_OP_I32_LOAD16_S) ? true : false;
         op_i32_load:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_i32_load(cc, align_, offset, bytes, sign,
                     false))
                 return false;
@@ -1243,21 +1272,21 @@ private bool jit_compile_func(JitCompContext* cc) {
             bytes = 4;
             sign = (opcode == WASM_OP_I64_LOAD32_S) ? true : false;
         op_i64_load:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_i64_load(cc, align_, offset, bytes, sign,
                     false))
                 return false;
             break;
         case WASM_OP_F32_LOAD:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_f32_load(cc, align_, offset))
                 return false;
             break;
         case WASM_OP_F64_LOAD:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_f64_load(cc, align_, offset))
                 return false;
             break;
@@ -1270,8 +1299,8 @@ private bool jit_compile_func(JitCompContext* cc) {
         case WASM_OP_I32_STORE16:
             bytes = 2;
         op_i32_store:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_i32_store(cc, align_, offset, bytes, false))
                 return false;
             break;
@@ -1287,40 +1316,40 @@ private bool jit_compile_func(JitCompContext* cc) {
         case WASM_OP_I64_STORE32:
             bytes = 4;
         op_i64_store:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_i64_store(cc, align_, offset, bytes, false))
                 return false;
             break;
         case WASM_OP_F32_STORE:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_f32_store(cc, align_, offset))
                 return false;
             break;
         case WASM_OP_F64_STORE:
-            read_leb_uint32(frame_ip, frame_ip_end, align_);
-            read_leb_uint32(frame_ip, frame_ip_end, offset);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
             if (!jit_compile_op_f64_store(cc, align_, offset))
                 return false;
             break;
         case WASM_OP_MEMORY_SIZE:
-            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, mem_idx);
             if (!jit_compile_op_memory_size(cc, mem_idx))
                 return false;
             break;
         case WASM_OP_MEMORY_GROW:
-            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+            read_lebT!uint(cc, frame_ip, frame_ip_end, mem_idx);
             if (!jit_compile_op_memory_grow(cc, mem_idx))
                 return false;
             break;
         case WASM_OP_I32_CONST:
-            read_leb_int32(frame_ip, frame_ip_end, i32_const);
+            read_lebT!int32(cc, frame_ip, frame_ip_end, i32_const);
             if (!jit_compile_op_i32_const(cc, i32_const))
                 return false;
             break;
         case WASM_OP_I64_CONST:
-            read_leb_int64(frame_ip, frame_ip_end, i64_const);
+            read_lebT!int64(cc, frame_ip, frame_ip_end, i64_const);
             if (!jit_compile_op_i64_const(cc, i64_const))
                 return false;
             break;
@@ -1648,7 +1677,7 @@ private bool jit_compile_func(JitCompContext* cc) {
             break;
         case WASM_OP_MISC_PREFIX: {
                 uint opcode1 = void;
-                read_leb_uint32(frame_ip, frame_ip_end, opcode1);
+                read_lebT!uint(cc, frame_ip, frame_ip_end, opcode1);
                 opcode = cast(uint) opcode1;
                 switch (opcode) {
                 case WASM_OP_I32_TRUNC_SAT_S_F32:
@@ -1678,30 +1707,30 @@ private bool jit_compile_func(JitCompContext* cc) {
                     static if (ver.WASM_ENABLE_BULK_MEMORY) {
                 case WASM_OP_MEMORY_INIT: {
                             uint seg_idx = 0;
-                            read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
-                            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, seg_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, mem_idx);
                             if (!jit_compile_op_memory_init(cc, mem_idx, seg_idx))
                                 return false;
                             break;
                         }
                 case WASM_OP_DATA_DROP: {
                             uint seg_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, seg_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, seg_idx);
                             if (!jit_compile_op_data_drop(cc, seg_idx))
                                 return false;
                             break;
                         }
                 case WASM_OP_MEMORY_COPY: {
                             uint src_mem_idx = void, dst_mem_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, src_mem_idx);
-                            read_leb_uint32(frame_ip, frame_ip_end, dst_mem_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, src_mem_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, dst_mem_idx);
                             if (!jit_compile_op_memory_copy(cc, src_mem_idx,
                                     dst_mem_idx))
                                 return false;
                             break;
                         }
                 case WASM_OP_MEMORY_FILL: {
-                            read_leb_uint32(frame_ip, frame_ip_end, mem_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, mem_idx);
                             if (!jit_compile_op_memory_fill(cc, mem_idx))
                                 return false;
                             break;
@@ -1710,8 +1739,8 @@ private bool jit_compile_func(JitCompContext* cc) {
                     static if (ver.WASM_ENABLE_REF_TYPES) {
                 case WASM_OP_TABLE_INIT: {
                             uint tbl_idx = void, tbl_seg_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, tbl_seg_idx);
-                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_seg_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                             if (!jit_compile_op_table_init(cc, tbl_idx,
                                     tbl_seg_idx))
                                 return false;
@@ -1719,15 +1748,15 @@ private bool jit_compile_func(JitCompContext* cc) {
                         }
                 case WASM_OP_ELEM_DROP: {
                             uint tbl_seg_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, tbl_seg_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_seg_idx);
                             if (!jit_compile_op_elem_drop(cc, tbl_seg_idx))
                                 return false;
                             break;
                         }
                 case WASM_OP_TABLE_COPY: {
                             uint src_tbl_idx = void, dst_tbl_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, dst_tbl_idx);
-                            read_leb_uint32(frame_ip, frame_ip_end, src_tbl_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, dst_tbl_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, src_tbl_idx);
                             if (!jit_compile_op_table_copy(cc, src_tbl_idx,
                                     dst_tbl_idx))
                                 return false;
@@ -1735,21 +1764,21 @@ private bool jit_compile_func(JitCompContext* cc) {
                         }
                 case WASM_OP_TABLE_GROW: {
                             uint tbl_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                             if (!jit_compile_op_table_grow(cc, tbl_idx))
                                 return false;
                             break;
                         }
                 case WASM_OP_TABLE_SIZE: {
                             uint tbl_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                             if (!jit_compile_op_table_size(cc, tbl_idx))
                                 return false;
                             break;
                         }
                 case WASM_OP_TABLE_FILL: {
                             uint tbl_idx = void;
-                            read_leb_uint32(frame_ip, frame_ip_end, tbl_idx);
+                            read_lebT!uint(cc, frame_ip, frame_ip_end, tbl_idx);
                             if (!jit_compile_op_table_fill(cc, tbl_idx))
                                 return false;
                             break;
@@ -1768,8 +1797,8 @@ private bool jit_compile_func(JitCompContext* cc) {
                         opcode = *frame_ip++;
                     }
                     if (opcode != WASM_OP_ATOMIC_FENCE) {
-                        read_leb_uint32(frame_ip, frame_ip_end, align_);
-                        read_leb_uint32(frame_ip, frame_ip_end, offset);
+                        read_lebT!uint(cc, frame_ip, frame_ip_end, align_);
+                        read_lebT!uint(cc, frame_ip, frame_ip_end, offset);
                     }
                     switch (opcode) {
                     case WASM_OP_ATOMIC_WAIT32:

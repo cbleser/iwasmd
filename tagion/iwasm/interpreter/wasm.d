@@ -120,12 +120,12 @@ struct WASMType {
     ushort param_cell_num;
     ushort ret_cell_num;
     ushort ref_count;
-    static if (ver.WASM_ENABLE_FAST_JIT && ver.WASM_ENABLE_JIT
-            && ver.WASM_ENABLE_LAZY_JIT) {
+//    static if (ver.WASM_ENABLE_FAST_JIT && ver.WASM_ENABLE_JIT
+//            && ver.WASM_ENABLE_LAZY_JIT) {
         /* Code block to call llvm jit functions of this
        kind of function type from fast jit jitted code */
         void* call_to_llvm_jit_from_fast_jit;
-    }
+//    }
     /* types of params and results */
     ubyte[1] types;
 }
@@ -207,10 +207,10 @@ struct WASMGlobalImport {
         WASMModule* import_module;
         WASMGlobal* import_global_linked;
     }
-    static if (ver.WASM_ENABLE_FAST_JIT) {
+    //static if (ver.WASM_ENABLE_FAST_JIT) {
         /* The data offset of current global in global data */
         uint data_offset;
-    }
+   // }
 }
 
 struct WASMImport {
@@ -289,10 +289,10 @@ struct WASMGlobal {
     ubyte type;
     bool is_mutable;
     InitializerExpression init_expr;
-    static if (ver.WASM_ENABLE_FAST_JIT) {
+    //static if (ver.WASM_ENABLE_FAST_JIT) {
         /* The data offset of current global in global data */
         uint data_offset;
-    }
+    //}
 }
 
 struct WASMExport {
