@@ -84,6 +84,7 @@ import tagion.iwasm.interpreter.wasm : BlockAddr,LABEL_TYPE_BLOCK, LABEL_TYPE_LO
 import tagion.iwasm.interpreter.wasm_loader : wasm_loader_find_block_addr;
 import tagion.iwasm.fast_jit.jit_context : JitCompContext;
 import tagion.iwasm.fast_jit.jit_utils;
+import tagion.iwasm.fast_jit.jit_frame;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_frontend : POP_I32, POP_I64;
 import tagion.iwasm.fast_jit.fe.jit_emit_exception : jit_emit_exception;
@@ -681,11 +682,12 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
             goto fail;
     }
     else if (label_type == LABEL_TYPE_IF) {
-        POP_I32(value);
+        if (cc.pop_i32(value)) goto fail;
         if (!jit_reg_is_const_val(value)) {
             /* Compare value is not constant, create condition br IR */
             /* Create entry block */
-            do { bh_assert(!block.basic_block_entry); if (((block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) is null)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
+            do { bh_assert(!block.basic_block_entry); 
+				if (((block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) is null)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
             do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1; } while (0);
             do { *(jit_annl_begin_bcip(cc, jit_basic_block_label(block.basic_block_entry))) = *p_frame_ip; } while (0);
             if (!push_jit_block_to_stack_and_pass_params(
@@ -858,24 +860,26 @@ private void jit_frame_copy(JitFrame* jit_frame_dst, const(JitFrame)* jit_frame_
     jit_frame_dst.sp =
         jit_frame_dst.lp + (jit_frame_src.sp - jit_frame_src.lp);
 }
+
 bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_br_if, ubyte** p_frame_ip) {
-    JitFrame* jit_frame = void, jit_frame_cloned = void;
-    JitBlock* block_dst = void;
+    JitFrame* jit_frame, jit_frame_cloned;
+    JitBlock* block_dst;
     JitReg cond = void;
-    JitBasicBlock* cur_basic_block = void, if_basic_block = null;
-    JitInsn* insn = void, insn_select = null, insn_cmp = null;
+    JitBasicBlock* cur_basic_block, if_basic_block;
+    JitInsn* insn, insn_select , insn_cmp ;
     bool copy_arities = void;
     if (((block_dst = get_target_block(cc, br_depth)) is null)) {
         return false;
     }
     /* append IF to current basic block */
-    POP_I32(cond);
+    if (cc.pop_i32(cond)) goto fail;
     if (merge_cmp_and_br_if) {
         get_last_cmp_and_selectcc(cc, cond, &insn_cmp, &insn_select);
     }
     jit_frame = cc.jit_frame;
     cur_basic_block = cc.cur_basic_block;
-    gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+//    gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+    jit_frame.gen_commit_values; //(jit_frame, jit_frame.lp, jit_frame.sp);
     if (!(insn_select && insn_cmp)) {
         if (!_gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cond, jit_cc_new_const_I32(cc, 0))))) {
             jit_set_last_error(cc, "generate cmp insn failed");
@@ -893,7 +897,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
             }
         }
         else {
-            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, 0, 0)))) == 0)) {
+            if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, 0, 0)))) is null)) {
                 jit_set_last_error(cc, "generate bne insn failed");
                 goto fail;
             }
@@ -904,33 +908,33 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
         }
         if (insn_select && insn_cmp) {
             /* Change `CMP + SELECTcc` into `CMP + Bcc` */
-            insn.opcode = JIT_OP_BEQ + (insn_select.opcode - JIT_OP_SELECTEQ);
+            insn.opcode = cast(JitOpcode)(JIT_OP_BEQ + (insn_select.opcode - JIT_OP_SELECTEQ));
             jit_insn_unlink(insn_select);
             jit_insn_delete(insn_select);
         }
         return true;
     }
-    do { bh_assert(!if_basic_block); if (((if_basic_block = jit_cc_new_basic_block(cc, 0)) == 0)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
-    if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(if_basic_block), 0)))) == 0)) {
+    do { bh_assert(!if_basic_block); if (((if_basic_block = jit_cc_new_basic_block(cc, 0)) is null)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
+    if (((insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(if_basic_block), 0)))) is null)) {
         jit_set_last_error(cc, "generate bne insn failed");
         goto fail;
     }
     if (insn_select && insn_cmp) {
         /* Change `CMP + SELECTcc` into `CMP + Bcc` */
-        insn.opcode = JIT_OP_BEQ + (insn_select.opcode - JIT_OP_SELECTEQ);
+        insn.opcode = cast(JitOpcode)(JIT_OP_BEQ + (insn_select.opcode - JIT_OP_SELECTEQ));
         jit_insn_unlink(insn_select);
         jit_insn_delete(insn_select);
     }
     do { cc.cur_basic_block = if_basic_block; } while (0);
     do { *(jit_annl_begin_bcip(cc, jit_basic_block_label(if_basic_block))) = *p_frame_ip - 1; } while (0);
     /* Clone current jit frame to a new jit fame */
-    if (((jit_frame_cloned = jit_frame_clone(jit_frame)) == 0)) {
+    if (((jit_frame_cloned = jit_frame_clone(jit_frame)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         goto fail;
     }
     /* Clear current jit frame so that the registers
        in the new basic block will be loaded again */
-    clear_values(jit_frame);
+    jit_frame.clear_values;
     if (!handle_op_br(cc, br_depth, p_frame_ip)) {
         jit_free(jit_frame_cloned);
         goto fail;
@@ -952,11 +956,13 @@ bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count,
     uint i = 0;
     JitOpndLookupSwitch* opnd = null;
     cur_basic_block = cc.cur_basic_block;
-    POP_I32(value);
+    cc.pop_i32(value);
     /* append LOOKUPSWITCH to current basic block */
-    gen_commit_values(cc.jit_frame, cc.jit_frame.lp, cc.jit_frame.sp);
-    /* Clear frame values */
-    clear_values(cc.jit_frame);
+    //gen_commit_values(cc.jit_frame, cc.jit_frame.lp, cc.jit_frame.sp);
+    cc.jit_frame.gen_commit_values;
+	/* Clear frame values */
+    //clear_values(cc.jit_frame);
+    cc.jit_frame.clear_values;
     do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cur_basic_block))) = *p_frame_ip - 1; } while (0);
     /* prepare basic blocks for br */
     insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LOOKUPSWITCH(value, br_count)));
@@ -968,7 +974,7 @@ bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count,
         JitBasicBlock* basic_block = null;
         JitBlock* block_dst = void;
         bool copy_arities = void;
-        if (((block_dst = get_target_block(cc, br_depths[i])) == 0)) {
+        if (((block_dst = get_target_block(cc, br_depths[i])) is null)) {
             goto fail;
         }
         /* Only opy parameters or results when their count > 0 and
@@ -1007,7 +1013,7 @@ bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count,
             continue;
         }
         /* Create new basic block when need to copy arities */
-        do { bh_assert(!basic_block); if (((basic_block = jit_cc_new_basic_block(cc, 0)) == 0)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
+        do { bh_assert(!basic_block); if (((basic_block = jit_cc_new_basic_block(cc, 0)) is null)) { jit_set_last_error(cc, "create basic block failed"); goto fail; } } while (0);
         do { *(jit_annl_begin_bcip(cc, jit_basic_block_label(basic_block))) = *p_frame_ip - 1; } while (0);
         if (i == br_count) {
             opnd.default_target = jit_basic_block_label(basic_block);
@@ -1027,12 +1033,13 @@ fail:
 }
 bool jit_compile_op_return(JitCompContext* cc, ubyte** p_frame_ip) {
     JitBlock* block_func = cc.block_stack.block_list_head;
-    bh_assert(block_func);
+    bh_assert(block_func !is null);
     if (!handle_func_return(cc, block_func)) {
         return false;
     }
     do { *(jit_annl_end_bcip(cc, jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1; } while (0);
-    clear_values(cc.jit_frame);
+    //clear_values(cc.jit_frame);
+    cc.jit_frame.clear_values;
     return handle_next_reachable_block(cc, p_frame_ip);
 }
 bool jit_compile_op_unreachable(JitCompContext* cc, ubyte** p_frame_ip) {

@@ -46,6 +46,7 @@ import tagion.iwasm.fast_jit.fe.jit_emit_exception;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_frame;
 //import tagion.iwasm.interpreter.wasm_runtime;
 import tagion.iwasm.interpreter.wasm;
 private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg res, JitReg* params, uint param_count);

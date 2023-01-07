@@ -1,59 +1,74 @@
 module tagion.iwasm.fast_jit.jit_context;
 @nogc:
+nothrow:
 import tagion.iwasm.fast_jit.jit_ir;
-import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction; 
-bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
-    JitValue* jit_value = null;
-    JitReg value = 0;
-    if (!jit_block_stack_top(&cc.block_stack)) {
-        jit_set_last_error(cc, "WASM block stack underflow");
-        return false;
-    }
-    if (!jit_block_stack_top(&cc.block_stack).value_stack.value_list_end) {
-        jit_set_last_error(cc, "WASM data stack underflow");
-        return false;
-    }
-    jit_value = jit_value_stack_pop(
+import tagion.iwasm.fast_jit.jit_frame;
 
-            &jit_block_stack_top(&cc.block_stack).value_stack);
-    bh_assert(jit_value !is null);
-    if (jit_value.type != to_stack_value_type(type)) {
-        jit_set_last_error(cc, "invalid WASM stack data type");
-        jit_free(jit_value);
-        return false;
-    }
-    switch (jit_value.type) {
-    case VALUE_TYPE_I32:
-        value = pop_i32(cc.jit_frame);
-        break;
-    case VALUE_TYPE_I64:
-        value = pop_i64(cc.jit_frame);
-        break;
-    case VALUE_TYPE_F32:
-        value = pop_f32(cc.jit_frame);
-        break;
-    case VALUE_TYPE_F64:
-        value = pop_f64(cc.jit_frame);
-        break;
-    default:
-        bh_assert(0);
-        break;
-    }
-    bh_assert(cc.jit_frame.sp == jit_value.value);
-    bh_assert(value == jit_value.value.reg);
+import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
 
-    *p_value = value;
-    jit_free(jit_value);
-    return true;
-}
-
+//bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
+//    return cc.pop_value(type, p_value);
+//}
 
 /**
  * The JIT compilation context for one compilation process of a
  * compilation unit.
  */
-nothrow:
 struct JitCompContext {
+@nogc:
+nothrow:
+    private bool pop_value(ubyte type, JitReg* p_value) {
+        JitValue* jit_value = null;
+        JitReg value = 0;
+        if (!jit_block_stack_top(&cc.block_stack)) {
+            jit_set_last_error(cc, "WASM block stack underflow");
+            return false;
+        }
+        if (!jit_block_stack_top(&cc.block_stack).value_stack.value_list_end) {
+            jit_set_last_error(cc, "WASM data stack underflow");
+            return false;
+        }
+        jit_value = jit_value_stack_pop(
+
+                &jit_block_stack_top(&cc.block_stack).value_stack);
+        bh_assert(jit_value !is null);
+        if (jit_value.type != to_stack_value_type(type)) {
+            jit_set_last_error(cc, "invalid WASM stack data type");
+            jit_free(jit_value);
+            return false;
+        }
+        switch (jit_value.type) {
+        case VALUE_TYPE_I32:
+            value = jit_frame.pop_i32;
+            break;
+        case VALUE_TYPE_I64:
+            value = jit_frame.pop_i64;
+            break;
+        case VALUE_TYPE_F32:
+            value = jit_frame.pop_f32;
+            break;
+        case VALUE_TYPE_F64:
+            value = jit_frame.pop_f64;
+            break;
+        default:
+            bh_assert(0);
+            break;
+        }
+        bh_assert(cc.jit_frame.sp == jit_value.value);
+        bh_assert(value == jit_value.value.reg);
+
+        *p_value = value;
+        jit_free(jit_value);
+        return true;
+    }
+
+	/*
+	Returns: true on fail
+*/
+
+    bool pop_i32(ref JitReg value) {
+        return !pop_value(VALUE_TYPE_I32, &value);
+    }
     /* Hard register information of each kind. */
     const(JitHardRegInfo)* hreg_info;
     /* No. of the pass to be applied. */
@@ -489,5 +504,37 @@ struct JitCompContext {
     /* indicate if the last comparision is about floating-point numbers or not
      */
     bool last_cmp_on_fp;
+bool jit_cc_push_value( ubyte type, JitReg value) {
+    JitValue* jit_value = void;
+    if (!jit_block_stack_top(&block_stack)) {
+        jit_set_last_error("WASM block stack underflow");
+        return false;
+    }
+    if (((jit_value = jit_calloc_value(JitValue.sizeof)) is null)) {
+        jit_set_last_error("allocate memory failed");
+        return false;
+    }
+    bh_assert(value);
+    jit_value.type = to_stack_value_type(type);
+    jit_value.value = jit_frame.sp;
+    jit_value_stack_push(&jit_block_stack_top(&cc.block_stack).value_stack,
+            jit_value);
+    switch (jit_value.type) {
+    case VALUE_TYPE_I32:
+        jit_frame.push_i32(  value);
+        break;
+    case VALUE_TYPE_I64:
+        jit_frame.push_i64(  value);
+        break;
+    case VALUE_TYPE_F32:
+        jit_frame.push_f32(  value);
+        break;
+    case VALUE_TYPE_F64:
+        jit_frame.push_f64(  value);
+        break;
+    default:
+        break;
+    }
+    return true;
 }
-
+}

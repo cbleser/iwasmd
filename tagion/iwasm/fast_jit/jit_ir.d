@@ -146,6 +146,7 @@ VALUE_TYPE_I32, VALUE_TYPE_I64, VALUE_TYPE_F32, VALUE_TYPE_F64;
 import tagion.iwasm.fast_jit.insn_opnd;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_frame : JitValueSlot;
 import tagion.iwasm.fast_jit.jit_codegen : jit_codegen_get_hreg_info;
 enum JitRegKind {
     VOID = 0x00, /* void type */
@@ -1655,23 +1656,6 @@ struct JitValueStack {
     JitValue* value_list_head;
     JitValue* value_list_end;
 }
-/* Record information of a value slot of local variable or stack
-   during translation.  */
-struct JitValueSlot {
-    /* The virtual register that holds the value of the slot if the
-       value of the slot is in register.  */
-    JitReg reg;
-    /* The dirty bit of the value slot. It's set if the value in
-       register is newer than the value in memory.  */
-    uint dirty; /*: 1 !!*/
-    /* Whether the new value in register is a reference, which is valid
-       only when the dirty bit is set.  */
-    uint ref_; /*: 1 !!*/
-    /* Committed reference flag.  0: unknown, 1: not-reference, 2:
-       reference.  */
-    uint committed_ref; /*: 2 !!*/
-}
-
 struct JitMemRegs {
     /* The following registers should be re-loaded after
        memory.grow, callbc and callnative */
@@ -1690,50 +1674,6 @@ struct JitTableRegs {
        callbc and callnative */
     JitReg table_cur_size;
 }
-/* Frame information for translation */
-struct JitFrame {
-    /* The current wasm module */
-    WASMModule* cur_wasm_module;
-    /* The current wasm function */
-    WASMFunction* cur_wasm_func;
-    /* The current wasm function index */
-    uint cur_wasm_func_idx;
-    /* The current compilation context */
-    JitCompContext* cc;
-    /* Max local slot number.  */
-    uint max_locals;
-    /* Max operand stack slot number.  */
-    uint max_stacks;
-    /* Instruction pointer */
-    ubyte* ip;
-    /* Stack top pointer */
-    JitValueSlot* sp;
-    /* Committed instruction pointer */
-    ubyte* committed_ip;
-    /* Committed stack top pointer */
-    JitValueSlot* committed_sp;
-    /* WASM module instance */
-    JitReg module_inst_reg;
-    /* WASM module */
-    JitReg module_reg;
-    /* module_inst->import_func_ptrs */
-    JitReg import_func_ptrs_reg;
-    /* module_inst->fast_jit_func_ptrs */
-    JitReg fast_jit_func_ptrs_reg;
-    /* module_inst->func_type_indexes */
-    JitReg func_type_indexes_reg;
-    /* Boundary of auxiliary stack */
-    JitReg aux_stack_bound_reg;
-    /* Bottom of auxiliary stack */
-    JitReg aux_stack_bottom_reg;
-    /* Data of memory instances */
-    JitMemRegs* memory_regs;
-    /* Data of table instances */
-    JitTableRegs* table_regs;
-    /* Local variables */
-    JitValueSlot* lp;
-}
-
 struct JitIncomingInsn {
     JitIncomingInsn* next;
     JitInsn* insn;
@@ -2957,14 +2897,12 @@ pragma(inline, true) JitBasicBlock* jit_cc_exit_basic_block(JitCompContext* cc) 
 void jit_value_stack_push(JitValueStack* stack, JitValue* value);
 JitValue* jit_value_stack_pop(JitValueStack* stack);
 void jit_value_stack_destroy(JitValueStack* stack);
-JitBlock* jit_block_stack_top(JitBlockStack* stack);
 void jit_block_stack_push(JitBlockStack* stack, JitBlock* block);
 JitBlock* jit_block_stack_pop(JitBlockStack* stack);
 void jit_block_stack_destroy(JitBlockStack* stack);
 bool jit_block_add_incoming_insn(JitBlock* block, JitInsn* insn, uint opnd_idx);
 void jit_block_destroy(JitBlock* block);
 bool jit_cc_push_value(JitCompContext* cc, ubyte type, JitReg value);
-bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value);
 bool jit_lock_reg_in_insn(JitCompContext* cc, JitInsn* the_insn, JitReg reg_to_lock);
 /**
  * Update the control flow graph after successors of blocks are
@@ -3737,84 +3675,6 @@ pragma(inline, true) ubyte to_stack_value_type(ubyte type) {
     return type;
 }
 
-bool jit_cc_pop_value(JitCompContext* cc, ubyte type, JitReg* p_value) {
-    JitValue* jit_value = null;
-    JitReg value = 0;
-    if (!jit_block_stack_top(&cc.block_stack)) {
-        jit_set_last_error(cc, "WASM block stack underflow");
-        return false;
-    }
-    if (!jit_block_stack_top(&cc.block_stack).value_stack.value_list_end) {
-        jit_set_last_error(cc, "WASM data stack underflow");
-        return false;
-    }
-    jit_value = jit_value_stack_pop(
-
-            &jit_block_stack_top(&cc.block_stack).value_stack);
-    bh_assert(jit_value !is null);
-    if (jit_value.type != to_stack_value_type(type)) {
-        jit_set_last_error(cc, "invalid WASM stack data type");
-        jit_free(jit_value);
-        return false;
-    }
-    switch (jit_value.type) {
-    case VALUE_TYPE_I32:
-        value = pop_i32(cc.jit_frame);
-        break;
-    case VALUE_TYPE_I64:
-        value = pop_i64(cc.jit_frame);
-        break;
-    case VALUE_TYPE_F32:
-        value = pop_f32(cc.jit_frame);
-        break;
-    case VALUE_TYPE_F64:
-        value = pop_f64(cc.jit_frame);
-        break;
-    default:
-        bh_assert(0);
-        break;
-    }
-    bh_assert(cc.jit_frame.sp == jit_value.value);
-    bh_assert(value == jit_value.value.reg);
-
-    *p_value = value;
-    jit_free(jit_value);
-    return true;
-}
-
-bool jit_cc_push_value(JitCompContext* cc, ubyte type, JitReg value) {
-    JitValue* jit_value = void;
-    if (!jit_block_stack_top(&cc.block_stack)) {
-        jit_set_last_error(cc, "WASM block stack underflow");
-        return false;
-    }
-    if (((jit_value = jit_calloc_value(JitValue.sizeof)) is null)) {
-        jit_set_last_error(cc, "allocate memory failed");
-        return false;
-    }
-    bh_assert(value);
-    jit_value.type = to_stack_value_type(type);
-    jit_value.value = cc.jit_frame.sp;
-    jit_value_stack_push(&jit_block_stack_top(&cc.block_stack).value_stack,
-            jit_value);
-    switch (jit_value.type) {
-    case VALUE_TYPE_I32:
-        push_i32(cc.jit_frame, value);
-        break;
-    case VALUE_TYPE_I64:
-        push_i64(cc.jit_frame, value);
-        break;
-    case VALUE_TYPE_F32:
-        push_f32(cc.jit_frame, value);
-        break;
-    case VALUE_TYPE_F64:
-        push_f64(cc.jit_frame, value);
-        break;
-    default:
-        break;
-    }
-    return true;
-}
 
 bool _jit_insn_check_opnd_access_Reg(const(JitInsn)* insn, uint n) {
     uint opcode = insn.opcode;

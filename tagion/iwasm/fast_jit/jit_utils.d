@@ -45,6 +45,7 @@ import core.stdc.string : memset, memcpy;
 import core.stdc.stdint : uintptr_t;
 import tagion.iwasm.share.utils.bh_assert;
 import tagion.iwasm.fast_jit.jit_ir;
+import tagion.iwasm.fast_jit.jit_frame;
 import tagion.iwasm.common.wasm_memory;
 /**
  * A simple fixed size bitmap.
