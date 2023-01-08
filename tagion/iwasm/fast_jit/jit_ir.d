@@ -1810,142 +1810,6 @@ struct JitBlockStack {
 /* Control instructions */
 
 /* Call and return instructions */
-
-/**
- * @def ANN_LABEL (TYPE, NAME)
- *
- * Definition of label annotations.
- *
- * @param TYPE type of the annotation
- * @param NAME name of the annotation
- *
- * Each defined annotation with name NAME has the following APIs:
- *
- * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
- * label @p label
- * @c jit_annl_enable_NAME (cc): enables the annotation NAME
- * @c jit_annl_disable_NAME (cc): disables the annotation NAME
- * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
- * is enabled
- */
-/* Basic Block of a label.  */
-pragma(inline, true) JitBasicBlock** jit_annl_basic_block(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_basic_block_enabled);
-    return &cc._ann._label_basic_block[idx];
-}
-/* Predecessor number of the block that is only used in
-   jit_cc_update_cfg for updating the CFG.  */
-pragma(inline, true) ushort* jit_annl_pred_num(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_pred_num_enabled);
-    return &cc._ann._label_pred_num[idx];
-}
-/* Execution frequency of a block.  We can split critical edges with
-   empty blocks so we don't need to store frequencies of edges.  */
-pragma(inline, true) ushort* jit_annl_freq(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_freq_enabled);
-    return &cc._ann._label_freq[idx];
-}
-/* Begin bytecode instruction pointer of the block.  */
-pragma(inline, true) ubyte** jit_annl_begin_bcip(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_begin_bcip_enabled);
-    return &cc._ann._label_begin_bcip[idx];
-}
-/* End bytecode instruction pointer of the block.  */
-pragma(inline, true) ubyte** jit_annl_end_bcip(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_end_bcip_enabled);
-    return &cc._ann._label_end_bcip[idx];
-}
-/* Stack pointer offset at the end of the block.  */
-pragma(inline, true) ushort* jit_annl_end_sp(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_end_sp_enabled);
-    return &cc._ann._label_end_sp[idx];
-}
-/* The label of the next physically adjacent block.  */
-pragma(inline, true) JitReg* jit_annl_next_label(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_next_label_enabled);
-    return &cc._ann._label_next_label[idx];
-}
-/* Compiled code address of the block.  */
-pragma(inline, true) void** jit_annl_jitted_addr(JitCompContext* cc, JitReg label) {
-    uint idx = jit_reg_no(label);
-    bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
-    bh_assert(idx < cc._ann._label_num);
-    bh_assert(cc._ann._label_jitted_addr_enabled);
-    return &cc._ann._label_jitted_addr[idx];
-}
-/**
- * @def ANN_INSN (TYPE, NAME)
- *
- * Definition of instruction annotations.
- *
- * @param TYPE type of the annotation
- * @param NAME name of the annotation
- *
- * Each defined annotation with name NAME has the following APIs:
- *
- * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
- * instruction @p insn
- * @c jit_anni_enable_NAME (cc): enables the annotation NAME
- * @c jit_anni_disable_NAME (cc): disables the annotation NAME
- * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
- * is enabled
- */
-/* A annotation for linking instructions with the same hash
-   value, which is only used by the compilation context's hash table
-   of instructions.  */
-pragma(inline, true) JitInsn** jit_anni__hash_link(JitCompContext* cc, JitInsn* insn) {
-    uint uid = insn.uid;
-    bh_assert(uid < cc._ann._insn_num);
-    bh_assert(cc._ann._insn__hash_link_enabled);
-    return &cc._ann._insn__hash_link[uid];
-}
-/**
- * @def ANN_REG (TYPE, NAME)
- *
- * Definition of register annotations.
- *
- * @param TYPE type of the annotation
- * @param NAME name of the annotation
- *
- * Each defined annotation with name NAME has the following APIs:
- *
- * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
- * register @p reg
- * @c jit_annr_enable_NAME (cc): enables the annotation NAME
- * @c jit_annr_disable_NAME (cc): disables the annotation NAME
- * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
- * is enabled
- */
-/* Defining instruction of registers satisfying SSA property.  */
-pragma(inline, true) JitInsn** jit_annr_def_insn(JitCompContext* cc, JitReg reg) {
-    uint kind = jit_reg_kind(reg);
-    uint no = jit_reg_no(reg);
-    bh_assert(kind < JIT_REG_KIND_L32);
-    bh_assert(no < cc._ann._reg_num[kind]);
-    bh_assert(cc._ann._reg_def_insn_enabled);
-    return &cc._ann._reg_def_insn[kind][no];
-}
 /*
  * Annotation enabling functions jit_annl_enable_NAME,
  * jit_anni_enable_NAME and jit_annr_enable_NAME, which allocate
@@ -2502,47 +2366,13 @@ void jit_cc_delete(JitCompContext* cc);
 char* jit_get_last_error(JitCompContext* cc);
 void jit_set_last_error(JitCompContext* cc, const(char)* error);
 void jit_set_last_error_v(JitCompContext* cc, const(char)* format, ...);
-/**
- * Create a I32 constant value with relocatable into the compilation
- * context. A constant value that has relocation info cannot be
- * constant-folded as normal constants because its value depends on
- * runtime context and may be different in different executions.
- *
- * @param cc compilation context
- * @param val a I32 value
- * @param rel relocation information
- *
- * @return a constant register containing the value
- */
-JitReg jit_cc_new_const_I32_rel(JitCompContext* cc, int val, uint rel);
-/**
- * Create a I32 constant value without relocation info (0) into the
- * compilation context.
- *
- * @param cc compilation context
- * @param val a I32 value
- *
- * @return a constant register containing the value
- */
-pragma(inline, true) JitReg jit_cc_new_const_I32(JitCompContext* cc, int val) {
-    return cc.new_const_I32_rel( val, 0);
-}
-/**
- * Create a I64 constant value into the compilation context.
- *
- * @param cc compilation context
- * @param val a I64 value
- *
- * @return a constant register containing the value
- */
-JitReg jit_cc_new_const_I64(JitCompContext* cc, long val);
+version(none)
 static if (uintptr_t.max == ulong.max) {
     alias jit_cc_new_const_PTR = jit_cc_new_const_I64;
 }
 else {
     alias jit_cc_new_const_PTR = jit_cc_new_const_I32;
 }
-//#endif
 /**
  * Create a F32 constant value into the compilation context.
  *
@@ -2615,28 +2445,6 @@ double jit_cc_get_const_F64(JitCompContext* cc, JitReg reg);
  */
 pragma(inline, true) uint jit_cc_label_num(JitCompContext* cc) {
     return cc._ann._label_num;
-}
-/**
- * Get the number of total created instructions.
- *
- * @param cc the compilation context
- *
- * @return the number of total created instructions
- */
-pragma(inline, true) uint jit_cc_insn_num(JitCompContext* cc) {
-    return cc._ann._insn_num;
-}
-/**
- * Get the number of total created registers.
- *
- * @param cc the compilation context
- * @param kind the register kind
- *
- * @return the number of total created registers
- */
-pragma(inline, true) uint jit_cc_reg_num(JitCompContext* cc, uint kind) {
-    bh_assert(kind < JIT_REG_KIND_L32);
-    return cc._ann._reg_num[kind];
 }
 /**
  * Create a new label in the compilation context.

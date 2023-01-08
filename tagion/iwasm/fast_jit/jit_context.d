@@ -5,11 +5,37 @@ import core.stdc.stdint : uintptr_t;
 import core.stdc.stdarg : va_list;
 import tagion.iwasm.fast_jit.jit_ir;
 import tagion.iwasm.fast_jit.jit_frame;
+import tagion.iwasm.fast_jit.jit_utils;
 
 import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
+import tagion.iwasm.share.utils.bh_assert;
+enum ErrorCode : int {
+    None,
+    Stack_Overflow,
+}
 
+struct Error {
+    enum MSG_MAX_SIZE = 128;
+    import core.sys.posix.setjmp;
+
+    jmp_buf jmp_err;
+    size_t line;
+    string file;
+    static char[MSG_MAX_SIZE] error_msg;
+    void opCall(ErrorCode err, string msg, string file = __FILE__, const size_t line = __LINE__) {
+        const len = min(error_msg.length, msg.length);
+        error_msg[0 .. len] = msg[0 .. len];
+        this.line = line;
+        this.file = file;
+        longjmp(jmp_err, cast(int) err);
+    }
+
+    int setError() {
+        return setjmp(jmp_err);
+    }
+}
 //bool pop_value(ubyte type, JitReg* p_value) {
-//    return cc.pop_value(type, p_value);
+//    return pop_value(type, p_value);
 //}
 
 /**
@@ -22,17 +48,17 @@ nothrow:
     private bool pop_value(ubyte type, JitReg* p_value) {
         JitValue* jit_value = null;
         JitReg value = 0;
-        if (!jit_block_stack_top(&cc.block_stack)) {
+        if (!jit_block_stack_top(&block_stack)) {
             jit_set_last_error("WASM block stack underflow");
             return false;
         }
-        if (!jit_block_stack_top(&cc.block_stack).value_stack.value_list_end) {
+        if (!jit_block_stack_top(&block_stack).value_stack.value_list_end) {
             jit_set_last_error("WASM data stack underflow");
             return false;
         }
         jit_value = jit_value_stack_pop(
 
-                &jit_block_stack_top(&cc.block_stack).value_stack);
+                &jit_block_stack_top(&block_stack).value_stack);
         bh_assert(jit_value !is null);
         if (jit_value.type != to_stack_value_type(type)) {
             jit_set_last_error("invalid WASM stack data type");
@@ -56,7 +82,7 @@ nothrow:
             bh_assert(0);
             break;
         }
-        bh_assert(cc.jit_frame.sp == jit_value.value);
+        bh_assert(jit_frame.sp == jit_value.value);
         bh_assert(value == jit_value.value.reg);
 
         *p_value = value;
@@ -70,6 +96,11 @@ nothrow:
 
     bool pop_i32(ref JitReg value) {
         return !pop_value(VALUE_TYPE_I32, &value);
+    }
+    /* Error long-jumper */
+    private Error _error;
+    void error(ErrorCode err, string msg, string file = __FILE__, const size_t line = __LINE__) {
+        _error(err, msg, file, line);
     }
     /* Hard register information of each kind. */
     const(JitHardRegInfo)* hreg_info;
@@ -327,7 +358,8 @@ nothrow:
  * is enabled
  */
         /* Defining instruction of registers satisfying SSA property.  */
-        JitInsn**[JIT_REG_KIND_L32] _reg_def_insn;
+pragma(msg, "fixed(cbr): changed from JitInsn**[JIT_REG_KIND_L32] JitInsn*[JIT_REG_KIND_L32]"); 
+JitInsn*[JIT_REG_KIND_L32] _reg_def_insn;
         /* Flags of annotations. */
         /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
@@ -519,7 +551,7 @@ nothrow:
         bh_assert(value);
         jit_value.type = to_stack_value_type(type);
         jit_value.value = jit_frame.sp;
-        jit_value_stack_push(&jit_block_stack_top(&cc.block_stack).value_stack,
+        jit_value_stack_push(&jit_block_stack_top(&block_stack).value_stack,
                 jit_value);
         switch (jit_value.type) {
         case VALUE_TYPE_I32:
@@ -580,7 +612,7 @@ nothrow:
  */
     JitInsn* _gen_insn(JitInsn* insn) {
         if (insn)
-            jit_basic_block_append_insn(cc.cur_basic_block, insn);
+            jit_basic_block_append_insn(cur_basic_block, insn);
         else
             jit_set_last_error("generate insn failed");
         return insn;
@@ -652,7 +684,7 @@ nothrow:
  */
     uint hreg_num(uint kind) {
         bh_assert(kind < JIT_REG_KIND_L32);
-        return cc.hreg_info.info[kind].num;
+        return hreg_info.info[kind].num;
     }
     /**
  * Check whether a given register is a hard register.
@@ -666,7 +698,7 @@ nothrow:
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
         bh_assert(jit_reg_is_variable(reg));
-        return no < cc.hreg_info.info[kind].num;
+        return no < hreg_info.info[kind].num;
     }
     /**
  * Check whether the given hard register is fixed.
@@ -680,7 +712,7 @@ nothrow:
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
         bh_assert(is_hreg(reg));
-        return !!cc.hreg_info.info[kind].fixed[no];
+        return !!hreg_info.info[kind].fixed[no];
     }
     /**
  * Check whether the given hard register is caller-saved-native.
@@ -694,7 +726,7 @@ nothrow:
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
         bh_assert(is_hreg(reg));
-        return !!cc.hreg_info.info[kind].caller_saved_native[no];
+        return !!hreg_info.info[kind].caller_saved_native[no];
     }
     /**
  * Check whether the given hard register is caller-saved-jitted.
@@ -708,7 +740,7 @@ nothrow:
         uint kind = jit_reg_kind(reg);
         uint no = jit_reg_no(reg);
         bh_assert(is_hreg(reg));
-        return !!cc.hreg_info.info[kind].caller_saved_jitted[no];
+        return !!hreg_info.info[kind].caller_saved_jitted[no];
     }
     /**
  * Return the entry block of the compilation context.
@@ -718,7 +750,7 @@ nothrow:
  * @return the entry block of the compilation context
  */
     JitBasicBlock* entry_basic_block() {
-        return *(jit_annl_basic_block(cc.entry_label));
+        return *(jit_annl_basic_block(entry_label));
     }
     /**
  * Return the exit block of the compilation context.
@@ -728,18 +760,18 @@ nothrow:
  * @return the exit block of the compilation context
  */
     JitBasicBlock* exit_basic_block() {
-        return *(jit_annl_basic_block(cc.exit_label));
+        return *(jit_annl_basic_block(exit_label));
     }
 
     JitReg new_reg(uint kind) {
         uint num = reg_num(kind);
-        uint capacity = cc._ann._reg_capacity[kind];
+        uint capacity = _ann._reg_capacity[kind];
         bool successful = true;
         bh_assert(num <= capacity);
         if (num == capacity) {
             capacity = (capacity == 0 /* Initialize the capacity to be larger than hard
                            register number.  */
-                    ? cc.hreg_info.info[kind].num + 16 : capacity + capacity / 2);
+                    ? hreg_info.info[kind].num + 16 : capacity + capacity / 2);
             /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -884,10 +916,12 @@ nothrow:
  * is enabled
  */
             /* Defining instruction of registers satisfying SSA property.  */
-            if (successful && cc._ann._reg_def_insn_enabled) {
-                JitInsn* ptr = _jit_realloc(cc._ann._reg_def_insn[kind], JitInsn.sizeof * capacity, JitInsn.sizeof * num);
+            if (successful && _ann._reg_def_insn_enabled) {
+			pragma(msg, typeof(_ann._reg_def_insn[kind]));
+			pragma(msg, typeof(_ann._reg_def_insn));
+                JitInsn* ptr = jit_realloc(_ann._reg_def_insn[kind], JitInsn.sizeof * capacity, JitInsn.sizeof * num);
                 if (ptr)
-                    cc._ann._reg_def_insn[kind] = ptr;
+                    _ann._reg_def_insn[kind] = ptr;
                 else
                     successful = false;
             }
@@ -895,9 +929,9 @@ nothrow:
                 jit_set_last_error("create register failed");
                 return 0;
             }
-            cc._ann._reg_capacity[kind] = capacity;
+            _ann._reg_capacity[kind] = capacity;
         }
-        cc._ann._reg_num[kind] = num + 1;
+        _ann._reg_num[kind] = num + 1;
         return jit_reg_new(kind, num);
     }
     /*
@@ -996,99 +1030,234 @@ nothrow:
  * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
  * is enabled
  */
+    /**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+    /* Basic Block of a label.  */
+    JitBasicBlock** jit_annl_basic_block(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_basic_block_enabled);
+        return &_ann._label_basic_block[idx];
+    }
+    /* Predecessor number of the block that is only used in
+   update_cfg for updating the CFG.  */
+    ushort* jit_annl_pred_num(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_pred_num_enabled);
+        return &_ann._label_pred_num[idx];
+    }
+    /* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+    ushort* jit_annl_freq(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_freq_enabled);
+        return &_ann._label_freq[idx];
+    }
+    /* Begin bytecode instruction pointer of the block.  */
+    ubyte** jit_annl_begin_bcip(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_begin_bcip_enabled);
+        return &_ann._label_begin_bcip[idx];
+    }
+    /* End bytecode instruction pointer of the block.  */
+    ubyte** jit_annl_end_bcip(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_end_bcip_enabled);
+        return &_ann._label_end_bcip[idx];
+    }
+    /* Stack pointer offset at the end of the block.  */
+    ushort* jit_annl_end_sp(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_end_sp_enabled);
+        return &_ann._label_end_sp[idx];
+    }
+    /* The label of the next physically adjacent block.  */
+    JitReg* jit_annl_next_label(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_next_label_enabled);
+        return &_ann._label_next_label[idx];
+    }
+    /* Compiled code address of the block.  */
+    void** jit_annl_jitted_addr(JitReg label) {
+        uint idx = jit_reg_no(label);
+        bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
+        bh_assert(idx < _ann._label_num);
+        bh_assert(_ann._label_jitted_addr_enabled);
+        return &_ann._label_jitted_addr[idx];
+    }
+    /**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+    /* A annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+    JitInsn** jit_anni__hash_link(JitInsn* insn) {
+        uint uid = insn.uid;
+        bh_assert(uid < _ann._insn_num);
+        bh_assert(_ann._insn__hash_link_enabled);
+        return &_ann._insn__hash_link[uid];
+    }
+    /**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+    /* Defining instruction of registers satisfying SSA property.  */
+    JitInsn** jit_annr_def_insn(JitReg reg) {
+        uint kind = jit_reg_kind(reg);
+        uint no = jit_reg_no(reg);
+        bh_assert(kind < JIT_REG_KIND_L32);
+        bh_assert(no < _ann._reg_num[kind]);
+        bh_assert(_ann._reg_def_insn_enabled);
+        return &_ann._reg_def_insn[kind][no];
+    }
     /* Basic Block of a label.  */
     bool jit_annl_enable_basic_block() {
-        if (cc._ann._label_basic_block_enabled)
+        if (_ann._label_basic_block_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_basic_block = jit_calloc(cc._ann._label_capacity * (JitBasicBlock*)
+        if (_ann._label_capacity > 0 && ((_ann._label_basic_block = jit_calloc(_ann._label_capacity * (JitBasicBlock*)
                 .sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "basic_block" ~ "failed");
             return false;
         }
-        cc._ann._label_basic_block_enabled = 1;
+        _ann._label_basic_block_enabled = 1;
         return true;
     }
     /* Predecessor number of the block that is only used in
    update_cfg for updating the CFG.  */
     bool jit_annl_enable_pred_num() {
-        if (cc._ann._label_pred_num_enabled)
+        if (_ann._label_pred_num_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_pred_num = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) {
+        if (_ann._label_capacity > 0 && ((_ann._label_pred_num = jit_calloc(_ann._label_capacity * uint16.sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "pred_num" ~ "failed");
             return false;
         }
-        cc._ann._label_pred_num_enabled = 1;
+        _ann._label_pred_num_enabled = 1;
         return true;
     }
     /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
     bool jit_annl_enable_freq() {
-        if (cc._ann._label_freq_enabled)
+        if (_ann._label_freq_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_freq = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) {
+        if (_ann._label_capacity > 0 && ((_ann._label_freq = jit_calloc(_ann._label_capacity * uint16.sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "freq" ~ "failed");
             return false;
         }
-        cc._ann._label_freq_enabled = 1;
+        _ann._label_freq_enabled = 1;
         return true;
     }
     /* Begin bytecode instruction pointer of the block.  */
     bool jit_annl_enable_begin_bcip() {
-        if (cc._ann._label_begin_bcip_enabled)
+        if (_ann._label_begin_bcip_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_begin_bcip = jit_calloc(cc._ann._label_capacity * (ubyte*)
+        if (_ann._label_capacity > 0 && ((_ann._label_begin_bcip = jit_calloc(_ann._label_capacity * (ubyte*)
                 .sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "begin_bcip" ~ "failed");
             return false;
         }
-        cc._ann._label_begin_bcip_enabled = 1;
+        _ann._label_begin_bcip_enabled = 1;
         return true;
     }
     /* End bytecode instruction pointer of the block.  */
     bool jit_annl_enable_end_bcip() {
-        if (cc._ann._label_end_bcip_enabled)
+        if (_ann._label_end_bcip_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_end_bcip = jit_calloc(cc._ann._label_capacity * (ubyte*)
+        if (_ann._label_capacity > 0 && ((_ann._label_end_bcip = jit_calloc(_ann._label_capacity * (ubyte*)
                 .sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "end_bcip" ~ "failed");
             return false;
         }
-        cc._ann._label_end_bcip_enabled = 1;
+        _ann._label_end_bcip_enabled = 1;
         return true;
     }
     /* Stack pointer offset at the end of the block.  */
     bool jit_annl_enable_end_sp() {
-        if (cc._ann._label_end_sp_enabled)
+        if (_ann._label_end_sp_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_end_sp = jit_calloc(cc._ann._label_capacity * uint16.sizeof)) == 0)) {
+        if (_ann._label_capacity > 0 && ((_ann._label_end_sp = jit_calloc(_ann._label_capacity * uint16.sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "end_sp" ~ "failed");
             return false;
         }
-        cc._ann._label_end_sp_enabled = 1;
+        _ann._label_end_sp_enabled = 1;
         return true;
     }
     /* The label of the next physically adjacent block.  */
     bool jit_annl_enable_next_label() {
-        if (cc._ann._label_next_label_enabled)
+        if (_ann._label_next_label_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_next_label = jit_calloc(cc._ann._label_capacity * JitReg
+        if (_ann._label_capacity > 0 && ((_ann._label_next_label = jit_calloc(_ann._label_capacity * JitReg
                 .sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "next_label" ~ "failed");
             return false;
         }
-        cc._ann._label_next_label_enabled = 1;
+        _ann._label_next_label_enabled = 1;
         return true;
     }
     /* Compiled code address of the block.  */
     bool jit_annl_enable_jitted_addr() {
-        if (cc._ann._label_jitted_addr_enabled)
+        if (_ann._label_jitted_addr_enabled)
             return true;
-        if (cc._ann._label_capacity > 0 && ((cc._ann._label_jitted_addr = jit_calloc(cc._ann._label_capacity * (void*)
+        if (_ann._label_capacity > 0 && ((_ann._label_jitted_addr = jit_calloc(_ann._label_capacity * (void*)
                 .sizeof)) == 0)) {
             jit_set_last_error("annl enable " ~ "jitted_addr" ~ "failed");
             return false;
         }
-        cc._ann._label_jitted_addr_enabled = 1;
+        _ann._label_jitted_addr_enabled = 1;
         return true;
     }
     /**
@@ -1112,14 +1281,14 @@ nothrow:
    value, which is only used by the compilation context's hash table
    of instructions.  */
     bool jit_anni_enable__hash_link() {
-        if (cc._ann._insn__hash_link_enabled)
+        if (_ann._insn__hash_link_enabled)
             return true;
-        if (cc._ann._insn_capacity > 0 && ((cc._ann._insn__hash_link = jit_calloc(cc._ann._insn_capacity * (JitInsn*)
+        if (_ann._insn_capacity > 0 && ((_ann._insn__hash_link = jit_calloc(_ann._insn_capacity * (JitInsn*)
                 .sizeof)) == 0)) {
             jit_set_last_error("anni enable " ~ "_hash_link" ~ "failed");
             return false;
         }
-        cc._ann._insn__hash_link_enabled = 1;
+        _ann._insn__hash_link_enabled = 1;
         return true;
     }
     /**
@@ -1142,16 +1311,16 @@ nothrow:
     /* Defining instruction of registers satisfying SSA property.  */
     bool jit_annr_enable_def_insn() {
         uint k = void;
-        if (cc._ann._reg_def_insn_enabled)
+        if (_ann._reg_def_insn_enabled)
             return true;
         for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++)
-            if (cc._ann._reg_capacity[k] > 0 && ((cc._ann._reg_def_insn[k] = jit_calloc(cc._ann._reg_capacity[k] * (JitInsn*)
+            if (_ann._reg_capacity[k] > 0 && ((_ann._reg_def_insn[k] = jit_calloc(_ann._reg_capacity[k] * (JitInsn*)
             .sizeof)) == 0)) {
             jit_set_last_error("annr enable " ~ "def_insn" ~ "failed");
             jit_annr_disable_def_insn;
             return false;
         }
-        cc._ann._reg_def_insn_enabled = 1;
+        _ann._reg_def_insn_enabled = 1;
         return true;
     }
     /*
@@ -1252,53 +1421,53 @@ nothrow:
  */
     /* Basic Block of a label.  */
     void jit_annl_disable_basic_block() {
-        jit_free(cc._ann._label_basic_block);
-        cc._ann._label_basic_block = null;
-        cc._ann._label_basic_block_enabled = 0;
+        jit_free(_ann._label_basic_block);
+        _ann._label_basic_block = null;
+        _ann._label_basic_block_enabled = 0;
     }
     /* Predecessor number of the block that is only used in
    update_cfg for updating the CFG.  */
     void jit_annl_disable_pred_num() {
-        jit_free(cc._ann._label_pred_num);
-        cc._ann._label_pred_num = null;
-        cc._ann._label_pred_num_enabled = 0;
+        jit_free(_ann._label_pred_num);
+        _ann._label_pred_num = null;
+        _ann._label_pred_num_enabled = 0;
     }
     /* Execution frequency of a block.  We can split critical edges with
    empty blocks so we don't need to store frequencies of edges.  */
     void jit_annl_disable_freq() {
-        jit_free(cc._ann._label_freq);
-        cc._ann._label_freq = null;
-        cc._ann._label_freq_enabled = 0;
+        jit_free(_ann._label_freq);
+        _ann._label_freq = null;
+        _ann._label_freq_enabled = 0;
     }
     /* Begin bytecode instruction pointer of the block.  */
     void jit_annl_disable_begin_bcip() {
-        jit_free(cc._ann._label_begin_bcip);
-        cc._ann._label_begin_bcip = null;
-        cc._ann._label_begin_bcip_enabled = 0;
+        jit_free(_ann._label_begin_bcip);
+        _ann._label_begin_bcip = null;
+        _ann._label_begin_bcip_enabled = 0;
     }
     /* End bytecode instruction pointer of the block.  */
     void jit_annl_disable_end_bcip() {
-        jit_free(cc._ann._label_end_bcip);
-        cc._ann._label_end_bcip = null;
-        cc._ann._label_end_bcip_enabled = 0;
+        jit_free(_ann._label_end_bcip);
+        _ann._label_end_bcip = null;
+        _ann._label_end_bcip_enabled = 0;
     }
     /* Stack pointer offset at the end of the block.  */
     void jit_annl_disable_end_sp() {
-        jit_free(cc._ann._label_end_sp);
-        cc._ann._label_end_sp = null;
-        cc._ann._label_end_sp_enabled = 0;
+        jit_free(_ann._label_end_sp);
+        _ann._label_end_sp = null;
+        _ann._label_end_sp_enabled = 0;
     }
     /* The label of the next physically adjacent block.  */
     void jit_annl_disable_next_label() {
-        jit_free(cc._ann._label_next_label);
-        cc._ann._label_next_label = null;
-        cc._ann._label_next_label_enabled = 0;
+        jit_free(_ann._label_next_label);
+        _ann._label_next_label = null;
+        _ann._label_next_label_enabled = 0;
     }
     /* Compiled code address of the block.  */
     void jit_annl_disable_jitted_addr() {
-        jit_free(cc._ann._label_jitted_addr);
-        cc._ann._label_jitted_addr = null;
-        cc._ann._label_jitted_addr_enabled = 0;
+        jit_free(_ann._label_jitted_addr);
+        _ann._label_jitted_addr = null;
+        _ann._label_jitted_addr_enabled = 0;
     }
     /**
  * @def ANN_INSN (TYPE, NAME)
@@ -1321,9 +1490,9 @@ nothrow:
    value, which is only used by the compilation context's hash table
    of instructions.  */
     void jit_anni_disable__hash_link() {
-        jit_free(cc._ann._insn__hash_link);
-        cc._ann._insn__hash_link = null;
-        cc._ann._insn__hash_link_enabled = 0;
+        jit_free(_ann._insn__hash_link);
+        _ann._insn__hash_link = null;
+        _ann._insn__hash_link_enabled = 0;
     }
     /**
  * @def ANN_REG (TYPE, NAME)
@@ -1346,10 +1515,10 @@ nothrow:
     void jit_annr_disable_def_insn() {
         uint k = void;
         for (k = JIT_REG_KIND_VOID; k < JIT_REG_KIND_L32; k++) {
-            jit_free(cc._ann._reg_def_insn[k]);
-            cc._ann._reg_def_insn[k] = null;
+            jit_free(_ann._reg_def_insn[k]);
+            _ann._reg_def_insn[k] = null;
         }
-        cc._ann._reg_def_insn_enabled = 0;
+        _ann._reg_def_insn_enabled = 0;
     }
 
     bool jit_lock_reg_in_insn(JitInsn* the_insn, JitReg reg_to_lock) {
@@ -1387,8 +1556,8 @@ nothrow:
 
     JitInsn* set_insn_uid(JitInsn* insn) {
         if (insn) {
-            unsigned num = cc._ann._insn_num;
-            unsigned capacity = cc._ann._insn_capacity;
+            unsigned num = _ann._insn_num;
+            unsigned capacity = _ann._insn_capacity;
             bool successful = true;
             bh_assert(num <= capacity);
             if (num == capacity) {
@@ -1519,10 +1688,10 @@ nothrow:
                 /* A private annotation for linking instructions with the same hash
    value, which is only used by the compilation context's hash table
    of instructions.  */
-                if (successful && cc._ann._insn__hash_link_enabled) {
-                    JitInsn* ptr = _jit_realloc(cc._ann._insn__hash_link, JitInsn.sizeof * capacity, JitInsn.sizeof * num);
+                if (successful && _ann._insn__hash_link_enabled) {
+                    JitInsn* ptr = _jit_realloc(_ann._insn__hash_link, JitInsn.sizeof * capacity, JitInsn.sizeof * num);
                     if (ptr)
-                        cc._ann._insn__hash_link = ptr;
+                        _ann._insn__hash_link = ptr;
                     else
                         successful = false;
                 }
@@ -1548,23 +1717,46 @@ nothrow:
                     jit_set_last_error("set insn uid failed");
                     return null;
                 }
-                cc._ann._insn_capacity = capacity;
+                _ann._insn_capacity = capacity;
             }
-            cc._ann._insn_num = num + 1;
+            _ann._insn_num = num + 1;
             insn.uid = num;
         }
         return insn;
     }
-
+    /**
+ * Create a I32 constant value with relocatable into the compilation
+ * context. A constant value that has relocation info cannot be
+ * constant-folded as normal constants because its value depends on
+ * runtime context and may be different in different executions.
+ *
+ * @param cc compilation context
+ * @param val a I32 value
+ * @param rel relocation information
+ *
+ * @return a constant register containing the value
+ */
     JitReg new_const_I32_rel(int val, ulong rel) {
         ulong val64 = cast(ulong) val | rel << 32;
         do {
             JitReg reg = jit_reg_new(JIT_REG_KIND_I32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val64 & ~_JIT_REG_KIND_MASK)));
             if (cast(ulong) get_const_val_in_reg(reg) == val64)
                 return reg;
-            return _cc.new_const(JIT_REG_KIND_I32, val64.sizeof, &val64);
+            return _new_const(JIT_REG_KIND_I32, val64.sizeof, &val64);
         }
         while (0);
+    }
+    /**
+ * Create a I32 constant value without relocation info (0) into the
+ * compilation context.
+ *
+ * @param cc compilation context
+ * @param val a I32 value
+ *
+ * @return a constant register containing the value
+ */
+    JitReg new_const_I32(int val) {
+        return new_const_I32_rel(val, 0);
     }
 
     JitReg new_const_I64(long val) {
@@ -1572,33 +1764,47 @@ nothrow:
             JitReg reg = jit_reg_new(JIT_REG_KIND_I64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
             if (cast(long) get_const_val_in_reg(reg) == val)
                 return reg;
-            return _cc.new_const(JIT_REG_KIND_I64, val.sizeof, &val);
+            return _new_const(JIT_REG_KIND_I64, val.sizeof, &val);
         }
         while (0);
     }
-
+    /**
+ * Create a F32 constant value into the compilation context.
+ *
+ * @param cc compilation context
+ * @param val a F32 value
+ *
+ * @return a constant register containing the value
+ */
     JitReg new_const_F32(float val) {
         int float_neg_zero = 0x80000000;
         if (!memcmp(&val, &float_neg_zero, float.sizeof)) /* Create const -0.0f */
-            return _cc.new_const(JIT_REG_KIND_F32, float.sizeof, &val);
+            return _new_const(JIT_REG_KIND_F32, float.sizeof, &val);
         do {
             JitReg reg = jit_reg_new(JIT_REG_KIND_F32, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
             if (cast(float) get_const_val_in_reg(reg) == val)
                 return reg;
-            return _cc.new_const(JIT_REG_KIND_F32, val.sizeof, &val);
+            return _new_const(JIT_REG_KIND_F32, val.sizeof, &val);
         }
         while (0);
     }
-
+    /**
+ * Create a F64 constant value into the compilation context.
+ *
+ * @param cc compilation context
+ * @param val a F64 value
+ *
+ * @return a constant register containing the value
+ */
     JitReg new_const_F64(double val) {
         long double_neg_zero = 0x8000000000000000L;
         if (!memcmp(&val, &double_neg_zero, double.sizeof)) /* Create const -0.0d */
-            return _cc.new_const(JIT_REG_KIND_F64, double.sizeof, &val);
+            return _new_const(JIT_REG_KIND_F64, double.sizeof, &val);
         do {
             JitReg reg = jit_reg_new(JIT_REG_KIND_F64, (_JIT_REG_CONST_VAL_FLAG | (cast(JitReg) val & ~_JIT_REG_KIND_MASK)));
             if (cast(double) get_const_val_in_reg(reg) == val)
                 return reg;
-            return _cc.new_const(JIT_REG_KIND_F64, val.sizeof, &val);
+            return _new_const(JIT_REG_KIND_F64, val.sizeof, &val);
         }
         while (0);
     }
@@ -1614,11 +1820,11 @@ nothrow:
     }
 
     uint get_const_I32_rel(JitReg reg) {
-        return cast(uint)(cc.get_const_I32_helper(reg) >> 32);
+        return cast(uint)(get_const_I32_helper(reg) >> 32);
     }
 
     int get_const_I32(JitReg reg) {
-        return cast(int)(cc.get_const_I32_helper(reg));
+        return cast(int)(get_const_I32_helper(reg));
     }
 
     long get_const_I64(JitReg reg) {
@@ -1642,13 +1848,250 @@ nothrow:
     }
 
     double get_const_F64(JitReg reg) {
-        do {
-            bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F64);
-            bh_assert(jit_reg_is_const(reg));
-            return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *cast(double*)(
-                    address_of_const(reg, double.sizeof)));
+        bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F64);
+        bh_assert(jit_reg_is_const(reg));
+        return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *(cast(double*) address_of_const(reg, double
+                .sizeof)));
+    }
+    /**
+ * Get the number of total created instructions.
+ *
+ * @param cc the compilation context
+ *
+ * @return the number of total created instructions
+ */
+    uint insn_num() {
+        return _ann._insn_num;
+    }
+    /**
+ * Get the number of total created registers.
+ *
+ * @param cc the compilation context
+ * @param kind the register kind
+ *
+ * @return the number of total created registers
+ */
+    uint reg_num(uint kind) {
+        bh_assert(kind < JIT_REG_KIND_L32);
+        return _ann._reg_num[kind];
+    }
+
+    JitReg new_label() {
+        uint num = _ann._label_num;
+        uint capacity = _ann._label_capacity;
+        bool successful = true;
+        bh_assert(num <= capacity);
+        if (num == capacity) {
+            capacity = capacity > 0 ? (capacity + capacity / 2) : 16;
+            /*
+ * Copyright (C) 2021 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+            /**
+ * @file   jit-ir.def
+ *
+ * @brief  Definition of JIT IR instructions and annotations.
+ */
+            /**
+ * @def INSN (NAME, OPND_KIND, OPND_NUM, FIRST_USE)
+ *
+ * Definition of IR instructions
+ *
+ * @param NAME name of the opcode
+ * @param OPND_KIND kind of the operand(s)
+ * @param OPND_NUM number of the operand(s)
+ * @param FIRST_USE index of the first use register
+ *
+ * @p OPND_KIND and @p OPND_NUM together determine the format of an
+ * instruction.  There are four kinds of formats:
+ *
+ * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
+ * number of operands;
+ *
+ * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * the number of fixed register operands;
+ *
+ * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
+ * be 1;
+ *
+ * 4) LookupSwitch: lookupswitch instruction's format, @p OPND_NUM
+ * must be 1.
+ *
+ * Instruction operands are all registers and they are organized in an
+ * order that all registers defined by the instruction, if any, appear
+ * before the registers used by the instruction. The @p FIRST_USE is
+ * the index of the first use register in the register vector sorted
+ * in this order. Use @c jit_insn_opnd_regs to get the register
+ * vector in this order and use @c jit_insn_opnd_first_use to get the
+ * index of the first use register.
+ *
+ * Every instruction with name @p NAME has the following definitions:
+ *
+ * @c JEFF_OP_NAME: the enum opcode of insn NAME
+ * @c jit_insn_new_NAME (...): creates a new instance of insn NAME
+ *
+ * An instruction is deleted by function:
+ *
+ * @c jit_insn_delete (@p insn)
+ *
+ * In the scope of this IR's terminology, operand and argument have
+ * different meanings. The operand is a general notation, which
+ * denotes every raw operand of an instruction, while the argument
+ * only denotes the variable part of operands of instructions of VReg
+ * kind. For example, a VReg instruction phi node "r0 = phi(r1, r2)"
+ * has three operands opnd[0]: r0, opnd[1]: r1 and opnd[2]: r2, but
+ * only two arguments arg[0]: r1 and arg[1]: r2.  Operands or
+ * arguments of instructions with various formats can be access
+ * through the following APIs:
+ *
+ * @c jit_insn_opnd (@p insn, @p n): for Reg_N formats
+ * @c jit_insn_opndv (@p insn, @p n): for VReg_N formats
+ * @c jit_insn_opndv_num (@p insn): for VReg_N formats
+ * @c jit_insn_opndts (@p insn): for TableSwitch_1 format
+ * @c jit_insn_opndls (@p insn): for LookupSwitch_1 format
+ */
+            /* Move and conversion instructions that transfer values among
+   registers of the same kind (move) or different kinds (convert) */
+            /* conversion. will extend or truncate */
+            /**
+ * Re-interpret binary presentations:
+ *   *(i32 *)&f32, *(i64 *)&f64, *(f32 *)&i32, *(f64 *)&i64
+ */
+            /* Arithmetic and bitwise instructions: */
+            /* Select instruction: */
+            /* Memory access instructions: */
+            /* Control instructions */
+            /* Call and return instructions */
+            /**
+ * @def ANN_LABEL (TYPE, NAME)
+ *
+ * Definition of label annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annl_NAME (cc, label): accesses the annotation NAME of
+ * label @p label
+ * @c jit_annl_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annl_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annl_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+            /* Basic Block of a label.  */
+            if (successful && _ann._label_basic_block_enabled) {
+                JitBasicBlock* ptr = _jit_realloc(_ann._label_basic_block, JitBasicBlock.sizeof * capacity, JitBasicBlock
+                        .sizeof * num);
+                if (ptr)
+                    _ann._label_basic_block = ptr;
+                else
+                    successful = false;
+            }
+            /* Predecessor number of the block that is only used in
+   update_cfg for updating the CFG.  */
+            if (successful && _ann._label_pred_num_enabled) {
+                uint16* ptr = _jit_realloc(_ann._label_pred_num, uint16.sizeof * capacity, uint16.sizeof * num);
+                if (ptr)
+                    _ann._label_pred_num = ptr;
+                else
+                    successful = false;
+            }
+            /* Execution frequency of a block.  We can split critical edges with
+   empty blocks so we don't need to store frequencies of edges.  */
+            if (successful && _ann._label_freq_enabled) {
+                uint16* ptr = _jit_realloc(_ann._label_freq, uint16.sizeof * capacity, uint16.sizeof * num);
+                if (ptr)
+                    _ann._label_freq = ptr;
+                else
+                    successful = false;
+            }
+            /* Begin bytecode instruction pointer of the block.  */
+            if (successful && _ann._label_begin_bcip_enabled) {
+                uint8** ptr = _jit_realloc(_ann._label_begin_bcip, (uint8*).sizeof.sizeof * capacity, (uint8*).sizeof * num);
+                if (ptr)
+                    _ann._label_begin_bcip = ptr;
+                else
+                    successful = false;
+            }
+            /* End bytecode instruction pointer of the block.  */
+            if (successful && _ann._label_end_bcip_enabled) {
+                uint8** ptr = _jit_realloc(_ann._label_end_bcip, (uint8*).sizeof * capacity, (uint8*).sizeof * num);
+                if (ptr)
+                    _ann._label_end_bcip = ptr;
+                else
+                    successful = false;
+            }
+            /* Stack pointer offset at the end of the block.  */
+            if (successful && _ann._label_end_sp_enabled) {
+                uint16* ptr = _jit_realloc(_ann._label_end_sp, uint16.sizeof * capacity, uint16.sizeof * num);
+                if (ptr)
+                    _ann._label_end_sp = ptr;
+                else
+                    successful = false;
+            }
+            /* The label of the next physically adjacent block.  */
+            if (successful && _ann._label_next_label_enabled) {
+                JitReg* ptr = _jit_realloc(_ann._label_next_label, JitReg.sizeof * capacity, JitReg.sizeof * num);
+                if (ptr)
+                    _ann._label_next_label = ptr;
+                else
+                    successful = false;
+            }
+            /* Compiled code address of the block.  */
+            if (successful && _ann._label_jitted_addr_enabled) {
+                void** ptr = _jit_realloc(_ann._label_jitted_addr, (void*).sizeof * capacity, (void*).sizeof * num);
+                if (ptr)
+                    _ann._label_jitted_addr = ptr;
+                else
+                    successful = false;
+            }
+            /**
+ * @def ANN_INSN (TYPE, NAME)
+ *
+ * Definition of instruction annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_anni_NAME (cc, insn): accesses the annotation NAME of
+ * instruction @p insn
+ * @c jit_anni_enable_NAME (cc): enables the annotation NAME
+ * @c jit_anni_disable_NAME (cc): disables the annotation NAME
+ * @c jit_anni_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+            /* A private annotation for linking instructions with the same hash
+   value, which is only used by the compilation context's hash table
+   of instructions.  */
+            /**
+ * @def ANN_REG (TYPE, NAME)
+ *
+ * Definition of register annotations.
+ *
+ * @param TYPE type of the annotation
+ * @param NAME name of the annotation
+ *
+ * Each defined annotation with name NAME has the following APIs:
+ *
+ * @c jit_annr_NAME (cc, reg): accesses the annotation NAME of
+ * register @p reg
+ * @c jit_annr_enable_NAME (cc): enables the annotation NAME
+ * @c jit_annr_disable_NAME (cc): disables the annotation NAME
+ * @c jit_annr_is_enabled_NAME (cc): check whether the annotation NAME
+ * is enabled
+ */
+            /* Defining instruction of registers satisfying SSA property.  */
+            if (!successful) {
+                jit_set_last_error(cc, "create label register failed");
+                return 0;
+            }
+            _ann._label_capacity = capacity;
         }
-        while (0);
+        _ann._label_num = num + 1;
+        return jit_reg_new(JIT_REG_KIND_L32, num);
     }
 
     JitBasicBlock* new_basic_block(int n) {
@@ -1685,41 +2128,41 @@ nothrow:
         if (!jit_anni_enable__hash_link)
             return false;
         /* The table must not exist.  */
-        bh_assert(!cc._insn_hash_table._table);
+        bh_assert(!_insn_hash_table._table);
         /* Integer overflow cannot happen because n << 4G (at most several
        times of 64K in the most extreme case).  */
-        if (((cc._insn_hash_table._table =
-                jit_calloc_ref(cast(uint)(n * typeof(*cc._insn_hash_table._table).sizeof))) is null)) {
+        if (((_insn_hash_table._table =
+                jit_calloc_ref(cast(uint)(n * typeof(*_insn_hash_table._table).sizeof))) is null)) {
             jit_anni_disable__hash_link;
             return false;
         }
-        cc._insn_hash_table._size = n;
+        _insn_hash_table._size = n;
         return true;
     }
 
     void disable_insn_hash() {
         jit_anni_disable__hash_link;
-        jit_free(cc._insn_hash_table._table);
-        cc._insn_hash_table._table = null;
-        cc._insn_hash_table._size = 0;
+        jit_free(_insn_hash_table._table);
+        _insn_hash_table._table = null;
+        _insn_hash_table._size = 0;
     }
 
     void reset_insn_hash() {
         if (jit_anni_is_enabled__hash_link)
-            memset(cc._insn_hash_table._table, 0,
-                    cc._insn_hash_table._size
-                    * typeof(*cc._insn_hash_table._table).sizeof);
+            memset(_insn_hash_table._table, 0,
+                    _insn_hash_table._size
+                    * typeof(*_insn_hash_table._table).sizeof);
     }
 
     JitInsn* _set_insn_uid_for_new_insn(JitInsn* insn) {
-        if (cc.set_insn_uid(insn))
+        if (set_insn_uid(insn))
             return insn;
         jit_insn_delete(insn);
         return null;
     }
 
     char* jit_get_last_error() {
-        return cc.last_error[0] == '\0' ? null : cc.last_error.ptr;
+        return last_error[0] == '\0' ? null : last_error.ptr;
     }
 
     bool update_cfg() {
@@ -1770,5 +2213,4 @@ nothrow:
         jit_annl_disable_pred_num;
         return retval;
     }
-
 }

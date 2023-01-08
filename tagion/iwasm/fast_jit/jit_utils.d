@@ -108,7 +108,7 @@ pragma(inline, true) JitBlock* jit_calloc_block(size_t size) {
  * Reallocate a memory block with the new_size.
  * TODO: replace this with imported jit_realloc when it's available.
  */
-ubyte* jit_realloc_buffer(ubyte* ptr, uint new_size, uint old_size) {
+T* jit_realloc(T)(void* ptr, size_t new_size, size_t old_size) {
     void* new_ptr = jit_malloc(new_size);
     if (new_ptr) {
         bh_assert(new_size > old_size);
@@ -120,22 +120,19 @@ ubyte* jit_realloc_buffer(ubyte* ptr, uint new_size, uint old_size) {
         else
             memset(new_ptr, 0, new_size);
     }
-    return cast(ubyte*)new_ptr;
+    return cast(T*)new_ptr;
 }
 
-uint* jit_realloc_reg(uint* ptr, uint new_size, uint old_size) {
-    void* new_ptr = jit_malloc(new_size);
-    if (new_ptr) {
-        bh_assert(new_size > old_size);
-        if (ptr) {
-            memcpy(new_ptr, ptr, old_size);
-            memset(cast(ubyte*) new_ptr + old_size, 0, new_size - old_size);
-            jit_free(ptr);
-        }
-        else
-            memset(new_ptr, 0, new_size);
-    }
-    return cast(uint*)new_ptr;
+JitInsn* jit_realloc(JitInsn* ptr, size_t new_size, size_t old_size) {
+ 	return jit_realloc!JitInsn(ptr, new_size, old_size);
+}
+
+ubyte* jit_realloc_buffer(ubyte* ptr, size_t new_size, size_t old_size) {
+ 	return jit_realloc!ubyte(ptr, new_size, old_size);
+}
+
+uint* jit_realloc_reg(uint* ptr, size_t new_size, size_t old_size) {
+ 	return jit_realloc!uint(ptr, new_size, old_size);
 }
 
 
