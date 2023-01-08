@@ -1,6 +1,7 @@
 module tagion.iwasm.fast_jit.jit_context;
 @nogc:
 nothrow:
+import core.stdc.string : memcmp;
 import core.stdc.stdio : snprintf, vsnprintf;
 import core.stdc.stdint : uintptr_t;
 import core.stdc.stdarg : va_list;
@@ -95,59 +96,62 @@ nothrow:
     /*
 	Returns: true on fail
 */
-static if (uintptr_t.max == ulong.max) {
-    alias new_const_PTR = new_const_I64;
-}
-else {
-    alias new_const_PTR = new_const_I32;
-}
+    static if (uintptr_t.max == ulong.max) {
+        alias new_const_PTR = new_const_I64;
+    }
+    else {
+        alias new_const_PTR = new_const_I32;
+    }
 
     void pop_i32(ref JitReg value) {
-        if( !pop_value(ValueType.I32, &value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while poping");
-	}
+        if (!pop_value(ValueType.I32, &value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while poping");
+        }
     }
+
     void pop_i64(ref JitReg value) {
         if (!pop_value(ValueType.I64, &value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while poping");
-	}
-     }
+            error(ErrorCode.Stack_Overflow, "Stack error while poping");
+        }
+    }
+
     void pop_f32(ref JitReg value) {
         if (!pop_value(ValueType.F32, &value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while poping");
-	}
-     }
-     void pop_f64(ref JitReg value) {
-        if ( !pop_value(ValueType.F64, &value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while poping");
-	}
-     }
+            error(ErrorCode.Stack_Overflow, "Stack error while poping");
+        }
+    }
 
-	void push_i32(JitReg value) {
-		if (!push_value(ValueType.I32, value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
-		}
-	}
+    void pop_f64(ref JitReg value) {
+        if (!pop_value(ValueType.F64, &value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while poping");
+        }
+    }
 
-	void push_i64(JitReg value) {
-		if (!push_value(ValueType.I64, value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
-		}
-	}
+    void push_i32(JitReg value) {
+        if (!push_value(ValueType.I32, value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+        }
+    }
 
-	void push_f32(JitReg value) {
-		if (!push_value(ValueType.F32, value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
-		}
-	}
+    void push_i64(JitReg value) {
+        if (!push_value(ValueType.I64, value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+        }
+    }
 
-	void push_f64(JitReg value) {
-		if (!push_value(ValueType.F64, value)) {
-		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
-		}
-	}
+    void push_f32(JitReg value) {
+        if (!push_value(ValueType.F32, value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+        }
+    }
 
-/* Error long-jumper */
+    void push_f64(JitReg value) {
+        if (!push_value(ValueType.F64, value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+        }
+    }
+
+    /* Error long-jumper */
     private Error _error;
     void error(ErrorCode err, string msg, string file = __FILE__, const size_t line = __LINE__) {
         _error(err, msg, file, line);
@@ -622,11 +626,12 @@ else {
         return true;
     }
 
-	void push( JitReg value, ValueType type) {
-		if (!push_value(type, value)) {
-			error(ErrorCode.Stack_Overflow, "Stack overflow while pushing");
-		}
-	}
+    void push(JitReg value, ValueType type) {
+        if (!push_value(type, value)) {
+            error(ErrorCode.Stack_Overflow, "Stack overflow while pushing");
+        }
+    }
+
     void jit_set_last_error_v(const(char)* format_, va_list args) {
         va_start(args, format_);
         vsnprintf(last_error.ptr, last_error.length, format_, args);
@@ -1780,6 +1785,59 @@ else {
         return insn;
     }
     /**
+ * Put a constant value into the compilation context.
+ *
+ * @param cc compilation context
+ * @param kind register kind
+ * @param size size of the value
+ * @param val pointer to value which must be aligned
+ *
+ * @return a constant register containing the value
+ */
+    private JitReg _new_const(int kind, uint size, void* val) {
+        uint num = _const_val._num[kind], slot = void;
+        uint capacity = _const_val._capacity[kind];
+        ubyte* new_value = void;
+        JitReg r = void;
+        JitReg* new_next = void;
+        bh_assert(num <= capacity);
+        /* Find the existing value first.  */
+        slot = hash_of_const(kind, size, val) % _const_val._hash_table_size;
+        r = _const_val._hash_table[slot];
+        for (; r; r = next_of_const(cc, r))
+            if (jit_reg_kind(r) == kind
+                    && !memcmp(val, address_of_const(cc, r, size), size))
+                return r;
+        if (num == capacity) {
+            /* Increase the space of value and next.  */
+            capacity = capacity > 0 ? (capacity + capacity / 2) : 16;
+            new_value = jit_realloc_buffer(_const_val._value[kind], size * capacity,
+            size * num);
+            new_next =
+                jit_realloc_reg(_const_val._next[kind],
+            cast(uint)((*new_next).sizeof * capacity), cast(uint)((*new_next).sizeof * num));
+            if (new_value && new_next) {
+                _const_val._value[kind] = new_value;
+                _const_val._next[kind] = new_next;
+            }
+            else {
+                jit_set_last_error(cc, "create const register failed");
+                jit_free(new_value);
+                jit_free(new_next);
+                return 0;
+            }
+            _const_val._capacity[kind] = capacity;
+        }
+        bh_assert(num + 1 < cast(uint) _JIT_REG_CONST_IDX_FLAG);
+        r = jit_reg_new(kind, _JIT_REG_CONST_IDX_FLAG | num);
+        memcpy(_const_val._value[kind] + size * num, val, size);
+        _const_val._next[kind][num] = _const_val._hash_table[slot];
+        _const_val._hash_table[slot] = r;
+        _const_val._num[kind] = num + 1;
+        return r;
+    }
+
+    /**
  * Create a I32 constant value with relocatable into the compilation
  * context. A constant value that has relocation info cannot be
  * constant-folded as normal constants because its value depends on
@@ -2467,7 +2525,7 @@ else {
         /* Set spill cache size according to max local cell num, max stack cell
        num and virtual fixed register num */
         spill_cache_size = cast(uint)((max_locals + max_stacks) * 4 + (void*).sizeof * 5);
-        total_frame_size = spill_cache_offset + cc.spill_cache_size;
+        total_frame_size = spill_cache_offset + spill_cache_size;
         jitted_return_address_offset =
             WASMInterpFrame.jitted_return_addr.offsetof;
         cur_basic_block = entry_basic_block;
