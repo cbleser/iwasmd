@@ -7,7 +7,7 @@ import tagion.iwasm.fast_jit.jit_ir;
 import tagion.iwasm.fast_jit.jit_frame;
 import tagion.iwasm.fast_jit.jit_utils;
 
-import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
+import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction, ValueType;
 import tagion.iwasm.share.utils.bh_assert;
 
 enum ErrorCode : int {
@@ -67,16 +67,16 @@ nothrow:
             return false;
         }
         switch (jit_value.type) {
-        case VALUE_TYPE_I32:
+        case ValueType.I32:
             value = jit_frame.pop_i32;
             break;
-        case VALUE_TYPE_I64:
+        case ValueType.I64:
             value = jit_frame.pop_i64;
             break;
-        case VALUE_TYPE_F32:
+        case ValueType.F32:
             value = jit_frame.pop_f32;
             break;
-        case VALUE_TYPE_F64:
+        case ValueType.F64:
             value = jit_frame.pop_f64;
             break;
         default:
@@ -102,7 +102,7 @@ else {
 }
 
     bool pop_i32(ref JitReg value) {
-        return !pop_value(VALUE_TYPE_I32, &value);
+        return !pop_value(ValueType.I32, &value);
     }
     /* Error long-jumper */
     private Error _error;
@@ -545,7 +545,7 @@ else {
     /* indicate if the last comparision is about floating-point numbers or not
      */
     bool last_cmp_on_fp;
-    bool push_value(ubyte type, JitReg value) {
+    private bool push_value(ubyte type, JitReg value) {
         JitValue* jit_value = void;
         if (!jit_block_stack_top(&block_stack)) {
             jit_set_last_error("WASM block stack underflow");
@@ -561,16 +561,16 @@ else {
         jit_value_stack_push(&jit_block_stack_top(&block_stack).value_stack,
                 jit_value);
         switch (jit_value.type) {
-        case VALUE_TYPE_I32:
+        case ValueType.I32:
             jit_frame.push_i32(value);
             break;
-        case VALUE_TYPE_I64:
+        case ValueType.I64:
             jit_frame.push_i64(value);
             break;
-        case VALUE_TYPE_F32:
+        case ValueType.F32:
             jit_frame.push_f32(value);
             break;
-        case VALUE_TYPE_F64:
+        case ValueType.F64:
             jit_frame.push_f64(value);
             break;
         default:
@@ -579,6 +579,11 @@ else {
         return true;
     }
 
+	void push( JitReg value, ValueType type) {
+		if (!push_value(type, value)) {
+			error(ErrorCode.Stack_Overflow, "Stack overflow while pushing");
+		}
+	}
     void jit_set_last_error_v(const(char)* format_, va_list args) {
         va_start(args, format_);
         vsnprintf(last_error.ptr, last_error.length, format_, args);

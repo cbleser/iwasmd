@@ -41,7 +41,8 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 import tagion.iwasm.fast_jit.jit_context;
-import tagion.iwasm.fast_jit.jit_ir :  JitReg;
+import tagion.iwasm.fast_jit.jit_ir :  JitReg,
+ jit_insn_new_CMP, jit_insn_new_SELECTNE;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.interpreter.wasm : ValueType;
 import tagion.iwasm.share.utils.bh_assert;
@@ -112,7 +113,7 @@ bool jit_compile_op_drop(JitCompContext* cc, bool is_drop_32) {
 }
 bool jit_compile_op_select(JitCompContext* cc, bool is_select_32) {
     JitReg val1 = void, val2 = void, cond = void, selected = void;
-    ubyte val1_type = void, val2_type = void;
+    ValueType val1_type, val2_type = void;
     if (cc.pop_i32(cond)) goto fail;
     if (!pop_value_from_wasm_stack(cc, is_select_32, &val2, &val2_type)
         || !pop_value_from_wasm_stack(cc, is_select_32, &val1, &val1_type)) {
@@ -139,9 +140,8 @@ bool jit_compile_op_select(JitCompContext* cc, bool is_select_32) {
             bh_assert(0);
             return false;
     }
-    _gen_insn(cc, _set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cond, jit_cc_new_const_I32(cc, 0))));
-    _gen_insn(cc, _set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(selected, cc.cmp_reg, val1, val2)));
-    PUSH(selected, val1_type);
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_SELECTNE(selected, cc.cmp_reg, val1, val2)));
+    cc.push(selected, val1_type);
     return true;
 fail:
     return false;

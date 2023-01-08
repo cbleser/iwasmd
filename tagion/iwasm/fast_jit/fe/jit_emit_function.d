@@ -142,7 +142,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
                     value = cc.new_reg_F32;
                     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF32(value, cc.fp_reg, cc.new_const_I32( offset_of_local(n)))));
                 }
-                PUSH_F32(value);
+                cc.push_f32(value);
                 n++;
                 break;
             case VALUE_TYPE_F64:
