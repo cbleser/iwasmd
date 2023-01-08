@@ -7,35 +7,36 @@ extern(C): __gshared:
  */
 
 import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_ir : JitReg;
 import tagion.iwasm.fast_jit.jit_context : JitCompContext;
 
 bool jit_compile_op_i32_const(JitCompContext* cc, int i32_const) {
-    JitReg value = NEW_CONST(I32, i32_const);
-    PUSH_I32(value);
+    JitReg value = cc.new_const_I32(i32_const);
+    cc.push_i32(value);
     return true;
 fail:
     return false;
 }
 
 bool jit_compile_op_i64_const(JitCompContext* cc, long i64_const) {
-    JitReg value = NEW_CONST(I64, i64_const);
-    PUSH_I64(value);
+    JitReg value = cc.new_const_I64(i64_const);
+    cc.push_i64(value);
     return true;
 fail:
     return false;
 }
 
 bool jit_compile_op_f32_const(JitCompContext* cc, float f32_const) {
-    JitReg value = NEW_CONST(F32, f32_const);
-    PUSH_F32(value);
+    JitReg value = cc.new_const_F32(f32_const);
+    cc.push_f32(value);
     return true;
 fail:
     return false;
 }
 
 bool jit_compile_op_f64_const(JitCompContext* cc, double f64_const) {
-    JitReg value = NEW_CONST(F64, f64_const);
-    PUSH_F64(value);
+    JitReg value = cc.new_const_F64(f64_const);
+    cc.push_f64(value);
     return true;
 fail:
     return false;
