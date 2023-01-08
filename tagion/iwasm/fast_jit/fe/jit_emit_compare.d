@@ -40,6 +40,7 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import core.stdc.math : isnan;
 import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
@@ -52,7 +53,7 @@ private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bo
         jit_set_last_error(cc, "unsupported comparation operation");
         goto fail;
     }
-    res = jit_cc_new_reg_I32(cc);
+    res = cc.new_reg_I32;
     const_zero = cc.new_const_I32(0);
     const_one = cc.new_const_I32(1);
     if (is64Bit) {
@@ -73,57 +74,57 @@ private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bo
         }
         cc.pop_i32(lhs);
     }
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
     switch (cond) {
         case INT_EQ:
         case INT_EQZ:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_NE:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LT_S:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLTS(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLTS(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LT_U:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLTU(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLTU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_GT_S:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_GT_U:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTU(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LE_S:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLES(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLES(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_LE_U:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLEU(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTLEU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         case INT_GE_S:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
         default: /* INT_GE_U */
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGEU(res, cc.cmp_reg, const_one, const_zero)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGEU(res, cc.cmp_reg, const_one, const_zero)));
             break;
         }
     }
@@ -165,12 +166,12 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
     if (cond == FLOAT_EQ || cond == FLOAT_NE) {
         kind = jit_reg_kind(lhs);
         if (cond == FLOAT_EQ)
-            func = (kind == JitRegKind.F32) ? cast(void*)float_cmp_eq
-                                              : cast(void*)double_cmp_eq;
+            func = (kind == JitRegKind.F32) ? cast(void*)&float_cmp_eq
+                                              : cast(void*)&double_cmp_eq;
         else
-            func = (kind == JitRegKind.F32) ? cast(void*)float_cmp_ne
-                                              : cast(void*)double_cmp_ne;
-        res = jit_cc_new_reg_I32(cc);
+            func = (kind == JitRegKind.F32) ? cast(void*)&float_cmp_ne
+                                              : cast(void*)&double_cmp_ne;
+        res = cc.new_reg_I32;
         args[0] = lhs;
         args[1] = rhs;
         if (!jit_emit_callnative(cc, func, res, args.ptr, 2)) {
@@ -178,32 +179,32 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
         }
     }
     else {
-        res = jit_cc_new_reg_I32(cc);
+        res = cc.new_reg_I32;
         const_zero = cc.new_const_I32(0);
         const_one = cc.new_const_I32(1);
         switch (cond) {
             case FLOAT_LT:
             {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, rhs, lhs)));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, rhs, lhs)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             case FLOAT_GT:
             {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGTS(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             case FLOAT_LE:
             {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, rhs, lhs)));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, rhs, lhs)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             case FLOAT_GE:
             {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTGES(res, cc.cmp_reg, const_one, const_zero)));
                 break;
             }
             default:

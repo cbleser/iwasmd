@@ -1954,8 +1954,8 @@ nothrow:
         do {
             bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F32);
             bh_assert(jit_reg_is_const(reg));
-            return (jit_reg_is_const_val(reg) ? cast(float) get_const_val_in_reg(reg) : *cast(float*)(
-                    address_of_const(reg, float.sizeof)));
+            return (jit_reg_is_const_val(reg) ? cast(float) get_const_val_in_reg(reg) : 
+		*cast(float*)(address_of_const(&this, reg, float.sizeof)));
         }
         while (0);
     }
@@ -1963,8 +1963,7 @@ nothrow:
     double get_const_F64(JitReg reg) {
         bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_F64);
         bh_assert(jit_reg_is_const(reg));
-        return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *(cast(double*) address_of_const(reg, double
-                .sizeof)));
+        return (jit_reg_is_const_val(reg) ? cast(double) get_const_val_in_reg(reg) : *(cast(double*) address_of_const(&this, reg, double.sizeof)));
     }
     /**
  * Get the number of total created instructions.

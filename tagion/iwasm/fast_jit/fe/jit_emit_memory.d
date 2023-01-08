@@ -171,7 +171,7 @@ version (OS_ENABLE_HW_BOUND_CHECK) {} else {
     if (!memory_boundary)
         goto fail;
 }
-static if (UINTPTR_MAX == UINT64_MAX) {
+static if (uintptr_t.max == ulong.max) {
     offset1 = check_and_seek_on_64bit_platform(cc, addr, cc.new_const_I64(offset),
                                                memory_boundary);
     if (!offset1)
