@@ -1944,8 +1944,8 @@ nothrow:
         do {
             bh_assert(jit_reg_kind(reg) == JIT_REG_KIND_I64);
             bh_assert(jit_reg_is_const(reg));
-            return (jit_reg_is_const_val(reg) ? cast(long) get_const_val_in_reg(reg) : *cast(long*)(
-                    address_of_const(reg, int.sizeof)));
+            return (jit_reg_is_const_val(reg) ? cast(long) get_const_val_in_reg(reg) : 
+		*cast(long*)(address_of_const(&this, reg, int.sizeof)));
         }
         while (0);
     }

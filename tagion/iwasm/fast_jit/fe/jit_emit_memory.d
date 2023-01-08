@@ -468,7 +468,7 @@ bool jit_compile_op_memory_grow(JitCompContext* cc, uint mem_idx) {
     /* return different values according to memory.grow result */
     res = cc.new_reg_I32;
     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, grow_res, cc.new_const_I32(0))));
-    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, prev_page_count, cc.new_const_I32((int32)-1))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, prev_page_count, cc.new_const_I32(int(-1)))));
     cc.push_i32(res);
     /* Ensure a refresh in next get memory related registers */
     cc.jit_frame.clear_memory_regs;

@@ -2891,7 +2891,7 @@ private uint hash_of_const(uint kind, uint size, void* val) {
     return hash;
 }
 
-pragma(inline, true) void* address_of_const(JitCompContext* cc, JitReg reg, uint size) {
+pragma(inline, true) void* address_of_const(JitCompContext* cc, JitReg reg, size_t size) {
     int kind = jit_reg_kind(reg);
     uint no = jit_reg_no(reg);
     uint idx = no & ~_JIT_REG_CONST_IDX_FLAG;
@@ -2906,59 +2906,6 @@ pragma(inline, true) JitReg next_of_const(JitCompContext* cc, JitReg reg) {
     bh_assert(jit_reg_is_const_idx(reg) && idx < cc._const_val._num[kind]);
     return cc._const_val._next[kind][idx];
 }
-/**
- * Put a constant value into the compilation context.
- *
- * @param cc compilation context
- * @param kind register kind
- * @param size size of the value
- * @param val pointer to value which must be aligned
- *
- * @return a constant register containing the value
- */
-private JitReg _jit_cc_new_const(JitCompContext* cc, int kind, uint size, void* val) {
-    uint num = cc._const_val._num[kind], slot = void;
-    uint capacity = cc._const_val._capacity[kind];
-    ubyte* new_value = void;
-    JitReg r = void;
-    JitReg* new_next = void;
-    bh_assert(num <= capacity);
-    /* Find the existing value first.  */
-    slot = hash_of_const(kind, size, val) % cc._const_val._hash_table_size;
-    r = cc._const_val._hash_table[slot];
-    for (; r; r = next_of_const(cc, r))
-        if (jit_reg_kind(r) == kind
-                && !memcmp(val, address_of_const(cc, r, size), size))
-            return r;
-    if (num == capacity) {
-        /* Increase the space of value and next.  */
-        capacity = capacity > 0 ? (capacity + capacity / 2) : 16;
-        new_value = jit_realloc_buffer(cc._const_val._value[kind], size * capacity,
-        size * num);
-        new_next =
-            jit_realloc_reg(cc._const_val._next[kind],
-        cast(uint)((*new_next).sizeof * capacity), cast(uint)((*new_next).sizeof * num));
-        if (new_value && new_next) {
-            cc._const_val._value[kind] = new_value;
-            cc._const_val._next[kind] = new_next;
-        }
-        else {
-            jit_set_last_error(cc, "create const register failed");
-            jit_free(new_value);
-            jit_free(new_next);
-            return 0;
-        }
-        cc._const_val._capacity[kind] = capacity;
-    }
-    bh_assert(num + 1 < cast(uint) _JIT_REG_CONST_IDX_FLAG);
-    r = jit_reg_new(kind, _JIT_REG_CONST_IDX_FLAG | num);
-    memcpy(cc._const_val._value[kind] + size * num, val, size);
-    cc._const_val._next[kind][num] = cc._const_val._hash_table[slot];
-    cc._const_val._hash_table[slot] = r;
-    cc._const_val._num[kind] = num + 1;
-    return r;
-}
-
 pragma(inline, true) int get_const_val_in_reg(JitReg reg) {
     int shift = 8 * reg.sizeof - _JIT_REG_KIND_SHIFT + 1;
     return (cast(int)(reg << shift)) >> shift;
