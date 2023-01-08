@@ -79,9 +79,11 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import core.stdc.math : copysign, copysignf;
 import tagion.iwasm.fast_jit.jit_compiler;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.fe.jit_emit_function : jit_emit_callnative;
 bool jit_compile_op_i32_clz(JitCompContext* cc);
 bool jit_compile_op_i32_ctz(JitCompContext* cc);
 bool jit_compile_op_i32_popcnt(JitCompContext* cc);
@@ -163,90 +165,90 @@ private ulong popcnt64(ulong u) {
 }
 bool jit_compile_op_i32_clz(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I32(value);
+    cc.pop_i32(value);
     if (jit_reg_is_const(value)) {
-        uint i32 = jit_cc_get_const_I32(cc, value);
-        PUSH_I32(jit_cc_new_const_I32(cc, clz32(i32)));
+        uint i32 = cc.get_const_I32(value);
+        cc.push_i32(cc.new_const_I32(clz32(i32)));
         return true;
     }
-    res = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CLZ(res, value)));
-    PUSH_I32(res);
+    res = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CLZ(res, value)));
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i32_ctz(JitCompContext* cc) {
-    JitReg value = void, res = jit_cc_new_reg_I32(cc);
-    POP_I32(value);
+    JitReg value = void, res = cc.new_reg_I32;
+    cc.pop_i32(value);
     if (jit_reg_is_const(value)) {
-        uint i32 = jit_cc_get_const_I32(cc, value);
-        PUSH_I32(jit_cc_new_const_I32(cc, ctz32(i32)));
+        uint i32 = cc.get_const_I32(value);
+        cc.push_i32(cc.new_const_I32(ctz32(i32)));
         return true;
     }
-    res = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CTZ(res, value)));
-    PUSH_I32(res);
+    res = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CTZ(res, value)));
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i32_popcnt(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I32(value);
+    cc.pop_i32(value);
     if (jit_reg_is_const(value)) {
-        uint i32 = jit_cc_get_const_I32(cc, value);
-        PUSH_I32(jit_cc_new_const_I32(cc, popcnt32(i32)));
+        uint i32 = cc.get_const_I32(value);
+        cc.push_i32(cc.new_const_I32(popcnt32(i32)));
         return true;
     }
-    res = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_POPCNT(res, value)));
-    PUSH_I32(res);
+    res = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_POPCNT(res, value)));
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_clz(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I64(value);
+    cc.pop_i64(value);
     if (jit_reg_is_const(value)) {
-        ulong i64 = jit_cc_get_const_I64(cc, value);
-        PUSH_I64(jit_cc_new_const_I64(cc, clz64(i64)));
+        ulong i64 = cc.get_const_I64(value);
+        cc.push_i64(cc.new_const_I64(clz64(i64)));
         return true;
     }
-    res = jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CLZ(res, value)));
-    PUSH_I64(res);
+    res = cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CLZ(res, value)));
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_ctz(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I64(value);
+    cc.pop_i64(value);
     if (jit_reg_is_const(value)) {
-        ulong i64 = jit_cc_get_const_I64(cc, value);
-        PUSH_I64(jit_cc_new_const_I64(cc, ctz64(i64)));
+        ulong i64 = cc.get_const_I64(value);
+        cc.push_i64(cc.new_const_I64(ctz64(i64)));
         return true;
     }
-    res = jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CTZ(res, value)));
-    PUSH_I64(res);
+    res = cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CTZ(res, value)));
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_popcnt(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I64(value);
+    cc.pop_i64(value);
     if (jit_reg_is_const(value)) {
-        ulong i64 = jit_cc_get_const_I64(cc, value);
-        PUSH_I64(jit_cc_new_const_I64(cc, popcnt64(i64)));
+        ulong i64 = cc.get_const_I64(value);
+        cc.push_i64(cc.new_const_I64(popcnt64(i64)));
         return true;
     }
-    res = jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_POPCNT(res, value)));
-    PUSH_I64(res);
+    res = cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_POPCNT(res, value)));
+    cc.push_i64(res);
     return true;
 fail:
     return false;
@@ -260,14 +262,14 @@ private JitReg compile_op_ibinopt_const(JitCompContext* cc, JitReg left, JitReg 
     JitReg res = void;
     if (jit_reg_is_const(left) && jit_reg_is_const(right)) {
         if (is_i32) {
-            int left_val = jit_cc_get_const_I32(cc, left);
-            int right_val = jit_cc_get_const_I32(cc, right);
-            res = jit_cc_new_const_I32(cc, handle_two_i32_const(left_val, right_val));
+            int left_val = cc.get_const_I32(left);
+            int right_val = cc.get_const_I32(right);
+            res = cc.new_const_I32(handle_two_i32_const(left_val, right_val));
         }
         else {
-            long left_val = jit_cc_get_const_I64(cc, left);
-            long right_val = jit_cc_get_const_I64(cc, right);
-            res = jit_cc_new_const_I64(cc, handle_two_i64_const(left_val, right_val));
+            long left_val = cc.get_const_I64(left);
+            long right_val = cc.get_const_I64(right);
+            res = cc.new_const_I64(handle_two_i64_const(left_val, right_val));
         }
         goto shortcut;
     }
@@ -282,9 +284,9 @@ shortcut:
 }
 private JitReg compile_int_add_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     /* If one of the operands is 0, just return the other */
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0))))
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))))
         return right;
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))))
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
         return left;
     return 0;
 }
@@ -295,14 +297,14 @@ private JitReg compile_int_add(JitCompContext* cc, JitReg left, JitReg right, bo
     if (res)
         goto shortcut;
     /* Build add */
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(res, left, right)));
 shortcut:
     return res;
 }
 private JitReg compile_int_sub_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     /* If the right operand is 0, just return the left */
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))))
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
         return left;
     return 0;
 }
@@ -313,15 +315,15 @@ private JitReg compile_int_sub(JitCompContext* cc, JitReg left, JitReg right, bo
     if (res)
         goto shortcut;
     /* Build sub */
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(res, left, right)));
 shortcut:
     return res;
 }
 private JitReg compile_int_mul_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     /* If one of the operands is 0, just return constant 0 */
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0))) || (jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))))
-        return is_i32 ? jit_cc_new_const_I32(cc, 0) : jit_cc_new_const_I64(cc, 0);
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))) || (jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
+        return is_i32 ? cc.new_const_I32(0) : cc.new_const_I64(0);
     return 0;
 }
 private int do_i32_const_mul(int lhs, int rhs) {
@@ -336,8 +338,8 @@ private JitReg compile_int_mul(JitCompContext* cc, JitReg left, JitReg right, bo
     if (res)
         goto shortcut;
     /* Build mul */
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MUL(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MUL(res, left, right)));
 shortcut:
     return res;
 }
@@ -345,78 +347,78 @@ private bool compile_int_div_no_check(JitCompContext* cc, IntArithmetic arith_op
     if (jit_reg_is_const(right) && jit_reg_is_const(left)) {
         if (INT_DIV_S == arith_op || INT_REM_S == arith_op) {
             if (is_i32) {
-                int lhs = jit_cc_get_const_I32(cc, left);
-                int rhs = jit_cc_get_const_I32(cc, right);
+                int lhs = cc.get_const_I32(left);
+                int rhs = cc.get_const_I32(right);
                 if (INT_DIV_S == arith_op) {
-                    res = jit_cc_new_const_I32(cc, lhs / rhs);
+                    res = cc.new_const_I32(lhs / rhs);
                 }
                 else {
-                    res = jit_cc_new_const_I32(cc, lhs % rhs);
+                    res = cc.new_const_I32(lhs % rhs);
                 }
-                PUSH_I32(res);
+                cc.push_i32(res);
                 return true;
             }
             else {
-                long lhs = jit_cc_get_const_I64(cc, left);
-                long rhs = jit_cc_get_const_I64(cc, right);
+                long lhs = cc.get_const_I64(left);
+                long rhs = cc.get_const_I64(right);
                 if (INT_DIV_S == arith_op) {
-                    res = jit_cc_new_const_I64(cc, lhs / rhs);
+                    res = cc.new_const_I64(lhs / rhs);
                 }
                 else {
-                    res = jit_cc_new_const_I64(cc, lhs % rhs);
+                    res = cc.new_const_I64(lhs % rhs);
                 }
-                PUSH_I64(res);
+                cc.push_i64(res);
                 return true;
             }
         }
         else {
             if (is_i32) {
-                uint lhs = cast(uint)jit_cc_get_const_I32(cc, left);
-                uint rhs = cast(uint)jit_cc_get_const_I32(cc, right);
+                uint lhs = cast(uint)cc.get_const_I32(left);
+                uint rhs = cast(uint)cc.get_const_I32(right);
                 if (INT_DIV_U == arith_op) {
-                    res = jit_cc_new_const_I32(cc, lhs / rhs);
+                    res = cc.new_const_I32(lhs / rhs);
                 }
                 else {
-                    res = jit_cc_new_const_I32(cc, lhs % rhs);
+                    res = cc.new_const_I32(lhs % rhs);
                 }
-                PUSH_I32(res);
+                cc.push_i32(res);
                 return true;
             }
             else {
-                ulong lhs = cast(ulong)jit_cc_get_const_I64(cc, left);
-                ulong rhs = cast(ulong)jit_cc_get_const_I64(cc, right);
+                ulong lhs = cast(ulong)cc.get_const_I64(left);
+                ulong rhs = cast(ulong)cc.get_const_I64(right);
                 if (INT_DIV_U == arith_op) {
-                    res = jit_cc_new_const_I64(cc, lhs / rhs);
+                    res = cc.new_const_I64(lhs / rhs);
                 }
                 else {
-                    res = jit_cc_new_const_I64(cc, lhs % rhs);
+                    res = cc.new_const_I64(lhs % rhs);
                 }
-                PUSH_I64(res);
+                cc.push_i64(res);
                 return true;
             }
         }
     }
     switch (arith_op) {
         case INT_DIV_S:
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_DIV_S(res, left, right)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_DIV_S(res, left, right)));
             break;
         case INT_DIV_U:
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_DIV_U(res, left, right)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_DIV_U(res, left, right)));
             break;
         case INT_REM_S:
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_REM_S(res, left, right)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_REM_S(res, left, right)));
             break;
         case INT_REM_U:
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_REM_U(res, left, right)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_REM_U(res, left, right)));
             break;
         default:
             bh_assert(0);
             return false;
     }
     if (is_i32)
-        PUSH_I32(res);
+        cc.push_i32(res);
     else
-        PUSH_I64(res);
+        cc.push_i64(res);
     return true;
 fail:
     return false;
@@ -426,18 +428,18 @@ private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is
     bh_assert(arith_op == INT_DIV_S || arith_op == INT_DIV_U
               || arith_op == INT_REM_S || arith_op == INT_REM_U);
     if (is_i32) {
-        POP_I32(right);
-        POP_I32(left);
-        res = jit_cc_new_reg_I32(cc);
+        cc.pop_i32(right);
+        cc.pop_i32(left);
+        res = cc.new_reg_I32;
     }
     else {
-        POP_I64(right);
-        POP_I64(left);
-        res = jit_cc_new_reg_I64(cc);
+        cc.pop_i64(right);
+        cc.pop_i64(left);
+        res = cc.new_reg_I64;
     }
     if (jit_reg_is_const(right)) {
-        long right_val = is_i32 ? cast(long)jit_cc_get_const_I32(cc, right)
-                                 : jit_cc_get_const_I64(cc, right);
+        long right_val = is_i32 ? cast(long)cc.get_const_I32(right)
+                                 : cc.get_const_I64(right);
         switch (right_val) {
             case 0:
             {
@@ -451,15 +453,15 @@ private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is
             {
                 if (arith_op == INT_DIV_S || arith_op == INT_DIV_U) {
                     if (is_i32)
-                        PUSH_I32(left);
+                        cc.push_i32(left);
                     else
-                        PUSH_I64(left);
+                        cc.push_i64(left);
                 }
                 else {
                     if (is_i32)
-                        PUSH_I32(jit_cc_new_const_I32(cc, 0));
+                        cc.push_i32(cc.new_const_I32(0));
                     else
-                        PUSH_I64(jit_cc_new_const_I64(cc, 0));
+                        cc.push_i64(cc.new_const_I64(0));
                 }
                 return true;
             }
@@ -467,27 +469,27 @@ private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is
             {
                 if (arith_op == INT_DIV_S) {
                     if (is_i32)
-                        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, left, jit_cc_new_const_I32(cc, INT32_MIN))));
+                        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, left, cc.new_const_I32(INT32_MIN))));
                     else
-                        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, left, jit_cc_new_const_I64(cc, INT64_MIN))));
+                        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, left, cc.new_const_I64(INT64_MIN))));
                     /* Throw integer overflow exception if left is
                        INT32_MIN or INT64_MIN */
                     if (!(jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW,
                                              JIT_OP_BEQ, cc.cmp_reg, null)))
                         goto fail;
                     /* Push -(left) to stack */
-                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_NEG(res, left)));
+                    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_NEG(res, left)));
                     if (is_i32)
-                        PUSH_I32(res);
+                        cc.push_i32(res);
                     else
-                        PUSH_I64(res);
+                        cc.push_i64(res);
                     return true;
                 }
                 else if (arith_op == INT_REM_S) {
                     if (is_i32)
-                        PUSH_I32(jit_cc_new_const_I32(cc, 0));
+                        cc.push_i32(cc.new_const_I32(0));
                     else
-                        PUSH_I64(jit_cc_new_const_I64(cc, 0));
+                        cc.push_i64(cc.new_const_I64(0));
                     return true;
                 }
                 else {
@@ -505,9 +507,9 @@ private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is
         }
     }
     else {
-        JitReg cmp1 = jit_cc_new_reg_I32(cc);
-        JitReg cmp2 = jit_cc_new_reg_I32(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, right, is_i32 ? jit_cc_new_const_I32(cc, 0) : jit_cc_new_const_I64(cc, 0))));
+        JitReg cmp1 = cc.new_reg_I32;
+        JitReg cmp2 = cc.new_reg_I32;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, right, is_i32 ? cc.new_const_I32(0) : cc.new_const_I64(0))));
         /* Throw integer divided by zero exception if right is zero */
         if (!(jit_emit_exception(cc, EXCE_INTEGER_DIVIDE_BY_ZERO, JIT_OP_BEQ,
                                  cc.cmp_reg, null)))
@@ -516,12 +518,12 @@ private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is
             case INT_DIV_S:
             {
                 /* Check integer overflow */
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, left, is_i32 ? jit_cc_new_const_I32(cc, INT32_MIN) : jit_cc_new_const_I64(cc, INT64_MIN))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(cmp1, cc.cmp_reg, jit_cc_new_const_I32(cc, 1), jit_cc_new_const_I32(cc, 0))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, right, is_i32 ? jit_cc_new_const_I32(cc, -1) : jit_cc_new_const_I64(cc, -1L))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(cmp2, cc.cmp_reg, jit_cc_new_const_I32(cc, 1), jit_cc_new_const_I32(cc, 0))));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(cmp1, cmp1, cmp2)));
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cmp1, jit_cc_new_const_I32(cc, 1))));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, left, is_i32 ? cc.new_const_I32(INT32_MIN) : cc.new_const_I64(INT64_MIN))));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(cmp1, cc.cmp_reg, cc.new_const_I32(1), cc.new_const_I32(0))));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, right, is_i32 ? cc.new_const_I32(-1) : cc.new_const_I64(-1L))));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(cmp2, cc.cmp_reg, cc.new_const_I32(1), cc.new_const_I32(0))));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(cmp1, cmp1, cmp2)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cmp1, cc.new_const_I32(1))));
                 /* Throw integer overflow exception if left is INT32_MIN or
                    INT64_MIN, and right is -1 */
                 if (!(jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JIT_OP_BEQ,
@@ -533,14 +535,14 @@ private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is
             }
             case INT_REM_S:
             {
-                JitReg left1 = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, right, is_i32 ? jit_cc_new_const_I32(cc, -1) : jit_cc_new_const_I64(cc, -1L))));
+                JitReg left1 = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, right, is_i32 ? cc.new_const_I32(-1) : cc.new_const_I64(-1L))));
                 /* Don't generate `SELECTEQ left, cmp_reg, 0, left` since
                    left might be const, use left1 instead */
                 if (is_i32)
-                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(left1, cc.cmp_reg, jit_cc_new_const_I32(cc, 0), left)));
+                    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(left1, cc.cmp_reg, cc.new_const_I32(0), left)));
                 else
-                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(left1, cc.cmp_reg, jit_cc_new_const_I64(cc, 0), left)));
+                    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(left1, cc.cmp_reg, cc.new_const_I64(0), left)));
                 /* Build default div and rem */
                 return compile_int_div_no_check(cc, arith_op, is_i32, left1,
                                                 right, res);
@@ -559,13 +561,13 @@ fail:
 private bool compile_op_int_arithmetic(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, ubyte** p_frame_ip) {
     switch (arith_op) {
         case INT_ADD:
-            do { JitReg res = void, left = void, right = void; do { if (is_i32) POP_I32(right); else POP_I64(right); } while (0); do { if (is_i32) POP_I32(left); else POP_I64(left); } while (0); if (((res = compile_int_add(cc, left, right, is_i32)) == 0)) { if ("compile int add fail.") jit_set_last_error(cc, "compile int add fail."); goto fail; } do { if (is_i32) PUSH_I32(res); else PUSH_I64(res); } while (0); } while (0);
+            do { JitReg res = void, left = void, right = void; do { if (is_i32) cc.pop_i32(right); else cc.pop_i64(right); } while (0); do { if (is_i32) cc.pop_i32(left); else cc.pop_i64(left); } while (0); if (((res = compile_int_add(cc, left, right, is_i32)) == 0)) { if ("compile int add fail.") jit_set_last_error(cc, "compile int add fail."); goto fail; } do { if (is_i32) cc.push_i32(res); else cc.push_i64(res); } while (0); } while (0);
             return true;
         case INT_SUB:
-            do { JitReg res = void, left = void, right = void; do { if (is_i32) POP_I32(right); else POP_I64(right); } while (0); do { if (is_i32) POP_I32(left); else POP_I64(left); } while (0); if (((res = compile_int_sub(cc, left, right, is_i32)) == 0)) { if ("compile int sub fail.") jit_set_last_error(cc, "compile int sub fail."); goto fail; } do { if (is_i32) PUSH_I32(res); else PUSH_I64(res); } while (0); } while (0);
+            do { JitReg res = void, left = void, right = void; do { if (is_i32) cc.pop_i32(right); else cc.pop_i64(right); } while (0); do { if (is_i32) cc.pop_i32(left); else cc.pop_i64(left); } while (0); if (((res = compile_int_sub(cc, left, right, is_i32)) == 0)) { if ("compile int sub fail.") jit_set_last_error(cc, "compile int sub fail."); goto fail; } do { if (is_i32) cc.push_i32(res); else cc.push_i64(res); } while (0); } while (0);
             return true;
         case INT_MUL:
-            do { JitReg res = void, left = void, right = void; do { if (is_i32) POP_I32(right); else POP_I64(right); } while (0); do { if (is_i32) POP_I32(left); else POP_I64(left); } while (0); if (((res = compile_int_mul(cc, left, right, is_i32)) == 0)) { if ("compile int mul fail.") jit_set_last_error(cc, "compile int mul fail."); goto fail; } do { if (is_i32) PUSH_I32(res); else PUSH_I64(res); } while (0); } while (0);
+            do { JitReg res = void, left = void, right = void; do { if (is_i32) cc.pop_i32(right); else cc.pop_i64(right); } while (0); do { if (is_i32) cc.pop_i32(left); else cc.pop_i64(left); } while (0); if (((res = compile_int_mul(cc, left, right, is_i32)) == 0)) { if ("compile int mul fail.") jit_set_last_error(cc, "compile int mul fail."); goto fail; } do { if (is_i32) cc.push_i32(res); else cc.push_i64(res); } while (0); } while (0);
             return true;
         case INT_DIV_S:
         case INT_DIV_U:
@@ -587,15 +589,15 @@ bool jit_compile_op_i64_arithmetic(JitCompContext* cc, IntArithmetic arith_op, u
 }
 private JitReg compile_int_and_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0))) || (jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0)))) {
-        res = is_i32 ? jit_cc_new_const_I32(cc, 0) : jit_cc_new_const_I64(cc, 0);
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))) || (jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0)))) {
+        res = is_i32 ? cc.new_const_I32(0) : cc.new_const_I64(0);
         goto shortcut;
     }
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, left) == -1L)))) {
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L)))) {
         res = right;
         goto shortcut;
     }
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, right) == -1L)))) {
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == -1) || (!is_i32 && cc.get_const_I64(right) == -1L)))) {
         res = left;
         goto shortcut;
     }
@@ -611,23 +613,23 @@ private JitReg compile_int_and(JitCompContext* cc, JitReg left, JitReg right, bo
     if (res)
         goto shortcut;
     /* do and */
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(res, left, right)));
 shortcut:
     return res;
 }
 private JitReg compile_int_or_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0)))) {
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))) {
         res = right;
         goto shortcut;
     }
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0)))) {
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0)))) {
         res = left;
         goto shortcut;
     }
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, left) == -1L))) || (jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, right) == -1L)))) {
-        res = is_i32 ? jit_cc_new_const_I32(cc, -1) : jit_cc_new_const_I64(cc, -1L);
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L))) || (jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == -1) || (!is_i32 && cc.get_const_I64(right) == -1L)))) {
+        res = is_i32 ? cc.new_const_I32(-1) : cc.new_const_I64(-1L);
         goto shortcut;
     }
     return 0;
@@ -642,15 +644,15 @@ private JitReg compile_int_or(JitCompContext* cc, JitReg left, JitReg right, boo
     if (res)
         goto shortcut;
     /* do or */
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_OR(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_OR(res, left, right)));
 shortcut:
     return res;
 }
 private JitReg compile_int_xor_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
-    if ((jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0))))
+    if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))))
         return right;
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))))
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
         return left;
     return 0;
 }
@@ -662,15 +664,15 @@ private JitReg compile_int_xor(JitCompContext* cc, JitReg left, JitReg right, bo
     if (res)
         goto shortcut;
     /* do xor */
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_XOR(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_XOR(res, left, right)));
 shortcut:
     return res;
 }
 private bool compile_op_int_bitwise(JitCompContext* cc, IntBitwise arith_op, bool is_i32) {
     JitReg left = void, right = void, res = void;
-    do { if (is_i32) POP_I32(right); else POP_I64(right); } while (0);
-    do { if (is_i32) POP_I32(left); else POP_I64(left); } while (0);
+    do { if (is_i32) cc.pop_i32(right); else cc.pop_i64(right); } while (0);
+    do { if (is_i32) cc.pop_i32(left); else cc.pop_i64(left); } while (0);
     switch (arith_op) {
         case INT_AND:
         {
@@ -693,7 +695,7 @@ private bool compile_op_int_bitwise(JitCompContext* cc, IntBitwise arith_op, boo
             goto fail;
         }
     }
-    do { if (is_i32) PUSH_I32(res); else PUSH_I64(res); } while (0);
+    do { if (is_i32) cc.push_i32(res); else cc.push_i64(res); } while (0);
     return true;
 fail:
     return false;
@@ -705,35 +707,35 @@ bool jit_compile_op_i64_bitwise(JitCompContext* cc, IntBitwise bitwise_op) {
     return compile_op_int_bitwise(cc, bitwise_op, false);
 }
 private JitReg compile_int_shl_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0)))) {
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))) {
         return left;
     }
     if (jit_reg_is_const(right)) {
-        JitReg res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(res, left, right)));
+        JitReg res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(res, left, right)));
         return res;
     }
     return 0;
 }
 private JitReg compile_int_shrs_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0)))
-        || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, left) == -1L)))) {
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))
+        || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L)))) {
         return left;
     }
     if (jit_reg_is_const(right)) {
-        JitReg res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRS(res, left, right)));
+        JitReg res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRS(res, left, right)));
         return res;
     }
     return 0;
 }
 private JitReg compile_int_shru_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0)))) {
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))) {
         return left;
     }
     if (jit_reg_is_const(right)) {
-        JitReg res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRU(res, left, right)));
+        JitReg res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRU(res, left, right)));
         return res;
     }
     return 0;
@@ -756,14 +758,14 @@ private JitReg compile_int_shift_modulo(JitCompContext* cc, JitReg rhs, bool is_
     JitReg res = void;
     if (jit_reg_is_const(rhs)) {
         if (is_i32) {
-            int val = jit_cc_get_const_I32(cc, rhs);
+            int val = cc.get_const_I32(rhs);
             val = val & 0x1f;
-            res = jit_cc_new_const_I32(cc, val);
+            res = cc.new_const_I32(val);
         }
         else {
-            long val = jit_cc_get_const_I64(cc, rhs);
+            long val = cc.get_const_I64(rhs);
             val = val & 0x3f;
-            res = jit_cc_new_const_I64(cc, val);
+            res = cc.new_const_I64(val);
         }
     }
     else {
@@ -773,12 +775,12 @@ private JitReg compile_int_shift_modulo(JitCompContext* cc, JitReg rhs, bool is_
             res = rhs;
         }
         else if (is_i32) {
-            res = jit_cc_new_reg_I32(cc);
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(res, rhs, jit_cc_new_const_I32(cc, 0x1f))));
+            res = cc.new_reg_I32;
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(res, rhs, cc.new_const_I32(0x1f))));
         }
         else {
-            res = jit_cc_new_reg_I64(cc);
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(res, rhs, jit_cc_new_const_I64(cc, 0x3f))));
+            res = cc.new_reg_I64;
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(res, rhs, cc.new_const_I64(0x3f))));
         }
     }
     return res;
@@ -787,8 +789,8 @@ private JitReg mov_left_to_reg(JitCompContext* cc, bool is_i32, JitReg left) {
     JitReg res = left;
     /* left needs to be a variable */
     if (jit_reg_is_const(left)) {
-        res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MOV(res, left)));
+        res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MOV(res, left)));
     }
     return res;
 }
@@ -799,8 +801,8 @@ private JitReg compile_int_shl(JitCompContext* cc, JitReg left, JitReg right, bo
     if (res)
         goto shortcut;
     left = mov_left_to_reg(cc, is_i32, left);
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHL(res, left, right)));
     if (jit_get_last_error(cc)) {
         goto fail;
     }
@@ -816,8 +818,8 @@ private JitReg compile_int_shrs(JitCompContext* cc, JitReg left, JitReg right, b
     if (res)
         goto shortcut;
     left = mov_left_to_reg(cc, is_i32, left);
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRS(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRS(res, left, right)));
     if (jit_get_last_error(cc)) {
         goto fail;
     }
@@ -833,8 +835,8 @@ private JitReg compile_int_shru(JitCompContext* cc, JitReg left, JitReg right, b
     if (res)
         goto shortcut;
     left = mov_left_to_reg(cc, is_i32, left);
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRU(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SHRU(res, left, right)));
     if (jit_get_last_error(cc)) {
         goto fail;
     }
@@ -844,12 +846,12 @@ fail:
     return cast(JitReg)0;
 }
 private JitReg compile_int_rotl_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0)))
-        || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, left) == -1L))))
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))
+        || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L))))
         return left;
     if (jit_reg_is_const(right)) {
-        JitReg res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTL(res, left, right)));
+        JitReg res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTL(res, left, right)));
         return res;
     }
     return 0;
@@ -871,8 +873,8 @@ private JitReg compile_int_rotl(JitCompContext* cc, JitReg left, JitReg right, b
     if (res)
         goto shortcut;
     left = mov_left_to_reg(cc, is_i32, left);
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTL(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTL(res, left, right)));
     if (jit_get_last_error(cc)) {
         goto fail;
     }
@@ -882,12 +884,12 @@ fail:
     return cast(JitReg)0;
 }
 private JitReg compile_int_rotr_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
-    if ((jit_reg_is_const(right) && ((is_i32 && jit_cc_get_const_I32(cc, right) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == 0) || (!is_i32 && jit_cc_get_const_I64(cc, left) == 0)))
-        || (jit_reg_is_const(left) && ((is_i32 && jit_cc_get_const_I32(cc, left) == -1) || (!is_i32 && jit_cc_get_const_I64(cc, left) == -1L))))
+    if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))
+        || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L))))
         return left;
     if (jit_reg_is_const(right)) {
-        JitReg res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTR(res, left, right)));
+        JitReg res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTR(res, left, right)));
         return res;
     }
     return 0;
@@ -909,8 +911,8 @@ private JitReg compile_int_rotr(JitCompContext* cc, JitReg left, JitReg right, b
     if (res)
         goto shortcut;
     left = mov_left_to_reg(cc, is_i32, left);
-    res = is_i32 ? jit_cc_new_reg_I32(cc) : jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTR(res, left, right)));
+    res = is_i32 ? cc.new_reg_I32 : cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ROTR(res, left, right)));
     if (jit_get_last_error(cc)) {
         goto fail;
     }
@@ -921,8 +923,8 @@ fail:
 }
 private bool compile_op_int_shift(JitCompContext* cc, IntShift shift_op, bool is_i32) {
     JitReg left = void, right = void, res = void;
-    do { if (is_i32) POP_I32(right); else POP_I64(right); } while (0);
-    do { if (is_i32) POP_I32(left); else POP_I64(left); } while (0);
+    do { if (is_i32) cc.pop_i32(right); else cc.pop_i64(right); } while (0);
+    do { if (is_i32) cc.pop_i32(left); else cc.pop_i64(left); } while (0);
     switch (shift_op) {
         case INT_SHL:
         {
@@ -955,7 +957,7 @@ private bool compile_op_int_shift(JitCompContext* cc, IntShift shift_op, bool is
             goto fail;
         }
     }
-    do { if (is_i32) PUSH_I32(res); else PUSH_I64(res); } while (0);
+    do { if (is_i32) cc.push_i32(res); else cc.push_i64(res); } while (0);
     return true;
 fail:
     return false;
@@ -976,13 +978,13 @@ private bool compile_op_float_math(JitCompContext* cc, FloatMath math_op, bool i
     JitReg value = void, res = void;
     void* func = null;
     if (is_f32)
-        res = jit_cc_new_reg_F32(cc);
+        res = cc.new_reg_F32;
     else
-        res = jit_cc_new_reg_F64(cc);
+        res = cc.new_reg_F64;
     if (is_f32)
-        POP_F32(value);
+        cc.pop_f32(value);
     else
-        POP_F64(value);
+        cc.pop_f64(value);
     switch (math_op) {
         case FLOAT_ABS:
             /* TODO: andps 0x7fffffffffffffff */
@@ -1015,9 +1017,9 @@ private bool compile_op_float_math(JitCompContext* cc, FloatMath math_op, bool i
         goto fail;
     }
     if (is_f32)
-        PUSH_F32(res);
+        cc.push_f32(res);
     else
-        PUSH_F64(res);
+        cc.push_f64(res);
     return true;
 fail:
     return false;
@@ -1063,7 +1065,7 @@ private double f64_max(double a, double b) {
 private bool compile_op_float_min_max(JitCompContext* cc, FloatArithmetic arith_op, bool is_f32, JitReg lhs, JitReg rhs, JitReg* out_) {
     JitReg res = void; JitReg[2] args = void;
     void* func = void;
-    res = is_f32 ? jit_cc_new_reg_F32(cc) : jit_cc_new_reg_F64(cc);
+    res = is_f32 ? cc.new_reg_F32 : cc.new_reg_F64;
     if (arith_op == FLOAT_MIN)
         func = is_f32 ? cast(void*)f32_min : cast(void*)f64_min;
     else
@@ -1078,34 +1080,34 @@ private bool compile_op_float_min_max(JitCompContext* cc, FloatArithmetic arith_
 private bool compile_op_float_arithmetic(JitCompContext* cc, FloatArithmetic arith_op, bool is_f32) {
     JitReg lhs = void, rhs = void, res = void;
     if (is_f32) {
-        POP_F32(rhs);
-        POP_F32(lhs);
-        res = jit_cc_new_reg_F32(cc);
+        cc.pop_f32(rhs);
+        cc.pop_f32(lhs);
+        res = cc.new_reg_F32;
     }
     else {
-        POP_F64(rhs);
-        POP_F64(lhs);
-        res = jit_cc_new_reg_F64(cc);
+        cc.pop_f64(rhs);
+        cc.pop_f64(lhs);
+        res = cc.new_reg_F64;
     }
     switch (arith_op) {
         case FLOAT_ADD:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(res, lhs, rhs)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(res, lhs, rhs)));
             break;
         }
         case FLOAT_SUB:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(res, lhs, rhs)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(res, lhs, rhs)));
             break;
         }
         case FLOAT_MUL:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MUL(res, lhs, rhs)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MUL(res, lhs, rhs)));
             break;
         }
         case FLOAT_DIV:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_DIV_S(res, lhs, rhs)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_DIV_S(res, lhs, rhs)));
             break;
         }
         case FLOAT_MIN:
@@ -1122,9 +1124,9 @@ private bool compile_op_float_arithmetic(JitCompContext* cc, FloatArithmetic ari
         }
     }
     if (is_f32)
-        PUSH_F32(res);
+        cc.push_f32(res);
     else
-        PUSH_F64(res);
+        cc.push_f64(res);
     return true;
 fail:
     return false;
@@ -1138,12 +1140,12 @@ bool jit_compile_op_f64_arithmetic(JitCompContext* cc, FloatArithmetic arith_op)
 bool jit_compile_op_f32_copysign(JitCompContext* cc) {
     JitReg res = void;
     JitReg[2] args = 0;
-    POP_F32(args[1]);
-    POP_F32(args[0]);
-    res = jit_cc_new_reg_F32(cc);
-    if (!jit_emit_callnative(cc, copysignf, res, args.ptr, 2))
+    cc.pop_f32(args[1]);
+    cc.pop_f32(args[0]);
+    res = cc.new_reg_F32;
+    if (!jit_emit_callnative(cc, &copysignf, res, args.ptr, 2))
         goto fail;
-    PUSH_F32(res);
+    cc.push_f32(res);
     return true;
 fail:
     return false;
@@ -1151,12 +1153,12 @@ fail:
 bool jit_compile_op_f64_copysign(JitCompContext* cc) {
     JitReg res = void;
     JitReg[2] args = 0;
-    POP_F64(args[1]);
-    POP_F64(args[0]);
-    res = jit_cc_new_reg_F64(cc);
-    if (!jit_emit_callnative(cc, copysign, res, args.ptr, 2))
+    cc.pop_f64(args[1]);
+    cc.pop_f64(args[0]);
+    res = cc.new_reg_F64;
+    if (!jit_emit_callnative(cc, &copysign, res, args.ptr, 2))
         goto fail;
-    PUSH_F64(res);
+    cc.push_f64(res);
     return true;
 fail:
     return false;
