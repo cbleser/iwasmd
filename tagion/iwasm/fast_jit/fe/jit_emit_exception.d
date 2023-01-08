@@ -62,34 +62,34 @@ bool jit_emit_exception(JitCompContext* cc, int exception_id, ubyte jit_opcode, 
             cond_br_else_block ? jit_basic_block_label(cond_br_else_block) : 0;
         switch (jit_opcode) {
             case JitOpcode.JIT_OP_BEQ:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BEQ(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BEQ(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BNE:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BGTS:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGTS(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGTS(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BGES:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGES(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGES(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BLTS:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLTS(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLTS(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BLES:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLES(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLES(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BGTU:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGTU(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGTU(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BGEU:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGEU(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BGEU(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BLTU:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLTU(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLTU(cond_br_if, 0, else_label)));
                 break;
             case JitOpcode.JIT_OP_BLEU:
-                insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLEU(cond_br_if, 0, else_label)));
+                insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BLEU(cond_br_if, 0, else_label)));
                 break;
         default: break;}
         if (!insn) {
@@ -98,7 +98,7 @@ bool jit_emit_exception(JitCompContext* cc, int exception_id, ubyte jit_opcode, 
         }
     }
     else if (jit_opcode == JitOpcode.JIT_OP_JMP) {
-        insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)));
+        insn = cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)));
         if (!insn) {
             jit_set_last_error(cc, "generate jmp insn failed");
             return false;
