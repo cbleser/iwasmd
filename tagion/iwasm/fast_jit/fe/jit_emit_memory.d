@@ -47,7 +47,9 @@ import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_ir : JitReg;
 import tagion.iwasm.interpreter.wasm_runtime;
+import tagion.iwasm.share.utils.bh_assert;
 version (OS_ENABLE_HW_BOUND_CHECK) {} else {
 private JitReg get_memory_boundary(JitCompContext* cc, uint mem_idx, uint bytes) {
     JitReg memory_boundary = void;
@@ -55,31 +57,31 @@ private JitReg get_memory_boundary(JitCompContext* cc, uint mem_idx, uint bytes)
         case 1:
         {
             memory_boundary =
-                get_mem_bound_check_1byte_reg(cc.jit_frame, mem_idx);
+                cc.jit_frame.mem_bound_check_1byte_reg(mem_idx);
             break;
         }
         case 2:
         {
             memory_boundary =
-                get_mem_bound_check_2bytes_reg(cc.jit_frame, mem_idx);
+                cc.jit_frame.mem_bound_check_2bytes_reg(mem_idx);
             break;
         }
         case 4:
         {
             memory_boundary =
-                get_mem_bound_check_4bytes_reg(cc.jit_frame, mem_idx);
+                cc.jit_frame.mem_bound_check_4bytes_reg(mem_idx);
             break;
         }
         case 8:
         {
             memory_boundary =
-                get_mem_bound_check_8bytes_reg(cc.jit_frame, mem_idx);
+                cc.jit_frame.mem_bound_check_8bytes_reg(mem_idx);
             break;
         }
         case 16:
         {
             memory_boundary =
-                get_mem_bound_check_16bytes_reg(cc.jit_frame, mem_idx);
+                cc.jit_frame.mem_bound_check_16bytes_reg(mem_idx);
             break;
         }
         default:
@@ -97,14 +99,14 @@ static if (uintptr_t.max == ulong.max) {
 private JitReg check_and_seek_on_64bit_platform(JitCompContext* cc, JitReg addr, JitReg offset, JitReg memory_boundary) {
     JitReg long_addr = void, offset1 = void;
     /* long_addr = (int64_t)addr */
-    long_addr = jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_U32TOI64(long_addr, addr)));
+    long_addr = cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_U32TOI64(long_addr, addr)));
     /* offset1 = offset + long_addr */
-    offset1 = jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(offset1, offset, long_addr)));
+    offset1 = cc.new_reg_I64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(offset1, offset, long_addr)));
 version (OS_ENABLE_HW_BOUND_CHECK) {} else {
     /* if (offset1 > memory_boundary) goto EXCEPTION */
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, offset1, memory_boundary)));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, offset1, memory_boundary)));
     if (!jit_emit_exception(cc, EXCE_OUT_OF_BOUNDS_MEMORY_ACCESS, JIT_OP_BGTU,
                             cc.cmp_reg, null)) {
         goto fail;
@@ -120,17 +122,17 @@ fail:
 private JitReg check_and_seek_on_32bit_platform(JitCompContext* cc, JitReg addr, JitReg offset, JitReg memory_boundary) {
     JitReg offset1 = void;
     /* offset1 = offset + addr */
-    offset1 = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(offset1, offset, addr)));
+    offset1 = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(offset1, offset, addr)));
     /* if (offset1 < addr) goto EXCEPTION */
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, offset1, addr)));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, offset1, addr)));
     if (!jit_emit_exception(cc, EXCE_OUT_OF_BOUNDS_MEMORY_ACCESS, JIT_OP_BLTU,
                             cc.cmp_reg, null)) {
         goto fail;
     }
 version (OS_ENABLE_HW_BOUND_CHECK) {} else {
     /* if (offset1 > memory_boundary) goto EXCEPTION */
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, offset1, memory_boundary)));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, offset1, memory_boundary)));
     if (!jit_emit_exception(cc, EXCE_OUT_OF_BOUNDS_MEMORY_ACCESS, JIT_OP_BGTU,
                             cc.cmp_reg, null)) {
         goto fail;
@@ -152,13 +154,13 @@ version (OS_ENABLE_HW_BOUND_CHECK) {} else {
     /* 1. shortcut if the memory size is 0 */
     if (0 == cc.cur_wasm_module.memories[mem_idx].init_page_count) {
         JitReg module_inst = void, cur_page_count = void;
-        uint cur_page_count_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
+        uint cur_page_count_offset = cast(uint)WASMModuleInstance.global_table_data.bytes.offsetof
             + cast(uint)WASMMemoryInstance.cur_page_count.offsetof;
         /* if (cur_mem_page_count == 0) goto EXCEPTION */
-        module_inst = get_module_inst_reg(cc.jit_frame);
-        cur_page_count = jit_cc_new_reg_I32(cc);
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(cur_page_count, module_inst, jit_cc_new_const_I32(cc, cur_page_count_offset))));
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cur_page_count, jit_cc_new_const_I32(cc, 0))));
+        module_inst = cc.jit_frame.module_inst_reg;
+        cur_page_count = cc.new_reg_I32;
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(cur_page_count, module_inst, cc.new_const_I32(cur_page_count_offset))));
+        cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cur_page_count, cc.new_const_I32(0))));
         if (!jit_emit_exception(cc, EXCE_OUT_OF_BOUNDS_MEMORY_ACCESS,
                                 JIT_OP_BEQ, cc.cmp_reg, null)) {
             goto fail;
@@ -170,12 +172,12 @@ version (OS_ENABLE_HW_BOUND_CHECK) {} else {
         goto fail;
 }
 static if (UINTPTR_MAX == UINT64_MAX) {
-    offset1 = check_and_seek_on_64bit_platform(cc, addr, jit_cc_new_const_I64(cc, offset),
+    offset1 = check_and_seek_on_64bit_platform(cc, addr, cc.new_const_I64(offset),
                                                memory_boundary);
     if (!offset1)
         goto fail;
 } else {
-    offset1 = check_and_seek_on_32bit_platform(cc, addr, jit_cc_new_const_I32(cc, offset),
+    offset1 = check_and_seek_on_32bit_platform(cc, addr, cc.new_const_I32(offset),
                                                memory_boundary);
     if (!offset1)
         goto fail;
@@ -186,41 +188,41 @@ fail:
 }
 bool jit_compile_op_i32_load(JitCompContext* cc, uint align_, uint offset, uint bytes, bool sign, bool atomic) {
     JitReg addr = void, offset1 = void, value = void, memory_data = void;
-    POP_I32(addr);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, bytes);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
-    value = jit_cc_new_reg_I32(cc);
+    memory_data = cc.jit_frame.memory_data_reg(0);
+    value = cc.new_reg_I32;
     switch (bytes) {
         case 1:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI8(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI8(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU8(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU8(value, memory_data, offset1)));
             }
             break;
         }
         case 2:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI16(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI16(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU16(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU16(value, memory_data, offset1)));
             }
             break;
         }
         case 4:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU32(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU32(value, memory_data, offset1)));
             }
             break;
         }
@@ -230,58 +232,58 @@ bool jit_compile_op_i32_load(JitCompContext* cc, uint align_, uint offset, uint 
             goto fail;
         }
     }
-    PUSH_I32(value);
+    cc.push_i32(value);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_load(JitCompContext* cc, uint align_, uint offset, uint bytes, bool sign, bool atomic) {
     JitReg addr = void, offset1 = void, value = void, memory_data = void;
-    POP_I32(addr);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, bytes);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
-    value = jit_cc_new_reg_I64(cc);
+    memory_data = cc.jit_frame.memory_data_reg(0);
+    value = cc.new_reg_I64;
     switch (bytes) {
         case 1:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI8(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI8(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU8(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU8(value, memory_data, offset1)));
             }
             break;
         }
         case 2:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI16(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI16(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU16(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU16(value, memory_data, offset1)));
             }
             break;
         }
         case 4:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU32(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU32(value, memory_data, offset1)));
             }
             break;
         }
         case 8:
         {
             if (sign) {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(value, memory_data, offset1)));
             }
             else {
-                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU64(value, memory_data, offset1)));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDU64(value, memory_data, offset1)));
             }
             break;
         }
@@ -291,64 +293,64 @@ bool jit_compile_op_i64_load(JitCompContext* cc, uint align_, uint offset, uint 
             goto fail;
         }
     }
-    PUSH_I64(value);
+    cc.push_i64(value);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f32_load(JitCompContext* cc, uint align_, uint offset) {
     JitReg addr = void, offset1 = void, value = void, memory_data = void;
-    POP_I32(addr);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, 4);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
-    value = jit_cc_new_reg_F32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF32(value, memory_data, offset1)));
-    PUSH_F32(value);
+    memory_data = cc.jit_frame.memory_data_reg(0);
+    value = cc.new_reg_F32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF32(value, memory_data, offset1)));
+    cc.push_f32(value);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f64_load(JitCompContext* cc, uint align_, uint offset) {
     JitReg addr = void, offset1 = void, value = void, memory_data = void;
-    POP_I32(addr);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, 8);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
-    value = jit_cc_new_reg_F64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF64(value, memory_data, offset1)));
-    PUSH_F64(value);
+    memory_data = cc.jit_frame.memory_data_reg(0);
+    value = cc.new_reg_F64;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF64(value, memory_data, offset1)));
+    cc.push_f64(value);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i32_store(JitCompContext* cc, uint align_, uint offset, uint bytes, bool atomic) {
     JitReg value = void, addr = void, offset1 = void, memory_data = void;
-    POP_I32(value);
-    POP_I32(addr);
+    cc.pop_i32(value);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, bytes);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
+    memory_data = cc.jit_frame.memory_data_reg(0);
     switch (bytes) {
         case 1:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI8(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI8(value, memory_data, offset1)));
             break;
         }
         case 2:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI16(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI16(value, memory_data, offset1)));
             break;
         }
         case 4:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, memory_data, offset1)));
             break;
         }
         default:
@@ -363,35 +365,35 @@ fail:
 }
 bool jit_compile_op_i64_store(JitCompContext* cc, uint align_, uint offset, uint bytes, bool atomic) {
     JitReg value = void, addr = void, offset1 = void, memory_data = void;
-    POP_I64(value);
-    POP_I32(addr);
+    cc.pop_i64(value);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, bytes);
     if (!offset1) {
         goto fail;
     }
     if (jit_reg_is_const(value) && bytes < 8) {
-        value = jit_cc_new_const_I32(cc, cast(int)jit_cc_get_const_I64(cc, value));
+        value = cc.new_const_I32(cast(int)cc.get_const_I64(value));
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
+    memory_data = cc.jit_frame.memory_data_reg(0);
     switch (bytes) {
         case 1:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI8(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI8(value, memory_data, offset1)));
             break;
         }
         case 2:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI16(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI16(value, memory_data, offset1)));
             break;
         }
         case 4:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, memory_data, offset1)));
             break;
         }
         case 8:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, memory_data, offset1)));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, memory_data, offset1)));
             break;
         }
         default:
@@ -406,40 +408,40 @@ fail:
 }
 bool jit_compile_op_f32_store(JitCompContext* cc, uint align_, uint offset) {
     JitReg value = void, addr = void, offset1 = void, memory_data = void;
-    POP_F32(value);
-    POP_I32(addr);
+    cc.pop_f32(value);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, 4);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, memory_data, offset1)));
+    memory_data = cc.jit_frame.memory_data_reg(0);
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, memory_data, offset1)));
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f64_store(JitCompContext* cc, uint align_, uint offset) {
     JitReg value = void, addr = void, offset1 = void, memory_data = void;
-    POP_F64(value);
-    POP_I32(addr);
+    cc.pop_f64(value);
+    cc.pop_i32(addr);
     offset1 = check_and_seek(cc, addr, offset, 8);
     if (!offset1) {
         goto fail;
     }
-    memory_data = get_memory_data_reg(cc.jit_frame, 0);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, memory_data, offset1)));
+    memory_data = cc.jit_frame.memory_data_reg(0);
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, memory_data, offset1)));
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_memory_size(JitCompContext* cc, uint mem_idx) {
     JitReg module_inst = void, cur_page_count = void;
-    uint cur_page_count_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint cur_page_count_offset = cast(uint)WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(uint)WASMMemoryInstance.cur_page_count.offsetof;
-    module_inst = get_module_inst_reg(cc.jit_frame);
-    cur_page_count = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(cur_page_count, module_inst, jit_cc_new_const_I32(cc, cur_page_count_offset))));
-    PUSH_I32(cur_page_count);
+    module_inst = cc.jit_frame.module_inst_reg;
+    cur_page_count = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(cur_page_count, module_inst, cc.new_const_I32(cur_page_count_offset))));
+    cc.push_i32(cur_page_count);
     return true;
 fail:
     return false;
@@ -448,28 +450,28 @@ bool jit_compile_op_memory_grow(JitCompContext* cc, uint mem_idx) {
     JitReg module_inst = void, grow_res = void, res = void;
     JitReg prev_page_count = void, inc_page_count = void; JitReg[2] args = void;
     /* Get current page count */
-    uint cur_page_count_offset = cast(uint)offsetof(WASMModuleInstance, global_table_data.bytes)
+    uint cur_page_count_offset = cast(uint)WASMModuleInstance.global_table_data.bytes.offsetof
         + cast(uint)WASMMemoryInstance.cur_page_count.offsetof;
-    module_inst = get_module_inst_reg(cc.jit_frame);
-    prev_page_count = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(prev_page_count, module_inst, jit_cc_new_const_I32(cc, cur_page_count_offset))));
+    module_inst = cc.jit_frame.module_inst_reg;
+    prev_page_count = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(prev_page_count, module_inst, cc.new_const_I32(cur_page_count_offset))));
     /* Call wasm_enlarge_memory */
-    POP_I32(inc_page_count);
-    grow_res = jit_cc_new_reg_I32(cc);
-    args[0] = get_module_inst_reg(cc.jit_frame);
+    cc.pop_i32(inc_page_count);
+    grow_res = cc.new_reg_I32;
+    args[0] = cc.jit_frame.module_inst_reg;
     args[1] = inc_page_count;
-    if (!jit_emit_callnative(cc, wasm_enlarge_memory, grow_res, args.ptr, 2)) {
+    if (!jit_emit_callnative(cc, &wasm_enlarge_memory, grow_res, args.ptr, 2)) {
         goto fail;
     }
     /* Convert bool to uint32 */
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(grow_res, grow_res, jit_cc_new_const_I32(cc, 0xFF))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_AND(grow_res, grow_res, cc.new_const_I32(0xFF))));
     /* return different values according to memory.grow result */
-    res = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, grow_res, jit_cc_new_const_I32(cc, 0))));
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, prev_page_count, jit_cc_new_const_I32(cc, (int32)-1))));
-    PUSH_I32(res);
+    res = cc.new_reg_I32;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, grow_res, cc.new_const_I32(0))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTNE(res, cc.cmp_reg, prev_page_count, cc.new_const_I32((int32)-1))));
+    cc.push_i32(res);
     /* Ensure a refresh in next get memory related registers */
-    clear_memory_regs(cc.jit_frame);
+    cc.jit_frame.clear_memory_regs;
     return true;
 fail:
     return false;
@@ -502,20 +504,20 @@ out_of_bounds:
 bool jit_compile_op_memory_init(JitCompContext* cc, uint mem_idx, uint seg_idx) {
     JitReg len = void, mem_offset = void, data_offset = void, res = void;
     JitReg[6] args = 0;
-    POP_I32(len);
-    POP_I32(data_offset);
-    POP_I32(mem_offset);
-    res = jit_cc_new_reg_I32(cc);
-    args[0] = get_module_inst_reg(cc.jit_frame);
-    args[1] = jit_cc_new_const_I32(cc, mem_idx);
-    args[2] = jit_cc_new_const_I32(cc, seg_idx);
+    cc.pop_i32(len);
+    cc.pop_i32(data_offset);
+    cc.pop_i32(mem_offset);
+    res = cc.new_reg_I32;
+    args[0] = cc.jit_frame.module_inst_reg;
+    args[1] = cc.new_const_I32(mem_idx);
+    args[2] = cc.new_const_I32(seg_idx);
     args[3] = len;
     args[4] = mem_offset;
     args[5] = data_offset;
     if (!jit_emit_callnative(cc, &wasm_init_memory, res, args.ptr,
                              args.sizeof / typeof(args[0]).sizeof))
         goto fail;
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, res, jit_cc_new_const_I32(cc, 0))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, res, cc.new_const_I32(0))));
     if (!jit_emit_exception(cc, EXCE_ALREADY_THROWN, JIT_OP_BLTS, cc.cmp_reg,
                             null))
         goto fail;
@@ -524,12 +526,12 @@ fail:
     return false;
 }
 bool jit_compile_op_data_drop(JitCompContext* cc, uint seg_idx) {
-    JitReg module_ = get_module_reg(cc.jit_frame);
-    JitReg data_segments = jit_cc_new_reg_ptr(cc);
-    JitReg data_segment = jit_cc_new_reg_ptr(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(data_segments, module_, jit_cc_new_const_I32(cc, WASMModule.data_segments.offsetof))));
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(data_segment, data_segments, jit_cc_new_const_I32(cc, seg_idx * (WASMDataSeg*).sizeof))));
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(jit_cc_new_const_I32(cc, 0), data_segment, jit_cc_new_const_I32(cc, WASMDataSeg.data_length.offsetof))));
+    JitReg module_ = cc.jit_frame.module_reg;
+    JitReg data_segments = cc.new_reg_ptr;
+    JitReg data_segment = cc.new_reg_ptr;
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(data_segments, module_, cc.new_const_I32(WASMModule.data_segments.offsetof))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(data_segment, data_segments, cc.new_const_I32(seg_idx * (WASMDataSeg*).sizeof))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(cc.new_const_I32(0), data_segment, cc.new_const_I32(WASMDataSeg.data_length.offsetof))));
     return true;
 }
 private int wasm_copy_memory(WASMModuleInstance* inst, uint src_mem_idx, uint dst_mem_idx, uint len, uint src_offset, uint dst_offset) {
@@ -558,20 +560,20 @@ out_of_bounds:
 bool jit_compile_op_memory_copy(JitCompContext* cc, uint src_mem_idx, uint dst_mem_idx) {
     JitReg len = void, src = void, dst = void, res = void;
     JitReg[6] args = 0;
-    POP_I32(len);
-    POP_I32(src);
-    POP_I32(dst);
-    res = jit_cc_new_reg_I32(cc);
-    args[0] = get_module_inst_reg(cc.jit_frame);
-    args[1] = jit_cc_new_const_I32(cc, src_mem_idx);
-    args[2] = jit_cc_new_const_I32(cc, dst_mem_idx);
+    cc.pop_i32(len);
+    cc.pop_i32(src);
+    cc.pop_i32(dst);
+    res = cc.new_reg_I32;
+    args[0] = cc.jit_frame.module_inst_reg;
+    args[1] = cc.new_const_I32(src_mem_idx);
+    args[2] = cc.new_const_I32(dst_mem_idx);
     args[3] = len;
     args[4] = src;
     args[5] = dst;
     if (!jit_emit_callnative(cc, &wasm_copy_memory, res, args.ptr,
                              args.sizeof / typeof(args[0]).sizeof))
         goto fail;
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, res, jit_cc_new_const_I32(cc, 0))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, res, cc.new_const_I32(0))));
     if (!jit_emit_exception(cc, EXCE_ALREADY_THROWN, JIT_OP_BLTS, cc.cmp_reg,
                             null))
         goto fail;
@@ -597,19 +599,19 @@ out_of_bounds:
 bool jit_compile_op_memory_fill(JitCompContext* cc, uint mem_idx) {
     JitReg res = void, len = void, val = void, dst = void;
     JitReg[5] args = 0;
-    POP_I32(len);
-    POP_I32(val);
-    POP_I32(dst);
-    res = jit_cc_new_reg_I32(cc);
-    args[0] = get_module_inst_reg(cc.jit_frame);
-    args[1] = jit_cc_new_const_I32(cc, mem_idx);
+    cc.pop_i32(len);
+    cc.pop_i32(val);
+    cc.pop_i32(dst);
+    res = cc.new_reg_I32;
+    args[0] = cc.jit_frame.module_inst_reg;
+    args[1] = cc.new_const_I32(mem_idx);
     args[2] = len;
     args[3] = val;
     args[4] = dst;
     if (!jit_emit_callnative(cc, &wasm_fill_memory, res, args.ptr,
                              args.sizeof / typeof(args[0]).sizeof))
         goto fail;
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, res, jit_cc_new_const_I32(cc, 0))));
+    cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, res, cc.new_const_I32(0))));
     if (!jit_emit_exception(cc, EXCE_ALREADY_THROWN, JIT_OP_BLTS, cc.cmp_reg,
                             null))
         goto fail;
