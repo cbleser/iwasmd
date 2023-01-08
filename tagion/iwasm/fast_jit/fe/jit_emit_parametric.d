@@ -47,7 +47,7 @@ import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.interpreter.wasm : ValueType;
 import tagion.iwasm.share.utils.bh_assert;
 
-private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg* p_value, ubyte* p_type) {
+private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg* p_value, ValueType* p_type) {
     JitValue* jit_value = void;
     JitReg value = void;
     ubyte type = void;
@@ -113,7 +113,7 @@ bool jit_compile_op_drop(JitCompContext* cc, bool is_drop_32) {
 }
 bool jit_compile_op_select(JitCompContext* cc, bool is_select_32) {
     JitReg val1 = void, val2 = void, cond = void, selected = void;
-    ValueType val1_type, val2_type = void;
+    ValueType val1_type = void, val2_type = void;
     if (cc.pop_i32(cond)) goto fail;
     if (!pop_value_from_wasm_stack(cc, is_select_32, &val2, &val2_type)
         || !pop_value_from_wasm_stack(cc, is_select_32, &val1, &val1_type)) {
