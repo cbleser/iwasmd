@@ -9,6 +9,7 @@ import tagion.iwasm.fast_jit.jit_utils;
 
 import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
 import tagion.iwasm.share.utils.bh_assert;
+
 enum ErrorCode : int {
     None,
     Stack_Overflow,
@@ -358,8 +359,8 @@ nothrow:
  * is enabled
  */
         /* Defining instruction of registers satisfying SSA property.  */
-pragma(msg, "fixed(cbr): changed from JitInsn**[JIT_REG_KIND_L32] JitInsn*[JIT_REG_KIND_L32]"); 
-JitInsn*[JIT_REG_KIND_L32] _reg_def_insn;
+        pragma(msg, "fixed(cbr): changed from JitInsn**[JIT_REG_KIND_L32] JitInsn*[JIT_REG_KIND_L32]");
+        JitInsn*[JIT_REG_KIND_L32] _reg_def_insn;
         /* Flags of annotations. */
         /*
  * Copyright (C) 2021 Intel Corporation.  All rights reserved.
@@ -917,8 +918,8 @@ JitInsn*[JIT_REG_KIND_L32] _reg_def_insn;
  */
             /* Defining instruction of registers satisfying SSA property.  */
             if (successful && _ann._reg_def_insn_enabled) {
-			pragma(msg, typeof(_ann._reg_def_insn[kind]));
-			pragma(msg, typeof(_ann._reg_def_insn));
+                pragma(msg, typeof(_ann._reg_def_insn[kind]));
+                pragma(msg, typeof(_ann._reg_def_insn));
                 JitInsn* ptr = jit_realloc(_ann._reg_def_insn[kind], JitInsn.sizeof * capacity, JitInsn.sizeof * num);
                 if (ptr)
                     _ann._reg_def_insn[kind] = ptr;
@@ -2213,4 +2214,361 @@ JitInsn*[JIT_REG_KIND_L32] _reg_def_insn;
         jit_annl_disable_pred_num;
         return retval;
     }
+
+    bool create_fixed_virtual_regs() {
+        WASMModule* module_ = cur_wasm_module;
+        ulong total_size = void;
+        uint i = void, count = void;
+        module_inst_reg = new_reg_ptr;
+        module_reg = new_reg_ptr;
+        import_func_ptrs_reg = new_reg_ptr;
+        fast_jit_func_ptrs_reg = new_reg_ptr;
+        func_type_indexes_reg = new_reg_ptr;
+        aux_stack_bound_reg = new_reg_I32;
+        aux_stack_bottom_reg = new_reg_I32;
+        count = module_.import_memory_count + module_.memory_count;
+        if (count > 0) {
+            total_size = cast(ulong) JitMemRegs.sizeof * count;
+            if (total_size > uint.max
+                    || ((memory_regs = jit_calloc_memregs(total_size)) is null)) {
+                jit_set_last_error(cc, "allocate memory failed");
+                return false;
+            }
+            for (i = 0; i < count; i++) {
+                memory_regs[i].memory_data = new_reg_ptr;
+                memory_regs[i].memory_data_end = new_reg_ptr;
+                memory_regs[i].mem_bound_check_1byte = new_reg_ptr;
+                memory_regs[i].mem_bound_check_2bytes = new_reg_ptr;
+                memory_regs[i].mem_bound_check_4bytes = new_reg_ptr;
+                memory_regs[i].mem_bound_check_8bytes = new_reg_ptr;
+                memory_regs[i].mem_bound_check_16bytes = new_reg_ptr;
+            }
+        }
+        count = module_.import_table_count + module_.table_count;
+        if (count > 0) {
+            total_size = cast(ulong) JitTableRegs.sizeof * count;
+            if (total_size > uint.max
+                    || ((table_regs = jit_calloc_tableregs(total_size)) is null)) {
+                jit_set_last_error(cc, "allocate memory failed");
+                return false;
+            }
+            for (i = 0; i < count; i++) {
+                table_regs[i].table_elems = new_reg_ptr;
+                table_regs[i].table_cur_size = new_reg_I32;
+            }
+        }
+        return true;
+    }
+
+    bool form_and_translate_func() {
+        JitBasicBlock* func_entry_basic_block = void;
+        JitReg func_entry_label = void;
+        JitInsn* insn = void;
+        JitIncomingInsn* incoming_insn = void, incoming_insn_next = void;
+        uint i = void;
+        if (!create_fixed_virtual_regs(cc))
+            return false;
+        if (((func_entry_basic_block = jit_frontend_translate_func(cc)) is null))
+            return false;
+        reset_insn_hash;
+        /* The label of the func entry basic block. */
+        func_entry_label = jit_basic_block_label(func_entry_basic_block);
+        /* Create a JMP instruction jumping to the func entry. */
+        if (((insn = _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(func_entry_label))) is null))
+            return false;
+        /* Insert the instruction into the cc entry block. */
+        jit_basic_block_append_insn(entry_basic_block, insn);
+        /* Patch INSNs jumping to exception basic blocks. */
+        for (i = 0; i < EXCE_NUM; i++) {
+            incoming_insn = incoming_insns_for_exec_bbs[i];
+            if (incoming_insn) {
+                if (((exce_basic_blocks[i] = jit_cc_new_basic_block(cc, 0)) is null)) {
+                    jit_set_last_error(cc, "create basic block failed");
+                    return false;
+                }
+                while (incoming_insn) {
+                    incoming_insn_next = incoming_insn.next;
+                    insn = incoming_insn.insn;
+                    if (insn.opcode == JIT_OP_JMP) {
+                        *(jit_insn_opnd(insn, 0)) =
+                            jit_basic_block_label(exce_basic_blocks[i]);
+                    }
+                    else if (insn.opcode >= JIT_OP_BEQ
+                            && insn.opcode <= JIT_OP_BLEU) {
+                        *(jit_insn_opnd(insn, 1)) =
+                            jit_basic_block_label(exce_basic_blocks[i]);
+                    }
+                    incoming_insn = incoming_insn_next;
+                }
+                cur_basic_block = exce_basic_blocks[i];
+                if (i != EXCE_ALREADY_THROWN) {
+                    JitReg module_inst_reg = new_reg_ptr;
+                    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(module_inst_reg, cc
+                            .exec_env_reg, jit_cc_new_const_I32(cc, WASMExecEnv.module_inst.offsetof))));
+                    insn = _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CALLNATIVE(0, jit_cc_new_const_PTR(
+                            cc, cast(long)&jit_set_exception_with_id), 2)));
+                    if (insn) {
+                        *(jit_insn_opndv(insn, 2)) = module_inst_reg;
+                        *(jit_insn_opndv(insn, 3)) = jit_cc_new_const_I32(cc, i);
+                    }
+                }
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_RETURN(jit_cc_new_const_I32(cc, JIT_INTERP_ACTION_THROWN))));
+                *(jit_annl_begin_bcip(cc,
+                        jit_basic_block_label(cur_basic_block))) =
+                    *(jit_annl_end_bcip(
+                            cc, jit_basic_block_label(cur_basic_block))) =
+                    cur_wasm_module.load_addr;
+            }
+        }
+        *(jit_annl_begin_bcip(cc, entry_label)) =
+            *(jit_annl_end_bcip(cc, entry_label)) =
+            *(jit_annl_begin_bcip(cc, exit_label)) =
+            *(jit_annl_end_bcip(cc, exit_label)) =
+            cur_wasm_module.load_addr;
+        if (jit_get_last_error(cc)) {
+            return false;
+        }
+        return true;
+    }
+
+    bool jit_pass_frontend() {
+        /* Enable necessary annotations required at the current stage. */
+        if (!jit_annl_enable_begin_bcip(cc) || !jit_annl_enable_end_bcip(cc)
+                || !jit_annl_enable_end_sp(cc) || !jit_annr_enable_def_insn(cc)
+                || !jit_cc_enable_insn_hash(cc, 127))
+            return false;
+        if (!(form_and_translate_func(cc)))
+            return false;
+        /* Release the annotations after local CSE and translation. */
+        disable_insn_hash;
+        jit_annl_disable_end_sp(cc);
+        return true;
+    }
+
+    JitFrame* init_func_translation() {
+        JitFrame* jit_frame = void;
+        JitReg top = void, top_boundary = void, new_top = void, frame_boundary = void, frame_sp = void;
+        WASMModule* cur_wasm_module = cur_wasm_module;
+        WASMFunction* cur_wasm_func = cur_wasm_func;
+        uint cur_wasm_func_idx = cur_wasm_func_idx;
+        uint max_locals = cur_wasm_func.param_cell_num + cur_wasm_func.local_cell_num;
+        uint max_stacks = cur_wasm_func.max_stack_cell_num;
+        ulong total_cell_num = cast(ulong) cur_wasm_func.param_cell_num
+            + cast(ulong) cur_wasm_func.local_cell_num
+            + cast(
+                    ulong) cur_wasm_func.max_stack_cell_num
+            + (cast(ulong) cur_wasm_func.max_block_num) * WASMBranchBlock.sizeof / 4;
+        uint frame_size = void, outs_size = void, local_size = void, count = void;
+        uint i = void, local_off = void;
+        ulong total_size = void;
+        static if (ver.WASM_ENABLE_DUMP_CALL_STACK || ver.WASM_ENABLE_PERF_PROFILING) {
+            JitReg module_inst = void, func_inst = void;
+            uint func_insts_offset = void;
+            static if (ver.WASM_ENABLE_PERF_PROFILING) {
+                JitReg time_started = void;
+            }
+        }
+        if (cast(ulong) max_locals + cast(ulong) max_stacks >= uint.max
+                || total_cell_num >= uint.max
+                || ((jit_frame = jit_calloc_frame(JitFrame.lp.offsetof
+                    + (*jit_frame.lp).sizeof
+                    * (max_locals + max_stacks))) is null)) {
+            os_printf("allocate jit frame failed\n");
+            return null;
+        }
+        count =
+            cur_wasm_module.import_memory_count + cur_wasm_module.memory_count;
+        if (count > 0) {
+            total_size = JitMemRegs.sizeof * count;
+            if (total_size > uint.max
+                    || ((jit_frame.memory_regs = jit_calloc_memregs(total_size)) is null)) {
+                jit_set_last_error(cc, "allocate memory failed");
+                jit_free(jit_frame);
+                return null;
+            }
+        }
+        count = cur_wasm_module.import_table_count + cur_wasm_module.table_count;
+        if (count > 0) {
+            total_size = cast(ulong) JitTableRegs.sizeof * count;
+            if (total_size > uint.max
+                    || ((jit_frame.table_regs = jit_calloc_tableregs(total_size)) is null)) {
+                jit_set_last_error(cc, "allocate memory failed");
+                if (jit_frame.memory_regs)
+                    jit_free(jit_frame.memory_regs);
+                jit_free(jit_frame);
+                return null;
+            }
+        }
+        jit_frame.cur_wasm_module = cur_wasm_module;
+        jit_frame.cur_wasm_func = cur_wasm_func;
+        jit_frame.cur_wasm_func_idx = cur_wasm_func_idx;
+        jit_frame.cc = cc;
+        jit_frame.max_locals = max_locals;
+        jit_frame.max_stacks = max_stacks;
+        jit_frame.sp = jit_frame.lp + max_locals;
+        jit_frame.ip = cur_wasm_func.code;
+        jit_frame = jit_frame;
+        cur_basic_block = entry_basic_block;
+        spill_cache_offset = wasm_interp_interp_frame_size(total_cell_num);
+        /* Set spill cache size according to max local cell num, max stack cell
+       num and virtual fixed register num */
+        spill_cache_size = cast(uint)((max_locals + max_stacks) * 4 + (void*).sizeof * 5);
+        total_frame_size = spill_cache_offset + cc.spill_cache_size;
+        jitted_return_address_offset =
+            WASMInterpFrame.jitted_return_addr.offsetof;
+        cur_basic_block = entry_basic_block;
+        frame_size = outs_size = total_frame_size;
+        local_size =
+            (cur_wasm_func.param_cell_num + cur_wasm_func.local_cell_num) * 4;
+        top = new_reg_ptr;
+        top_boundary = new_reg_ptr;
+        new_top = new_reg_ptr;
+        frame_boundary = new_reg_ptr;
+        frame_sp = new_reg_ptr;
+        static if (ver.WASM_ENABLE_DUMP_CALL_STACK || ver.WASM_ENABLE_PERF_PROFILING) {
+            module_inst = new_reg_ptr;
+            func_inst = new_reg_ptr;
+            static if (ver.WASM_ENABLE_PERF_PROFILING) {
+                time_started = new_reg_I64;
+                /* Call os_time_get_boot_microsecond() to get time_started firstly
+       as there is stack frame switching below, calling native in them
+       may cause register spilling work inproperly */
+                if (!jit_emit_callnative(cc, os_time_get_boot_microsecond, time_started,
+                        null, 0)) {
+                    return null;
+                }
+            }
+        }
+        /* top = exec_env->wasm_stack.s.top */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(top, exec_env_reg, jit_cc_new_const_I32(
+                cc, WASMExecEnv.wasm_stack.s.top.offsetof))));
+        /* top_boundary = exec_env->wasm_stack.s.top_boundary */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(top_boundary, exec_env_reg, jit_cc_new_const_I32(
+                cc, WASMExecEnv.wasm_stack.s.top_boundary.offsetof))));
+        /* frame_boundary = top + frame_size + outs_size */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_boundary, top, jit_cc_new_const_PTR(
+                cc, frame_size + outs_size))));
+        /* if frame_boundary > top_boundary, throw stack overflow exception */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cmp_reg, frame_boundary, top_boundary)));
+        if (!jit_emit_exception(cc, EXCE_OPERAND_STACK_OVERFLOW, JIT_OP_BGTU,
+                cmp_reg, null)) {
+            return null;
+        }
+        /* Add first and then sub to reduce one used register */
+        /* new_top = frame_boundary - outs_size = top + frame_size */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SUB(new_top, frame_boundary, jit_cc_new_const_PTR(
+                cc, outs_size))));
+        /* exec_env->wasm_stack.s.top = new_top */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(new_top, exec_env_reg, jit_cc_new_const_I32(
+                cc, WASMExecEnv.wasm_stack.s.top.offsetof))));
+        /* frame_sp = frame->lp + local_size */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_sp, top, jit_cc_new_const_PTR(cc, WASMInterpFrame
+                .lp.offsetof + local_size))));
+        /* frame->sp = frame_sp */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(frame_sp, top, jit_cc_new_const_I32(cc, WASMInterpFrame
+                .sp.offsetof))));
+        /* frame->prev_frame = fp_reg */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(fp_reg, top, jit_cc_new_const_I32(cc, WASMInterpFrame
+                .prev_frame.offsetof))));
+        static if (ver.WASM_ENABLE_DUMP_CALL_STACK || ver.WASM_ENABLE_PERF_PROFILING) {
+            /* module_inst = exec_env->module_inst */
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(module_inst, exec_env_reg, jit_cc_new_const_I32(
+                    cc, WASMExecEnv.module_inst.offsetof))));
+            func_insts_offset =
+                jit_frontend_get_module_inst_extra_offset(cur_wasm_module)
+                + cast(uint) WASMModuleInstanceExtra.functions.offsetof;
+            /* func_inst = module_inst->e->functions */
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(func_inst, module_inst, jit_cc_new_const_I32(
+                    cc, func_insts_offset))));
+            /* func_inst = func_inst + cur_wasm_func_idx */
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(func_inst, func_inst, jit_cc_new_const_PTR(
+                    cc, cast(uint) WASMFunctionInstance.sizeof * cur_wasm_func_idx))));
+            /* frame->function = func_inst */
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(func_inst, top, jit_cc_new_const_I32(
+                    cc, WASMInterpFrame
+                    .function_.offsetof))));
+            static if (ver.WASM_ENABLE_PERF_PROFILING) {
+                /* frame->time_started = time_started */
+                _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(time_started, top, jit_cc_new_const_I32(
+                        cc, WASMInterpFrame.time_started.offsetof))));
+            }
+        }
+        /* exec_env->cur_frame = top */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(top, exec_env_reg, jit_cc_new_const_I32(
+                cc, WASMExecEnv.cur_frame.offsetof))));
+        /* fp_reg = top */
+        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MOV(fp_reg, top)));
+        /* Initialize local variables, set them to 0 */
+        local_off = cast(uint) WASMInterpFrame.lp.offsetof
+            + cur_wasm_func.param_cell_num * 4;
+        for (i = 0; i < cur_wasm_func.local_cell_num / 2; i++, local_off += 8) {
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(jit_cc_new_const_I64(cc, 0), fp_reg, jit_cc_new_const_I32(
+                    cc, local_off))));
+        }
+        if (cur_wasm_func.local_cell_num & 1) {
+            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(jit_cc_new_const_I32(cc, 0), fp_reg, jit_cc_new_const_I32(
+                    cc, local_off))));
+        }
+        return jit_frame;
+    }
+
+    JitBasicBlock* create_func_block() {
+        JitBlock* jit_block = void;
+        WASMFunction* cur_func = cur_wasm_func;
+        WASMType* func_type = cur_func.func_type;
+        uint param_count = func_type.param_count;
+        uint result_count = func_type.result_count;
+        if (((jit_block = jit_calloc_block(JitBlock.sizeof)) is null)) {
+            return null;
+        }
+        if (param_count && ((jit_block.param_types = jit_calloc_buffer(param_count)) is null)) {
+            goto fail;
+        }
+        if (result_count && ((jit_block.result_types = jit_calloc_buffer(result_count)) is null)) {
+            goto fail;
+        }
+        /* Set block data */
+        jit_block.label_type = LABEL_TYPE_FUNCTION;
+        jit_block.param_count = param_count;
+        if (param_count) {
+            bh_memcpy_s(jit_block.param_types, param_count, func_type.types.ptr,
+                    param_count);
+        }
+        jit_block.result_count = result_count;
+        if (result_count) {
+            bh_memcpy_s(jit_block.result_types, result_count,
+                    &func_type.types + param_count, result_count);
+        }
+        jit_block.wasm_code_end = cur_func.code + cur_func.code_size;
+        jit_block.frame_sp_begin = jit_frame.sp;
+        /* Add function entry block */
+        if (((jit_block.basic_block_entry = jit_cc_new_basic_block(cc, 0)) is null)) {
+            goto fail;
+        }
+        *(jit_annl_begin_bcip(
+                cc, jit_basic_block_label(jit_block.basic_block_entry))) =
+            cur_func.code;
+        jit_block_stack_push(&block_stack, jit_block);
+        cur_basic_block = jit_block.basic_block_entry;
+        return jit_block.basic_block_entry;
+    fail:
+        free_block_memory(jit_block);
+        return null;
+    }
+
+    JitBasicBlock* jit_frontend_translate_func() {
+        JitFrame* jit_frame = void;
+        JitBasicBlock* basic_block_entry = void;
+        if (((jit_frame = init_func_translation(cc)) is null)) {
+            return null;
+        }
+        if (((basic_block_entry = create_func_block(cc)) is null)) {
+            return null;
+        }
+        if (!jit_compile_func(cc)) {
+            return null;
+        }
+        return basic_block_entry;
+    }
+
 }
