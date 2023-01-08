@@ -94,6 +94,12 @@ nothrow:
     /*
 	Returns: true on fail
 */
+static if (uintptr_t.max == ulong.max) {
+    alias new_const_PTR = new_const_I64;
+}
+else {
+    alias new_const_PTR = new_const_I32;
+}
 
     bool pop_i32(ref JitReg value) {
         return !pop_value(VALUE_TYPE_I32, &value);

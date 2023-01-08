@@ -2366,13 +2366,6 @@ void jit_cc_delete(JitCompContext* cc);
 char* jit_get_last_error(JitCompContext* cc);
 void jit_set_last_error(JitCompContext* cc, const(char)* error);
 void jit_set_last_error_v(JitCompContext* cc, const(char)* format, ...);
-version(none)
-static if (uintptr_t.max == ulong.max) {
-    alias jit_cc_new_const_PTR = jit_cc_new_const_I64;
-}
-else {
-    alias jit_cc_new_const_PTR = jit_cc_new_const_I32;
-}
 /**
  * Create a F32 constant value into the compilation context.
  *
