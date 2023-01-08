@@ -79,8 +79,10 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-import tagion.iwasm.interpreter.wasm : WASMFunction, WASMModule;
+import tagion.iwasm.interpreter.wasm : WASMFunction, WASMModule, ValueType;
+import tagion.iwasm.fast_jit.jit_ir : JitReg;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.share.utils.bh_assert;
 //#include "../jit_compiler.h"
 bool jit_compile_op_get_local(JitCompContext* cc, uint local_idx);
 bool jit_compile_op_set_local(JitCompContext* cc, uint local_idx);
@@ -89,8 +91,8 @@ bool jit_compile_op_get_global(JitCompContext* cc, uint global_idx);
 bool jit_compile_op_set_global(JitCompContext* cc, uint global_idx, bool is_aux_stack);
 //#include "jit_emit_exception.h"
 //#include "../jit_frontend.h"
-private ubyte get_local_type(const(WASMFunction)* wasm_func, uint local_idx) {
-    uint param_count = wasm_func.func_type.param_count;
+private ValueType get_local_type(const(WASMFunction)* wasm_func, uint local_idx) {
+    const param_count = wasm_func.func_type.param_count;
     return local_idx < param_count
                ? wasm_func.func_type.types[local_idx]
                : wasm_func.local_types[local_idx - param_count];
@@ -99,29 +101,29 @@ bool jit_compile_op_get_local(JitCompContext* cc, uint local_idx) {
     WASMFunction* wasm_func = cc.cur_wasm_func;
     ushort* local_offsets = wasm_func.local_offsets;
     ushort local_offset = void;
-    ubyte local_type = void;
+    ValueType local_type = void;
     JitReg value = 0;
-    do { if (local_idx >= wasm_func.func_type.param_count + wasm_func.local_count) { jit_set_last_error(cc, "local index out of range"); goto fail; } } while (0);
+    do { if (local_idx >= wasm_func.func_type.param_count + wasm_func.local_count) { cc.jit_set_last_error("local index out of range"); goto fail; } } while (0);
     local_offset = local_offsets[local_idx];
     local_type = get_local_type(wasm_func, local_idx);
     switch (local_type) {
-        case VALUE_TYPE_I32:
-            value = local_i32(cc.jit_frame, local_offset);
+        case ValueType.I32:
+            value = cc.jit_frame.local_i32(local_offset);
             break;
-        case VALUE_TYPE_I64:
-            value = local_i64(cc.jit_frame, local_offset);
+        case ValueType.I64:
+            value = cc.jit_frame.local_i64(local_offset);
             break;
-        case VALUE_TYPE_F32:
-            value = local_f32(cc.jit_frame, local_offset);
+        case ValueType.F32:
+            value = cc.jit_frame.local_f32(local_offset);
             break;
-        case VALUE_TYPE_F64:
-            value = local_f64(cc.jit_frame, local_offset);
+        case ValueType.F64:
+            value = cc.jit_frame.local_f64(local_offset);
             break;
         default:
             bh_assert(0);
             break;
     }
-    PUSH(value, local_type);
+    cc.push(value, local_type);
     return true;
 fail:
     return false;
@@ -130,26 +132,26 @@ bool jit_compile_op_set_local(JitCompContext* cc, uint local_idx) {
     WASMFunction* wasm_func = cc.cur_wasm_func;
     ushort* local_offsets = wasm_func.local_offsets;
     ushort local_offset = void;
-    ubyte local_type = void;
+    ValueType local_type = void;
     JitReg value = void;
-    do { if (local_idx >= wasm_func.func_type.param_count + wasm_func.local_count) { jit_set_last_error(cc, "local index out of range"); goto fail; } } while (0);
+    do { if (local_idx >= wasm_func.func_type.param_count + wasm_func.local_count) { cc.jit_set_last_error("local index out of range"); goto fail; } } while (0);
     local_offset = local_offsets[local_idx];
     local_type = get_local_type(wasm_func, local_idx);
     switch (local_type) {
-        case VALUE_TYPE_I32:
-            POP_I32(value);
+        case ValueType.I32:
+            cc.pop_i32(value);
             set_local_i32(cc.jit_frame, local_offset, value);
             break;
-        case VALUE_TYPE_I64:
-            POP_I64(value);
+        case ValueType.I64:
+            cc.pop_i64(value);
             set_local_i64(cc.jit_frame, local_offset, value);
             break;
-        case VALUE_TYPE_F32:
-            POP_F32(value);
+        case ValueType.F32:
+            cc.pop_f32(value);
             set_local_f32(cc.jit_frame, local_offset, value);
             break;
-        case VALUE_TYPE_F64:
-            POP_F64(value);
+        case ValueType.F64:
+            cc.pop_f64(value);
             set_local_f64(cc.jit_frame, local_offset, value);
             break;
         default:
@@ -166,27 +168,27 @@ bool jit_compile_op_tee_local(JitCompContext* cc, uint local_idx) {
     ushort local_offset = void;
     ubyte local_type = void;
     JitReg value = 0;
-    do { if (local_idx >= wasm_func.func_type.param_count + wasm_func.local_count) { jit_set_last_error(cc, "local index out of range"); goto fail; } } while (0);
+    do { if (local_idx >= wasm_func.func_type.param_count + wasm_func.local_count) { cc.jit_set_last_error("local index out of range"); goto fail; } } while (0);
     local_offset = local_offsets[local_idx];
     local_type = get_local_type(wasm_func, local_idx);
     switch (local_type) {
-        case VALUE_TYPE_I32:
-            POP_I32(value);
+        case ValueType.I32:
+            cc.pop_i32(value);
             set_local_i32(cc.jit_frame, local_offset, value);
             PUSH_I32(value);
             break;
-        case VALUE_TYPE_I64:
-            POP_I64(value);
+        case ValueType.I64:
+            cc.pop_i64(value);
             set_local_i64(cc.jit_frame, local_offset, value);
             PUSH_I64(value);
             break;
-        case VALUE_TYPE_F32:
-            POP_F32(value);
+        case ValueType.F32:
+            cc.pop_f32(value);
             set_local_f32(cc.jit_frame, local_offset, value);
             PUSH_F32(value);
             break;
-        case VALUE_TYPE_F64:
-            POP_F64(value);
+        case ValueType.F64:
+            cc.pop_f64(value);
             set_local_f64(cc.jit_frame, local_offset, value);
             PUSH_F64(value);
             break;
@@ -218,25 +220,25 @@ bool jit_compile_op_get_global(JitCompContext* cc, uint global_idx) {
         jit_frontend_get_global_data_offset(cc.cur_wasm_module, global_idx);
     global_type = get_global_type(cc.cur_wasm_module, global_idx);
     switch (global_type) {
-        case VALUE_TYPE_I32:
+        case ValueType.I32:
         {
             value = jit_cc_new_reg_I32(cc);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
-        case VALUE_TYPE_I64:
+        case ValueType.I64:
         {
             value = jit_cc_new_reg_I64(cc);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
-        case VALUE_TYPE_F32:
+        case ValueType.F32:
         {
             value = jit_cc_new_reg_F32(cc);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
-        case VALUE_TYPE_F64:
+        case ValueType.F64:
         {
             value = jit_cc_new_reg_F64(cc);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
@@ -244,7 +246,7 @@ bool jit_compile_op_get_global(JitCompContext* cc, uint global_idx) {
         }
         default:
         {
-            jit_set_last_error(cc, "unexpected global type");
+            cc.jit_set_last_error("unexpected global type");
             goto fail;
         }
     }
@@ -263,9 +265,9 @@ bool jit_compile_op_set_global(JitCompContext* cc, uint global_idx, bool is_aux_
         jit_frontend_get_global_data_offset(cc.cur_wasm_module, global_idx);
     global_type = get_global_type(cc.cur_wasm_module, global_idx);
     switch (global_type) {
-        case VALUE_TYPE_I32:
+        case ValueType.I32:
         {
-            POP_I32(value);
+            cc.pop_i32(value);
             if (is_aux_stack) {
                 JitReg aux_stack_bound = get_aux_stack_bound_reg(cc.jit_frame);
                 JitReg aux_stack_bottom = get_aux_stack_bottom_reg(cc.jit_frame);
@@ -281,27 +283,27 @@ bool jit_compile_op_set_global(JitCompContext* cc, uint global_idx, bool is_aux_
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
-        case VALUE_TYPE_I64:
+        case ValueType.I64:
         {
-            POP_I64(value);
+            cc.pop_i64(value);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
-        case VALUE_TYPE_F32:
+        case ValueType.F32:
         {
-            POP_F32(value);
+            cc.pop_f32(value);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
-        case VALUE_TYPE_F64:
+        case ValueType.F64:
         {
-            POP_F64(value);
+            cc.pop_f64(value);
             _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, get_module_inst_reg(cc.jit_frame), jit_cc_new_const_I32(cc, data_offset))));
             break;
         }
         default:
         {
-            jit_set_last_error(cc, "unexpected global type");
+            cc.jit_set_last_error("unexpected global type");
             goto fail;
         }
     }

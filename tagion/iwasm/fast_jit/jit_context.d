@@ -101,10 +101,28 @@ else {
     alias new_const_PTR = new_const_I32;
 }
 
-    bool pop_i32(ref JitReg value) {
-        return !pop_value(ValueType.I32, &value);
+    void pop_i32(ref JitReg value) {
+        if( !pop_value(ValueType.I32, &value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while poping");
+	}
     }
-    /* Error long-jumper */
+    void pop_i64(ref JitReg value) {
+        if (!pop_value(ValueType.I64, &value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while poping");
+	}
+     }
+    void pop_f32(ref JitReg value) {
+        if (!pop_value(ValueType.f32, &value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while poping");
+	}
+     }
+     void pop_f64(ref JitReg value) {
+        if ( !pop_value(ValueType.f64, &value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while poping");
+	}
+     }
+
+      /* Error long-jumper */
     private Error _error;
     void error(ErrorCode err, string msg, string file = __FILE__, const size_t line = __LINE__) {
         _error(err, msg, file, line);

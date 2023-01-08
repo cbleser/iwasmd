@@ -114,7 +114,7 @@ bool jit_compile_op_drop(JitCompContext* cc, bool is_drop_32) {
 bool jit_compile_op_select(JitCompContext* cc, bool is_select_32) {
     JitReg val1 = void, val2 = void, cond = void, selected = void;
     ValueType val1_type = void, val2_type = void;
-    if (cc.pop_i32(cond)) goto fail;
+    cc.pop_i32(cond);
     if (!pop_value_from_wasm_stack(cc, is_select_32, &val2, &val2_type)
         || !pop_value_from_wasm_stack(cc, is_select_32, &val1, &val1_type)) {
         return false;

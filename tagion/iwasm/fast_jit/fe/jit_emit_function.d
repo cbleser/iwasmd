@@ -433,7 +433,7 @@ bool jit_compile_op_call_indirect(JitCompContext* cc, uint type_idx, uint tbl_id
     JitReg import_func_ptrs = void, jitted_code_idx = void, jitted_code = void;
     WASMType* func_type = void;
 //    uint n = void;
-    if (cc.pop_i32(elem_idx)) goto fail;
+    cc.pop_i32(elem_idx);
     /* check elem_idx */
     tbl_size = jit_frame.table_cur_size_reg( tbl_idx);
     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, elem_idx, tbl_size)));

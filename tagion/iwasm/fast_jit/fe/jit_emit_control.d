@@ -723,8 +723,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
             goto fail;
     }
     else if (label_type == LABEL_TYPE_IF) {
-        if (cc.pop_i32(value))
-            goto fail;
+        cc.pop_i32(value);
         if (!jit_reg_is_const_val(value)) {
             /* Compare value is not constant, create condition br IR */
             /* Create entry block */
@@ -929,8 +928,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
         return false;
     }
     /* append IF to current basic block */
-    if (cc.pop_i32(cond))
-        goto fail;
+    cc.pop_i32(cond);
     if (merge_cmp_and_br_if) {
         get_last_cmp_and_selectcc(cc, cond, &insn_cmp, &insn_select);
     }

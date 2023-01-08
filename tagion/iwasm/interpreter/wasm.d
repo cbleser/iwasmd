@@ -254,7 +254,7 @@ struct WASMFunction {
     /* the type of function */
     WASMType* func_type;
     uint local_count;
-    ubyte* local_types;
+    WASMType* local_types;
 
     /* cell num of parameters */
     ushort param_cell_num;
