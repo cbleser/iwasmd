@@ -44,6 +44,8 @@ import tagion.iwasm.fast_jit.fe.jit_emit_function;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_codegen;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.share.utils.bh_assert;
+
 private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bool is64Bit) {
     JitReg lhs = void, rhs = void, res = void, const_zero = void, const_one = void;
     if (cond < INT_EQZ || cond > INT_GE_U) {
@@ -51,25 +53,25 @@ private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bo
         goto fail;
     }
     res = jit_cc_new_reg_I32(cc);
-    const_zero = jit_cc_new_const_I32(cc, 0);
-    const_one = jit_cc_new_const_I32(cc, 1);
+    const_zero = cc.new_const_I32(0);
+    const_one = cc.new_const_I32(1);
     if (is64Bit) {
         if (INT_EQZ == cond) {
-            rhs = jit_cc_new_const_I64(cc, 0);
+            rhs = cc.new_const_I64(0);
         }
         else {
-            POP_I64(rhs);
+            cc.pop_i64(rhs);
         }
-        POP_I64(lhs);
+        cc.pop_i64(lhs);
     }
     else {
         if (INT_EQZ == cond) {
-            rhs = jit_cc_new_const_I32(cc, 0);
+            rhs = cc.new_const_I32(0);
         }
         else {
-            POP_I32(rhs);
+            cc.pop_i32(rhs);
         }
-        POP_I32(lhs);
+        cc.pop_i32(lhs);
     }
     _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, lhs, rhs)));
     switch (cond) {
@@ -125,7 +127,7 @@ private bool jit_compile_op_compare_integer(JitCompContext* cc, IntCond cond, bo
             break;
         }
     }
-    PUSH_I32(res);
+    cc.push_i32(res);
     return true;
 fail:
     return false;
@@ -177,8 +179,8 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
     }
     else {
         res = jit_cc_new_reg_I32(cc);
-        const_zero = jit_cc_new_const_I32(cc, 0);
-        const_one = jit_cc_new_const_I32(cc, 1);
+        const_zero = cc.new_const_I32(0);
+        const_one = cc.new_const_I32(1);
         switch (cond) {
             case FLOAT_LT:
             {
@@ -211,7 +213,7 @@ private bool jit_compile_op_compare_float_point(JitCompContext* cc, FloatCond co
             }
         }
     }
-    PUSH_I32(res);
+    cc.push_i32(res);
     return true;
 fail:
     return false;
@@ -219,13 +221,13 @@ fail:
 bool jit_compile_op_f32_compare(JitCompContext* cc, FloatCond cond) {
     JitReg res = void, const_zero = void, const_one = void;
     JitReg lhs = void, rhs = void;
-    POP_F32(rhs);
-    POP_F32(lhs);
+    cc.pop_f32(rhs);
+    cc.pop_f32(lhs);
     if (jit_reg_is_const_val(lhs) && jit_reg_is_const_val(rhs)) {
-        float32 lvalue = jit_cc_get_const_F32(cc, lhs);
-        float32 rvalue = jit_cc_get_const_F32(cc, rhs);
-        const_zero = jit_cc_new_const_I32(cc, 0);
-        const_one = jit_cc_new_const_I32(cc, 1);
+        float lvalue = cc.get_const_F32(lhs);
+        float rvalue = cc.get_const_F32(rhs);
+        const_zero = cc.new_const_I32(0);
+        const_one = cc.new_const_I32(1);
         switch (cond) {
             case FLOAT_EQ:
             {
@@ -263,7 +265,7 @@ bool jit_compile_op_f32_compare(JitCompContext* cc, FloatCond cond) {
                 goto fail;
             }
         }
-        PUSH_I32(res);
+        cc.push_i32(res);
         return true;
     }
     return jit_compile_op_compare_float_point(cc, cond, lhs, rhs);
@@ -273,13 +275,13 @@ fail:
 bool jit_compile_op_f64_compare(JitCompContext* cc, FloatCond cond) {
     JitReg res = void, const_zero = void, const_one = void;
     JitReg lhs = void, rhs = void;
-    POP_F64(rhs);
-    POP_F64(lhs);
+    cc.pop_f64(rhs);
+    cc.pop_f64(lhs);
     if (jit_reg_is_const_val(lhs) && jit_reg_is_const_val(rhs)) {
-        float64 lvalue = jit_cc_get_const_F64(cc, lhs);
-        float64 rvalue = jit_cc_get_const_F64(cc, rhs);
-        const_zero = jit_cc_new_const_I32(cc, 0);
-        const_one = jit_cc_new_const_I32(cc, 1);
+        double lvalue = cc.get_const_F64(lhs);
+        double rvalue = cc.get_const_F64(rhs);
+        const_zero = cc.new_const_I32(0);
+        const_one = cc.new_const_I32(1);
         switch (cond) {
             case FLOAT_EQ:
             {
@@ -317,7 +319,7 @@ bool jit_compile_op_f64_compare(JitCompContext* cc, FloatCond cond) {
                 goto fail;
             }
         }
-        PUSH_I32(res);
+        cc.push_i32(res);
         return true;
     }
     return jit_compile_op_compare_float_point(cc, cond, lhs, rhs);
