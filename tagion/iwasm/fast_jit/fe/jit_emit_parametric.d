@@ -40,23 +40,29 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.basic;
 import tagion.iwasm.fast_jit.jit_context;
-import tagion.iwasm.fast_jit.jit_ir :  JitReg,
- jit_insn_new_CMP, jit_insn_new_SELECTNE;
+import tagion.iwasm.fast_jit.jit_ir :  JitReg, JitValue,
+ jit_insn_new_CMP, jit_insn_new_SELECTNE,
+jit_block_stack_top,
+jit_block_stack_pop,
+jit_value_stack_pop
+;
 import tagion.iwasm.fast_jit.jit_frontend;
+import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.interpreter.wasm : ValueType;
 import tagion.iwasm.share.utils.bh_assert;
 
 private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg* p_value, ValueType* p_type) {
     JitValue* jit_value = void;
     JitReg value = void;
-    ubyte type = void;
+    ValueType type = void;
     if (!jit_block_stack_top(&cc.block_stack)) {
-        jit_set_last_error(cc, "WASM block stack underflow.");
+        cc.jit_set_last_error("WASM block stack underflow.");
         return false;
     }
     if (!jit_block_stack_top(&cc.block_stack).value_stack.value_list_end) {
-        jit_set_last_error(cc, "WASM data stack underflow.");
+        cc.jit_set_last_error("WASM data stack underflow.");
         return false;
     }
     jit_value = jit_value_stack_pop(
@@ -65,37 +71,37 @@ private bool pop_value_from_wasm_stack(JitCompContext* cc, bool is_32bit, JitReg
     if (p_type != null) {
         *p_type = jit_value.type;
     }
-    wasm_runtime_free(jit_value);
+    jit_free(jit_value);
     /* is_32: i32, f32, ref.func, ref.extern, v128 */
     if (is_32bit
         && !(type == ValueType.I32 || type == ValueType.F32
-|| ((WASM_ENABLE_REF_TYPES != 0)
+|| ((ver.WASM_ENABLE_REF_TYPES)
              && ( type == ValueType.FUNCREF || type == ValueType.EXTERNREF))
              || type == ValueType.V128)) {
-        jit_set_last_error(cc, "invalid WASM stack data type.");
+        cc.jit_set_last_error("invalid WASM stack data type.");
         return false;
     }
     /* !is_32: i64, f64 */
     if (!is_32bit && !(type == ValueType.I64 || type == ValueType.F64)) {
-        jit_set_last_error(cc, "invalid WASM stack data type.");
+        cc.jit_set_last_error("invalid WASM stack data type.");
         return false;
     }
     switch (type) {
         case ValueType.I32:
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
         case ValueType.FUNCREF:
         case ValueType.EXTERNREF:
 }
-            value = pop_i32(cc.jit_frame);
+            cc.pop_i32(value);
             break;
         case ValueType.I64:
-            value = pop_i64(cc.jit_frame);
+            cc.pop_i64(value);
             break;
         case ValueType.F32:
-            value = pop_f32(cc.jit_frame);
+            cc.pop_f32(value);
             break;
         case ValueType.F64:
-            value = pop_f64(cc.jit_frame);
+            cc.pop_f64(value);
             break;
         default:
             bh_assert(0);

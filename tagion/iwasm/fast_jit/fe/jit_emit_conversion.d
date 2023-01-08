@@ -75,8 +75,12 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import core.stdc.math : isinf, isnan;
 import tagion.iwasm.fast_jit.jit_context;
-import tagion.iwasm.fast_jit.jit_ir :  JitReg,
+import tagion.iwasm.fast_jit.jit_ir :  JitReg, JitRegKind, JitOpcode,
+jit_reg_kind,
+jit_insn_new_CMP,
+
 jit_insn_new_I32TOI8,
 jit_insn_new_I8TOI32,
 jit_insn_new_I8TOI64,
@@ -115,6 +119,8 @@ jit_insn_new_I32CASTF32,
 jit_insn_new_I64CASTF64;
 
 import tagion.iwasm.fast_jit.fe.jit_emit_function : jit_emit_callnative;
+import tagion.iwasm.fast_jit.fe.jit_emit_exception : jit_emit_exception;
+import tagion.iwasm.interpreter.wasm_runtime : EXCE_INTEGER_OVERFLOW, EXCE_INVALID_CONVERSION_TO_INTEGER;
 import tagion.iwasm.share.utils.bh_assert;
 //#include "jit_emit_conversion.h #include "jit_emit_exception.h"
 //#include "jit_emit_function.h"
@@ -143,65 +149,65 @@ private int local_isnanf(float x) {
     return isnan(x);
 }
 private int i32_trunc_f32_sat(float fp) {
-    if (local_isnanf(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? INT32_MIN : INT32_MAX; }
-    if (fp <= F32_I32_S_MIN) { return INT32_MIN; }
-    if (fp >= F32_I32_S_MAX) { return INT32_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? int.min : int.max; }
+    if (fp <= F32_I32_S_MIN) { return int.min; }
+    if (fp >= F32_I32_S_MAX) { return int.max; }
     return cast(int)fp;
 }
 private uint u32_trunc_f32_sat(float fp) {
-    if (local_isnanf(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? 0 : UINT32_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? 0 : uint.max; }
     if (fp <= F32_I32_U_MIN) { return 0; }
-    if (fp >= F32_I32_U_MAX) { return UINT32_MAX; }
+    if (fp >= F32_I32_U_MAX) { return uint.max; }
     return cast(uint)fp;
 }
 private int i32_trunc_f64_sat(double fp) {
-    if (local_isnan(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? INT32_MIN : INT32_MAX; }
-    if (fp <= F64_I32_S_MIN) { return INT32_MIN; }
-    if (fp >= F64_I32_S_MAX) { return INT32_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? int.min : int.max; }
+    if (fp <= F64_I32_S_MIN) { return int.min; }
+    if (fp >= F64_I32_S_MAX) { return int.max; }
     return cast(int)fp;
 }
 private uint u32_trunc_f64_sat(double fp) {
-    if (local_isnan(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? 0 : UINT32_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? 0 : uint.max; }
     if (fp <= F64_I32_U_MIN) { return 0; }
-    if (fp >= F64_I32_U_MAX) { return UINT32_MAX; }
+    if (fp >= F64_I32_U_MAX) { return uint.max; }
     return cast(uint)fp;
 }
 private long i64_trunc_f32_sat(float fp) {
-    if (local_isnanf(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? INT64_MIN : INT64_MAX; }
-    if (fp <= F32_I64_S_MIN) { return INT64_MIN; }
-    if (fp >= F32_I64_S_MAX) { return INT64_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? long.min : long.max; }
+    if (fp <= F32_I64_S_MIN) { return long.min; }
+    if (fp >= F32_I64_S_MAX) { return long.max; }
     return cast(long)fp;
 }
 private ulong u64_trunc_f32(float fp) {
     return cast(ulong)fp;
 }
 private ulong u64_trunc_f32_sat(float fp) {
-    if (local_isnanf(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? 0 : UINT64_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? 0 : ulong.max; }
     if (fp <= F32_I64_U_MIN) { return 0; }
-    if (fp >= F32_I64_U_MAX) { return UINT64_MAX; }
+    if (fp >= F32_I64_U_MAX) { return ulong.max; }
     return cast(ulong)fp;
 }
 private long i64_trunc_f64_sat(double fp) {
-    if (local_isnanf(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? INT64_MIN : INT64_MAX; }
-    if (fp <= F64_I64_S_MIN) { return INT64_MIN; }
-    if (fp >= F64_I64_S_MAX) { return INT64_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? long.min : long.max; }
+    if (fp <= F64_I64_S_MIN) { return long.min; }
+    if (fp >= F64_I64_S_MAX) { return long.max; }
     return cast(long)fp;
 }
 private ulong u64_trunc_f64(double fp) {
     return cast(ulong)fp;
 }
 private ulong u64_trunc_f64_sat(double fp) {
-    if (local_isnanf(fp)) { return 0; }
-    if (isinf(fp)) { return fp < 0 ? 0 : UINT64_MAX; }
+    if (fp.isnan) { return 0; }
+    if (isinf(fp)) { return fp < 0 ? 0 : ulong.max; }
     if (fp <= F64_I64_U_MIN) { return 0; }
-    if (fp >= F64_I64_U_MAX) { return UINT64_MAX; }
+    if (fp >= F64_I64_U_MAX) { return ulong.max; }
     return cast(ulong)fp;
 }
 private float f32_convert_u64(ulong i) {
@@ -224,25 +230,25 @@ private bool jit_compile_check_value_range(JitCompContext* cc, JitReg value, Jit
     JitReg nan_ret = cc.new_reg_I32;
     JitRegKind kind = jit_reg_kind(value);
     bool emit_ret = false;
-    bh_assert(JIT_REG_KIND_F32 == kind || JIT_REG_KIND_F64 == kind);
+    bh_assert(JitRegKind.F32 == kind || JitRegKind.F64 == kind);
     /* If value is NaN, throw exception */
-    if (JIT_REG_KIND_F32 == kind)
+    if (JitRegKind.F32 == kind)
         emit_ret = jit_emit_callnative(cc, &local_isnanf, nan_ret, &value, 1);
     else
         emit_ret = jit_emit_callnative(cc, &local_isnan, nan_ret, &value, 1);
     if (!emit_ret)
         goto fail;
     cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_CMP(cc.cmp_reg, nan_ret, cc.new_const_I32(1))));
-    if (!jit_emit_exception(cc, EXCE_INVALID_CONVERSION_TO_INTEGER, JIT_OP_BEQ,
+    if (!jit_emit_exception(cc, EXCE_INVALID_CONVERSION_TO_INTEGER, JitOpcode.JIT_OP_BEQ,
                             cc.cmp_reg, null))
         goto fail;
     /* If value is out of integer range, throw exception */
     cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_CMP(cc.cmp_reg, min_fp, value)));
-    if (!jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JIT_OP_BGES, cc.cmp_reg,
+    if (!jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JitOpcode.JIT_OP_BGES, cc.cmp_reg,
                             null))
         goto fail;
     cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_CMP(cc.cmp_reg, value, max_fp)));
-    if (!jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JIT_OP_BGES, cc.cmp_reg,
+    if (!jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JitOpcode.JIT_OP_BGES, cc.cmp_reg,
                             null))
         goto fail;
     return true;

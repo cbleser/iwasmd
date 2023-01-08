@@ -15,7 +15,7 @@ public import tagion.iwasm.share.utils.bh_assert;
 import tagion.iwasm.share.utils.bh_list;
 
 /** Value Type */
-enum ValueType {
+enum ValueType : ubyte {
     I32 = 0x7F,
     I64 = 0X7E,
     F32 = 0x7D,

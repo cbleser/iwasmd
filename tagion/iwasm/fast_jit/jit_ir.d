@@ -141,14 +141,13 @@ import core.stdc.stdio : snprintf, vsnprintf;
 import tagion.iwasm.interpreter.wasm_runtime : EXCE_NUM;
 import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.share.utils.bh_assert;
-import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction, 
-VALUE_TYPE_I32, VALUE_TYPE_I64, VALUE_TYPE_F32, VALUE_TYPE_F64;
+import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction,  ValueType;
 import tagion.iwasm.fast_jit.insn_opnd;
 import tagion.iwasm.fast_jit.jit_frontend;
 import tagion.iwasm.fast_jit.jit_context;
 import tagion.iwasm.fast_jit.jit_frame : JitValueSlot;
 import tagion.iwasm.fast_jit.jit_codegen : jit_codegen_get_hreg_info;
-enum JitRegKind {
+enum JitRegKind : ubyte {
     VOID = 0x00, /* void type */
     I32 = 0x01, /* 32-bit signed or unsigned integer */
     I64 = 0x02, /* 64-bit signed or unsigned integer */
@@ -196,8 +195,8 @@ pragma(inline, true) JitReg jit_reg_new(uint reg_kind, uint reg_no) {
  *
  * @return the register kind of register r
  */
-pragma(inline, true) int jit_reg_kind(JitReg r) {
-    return (r & _JIT_REG_KIND_MASK) >> _JIT_REG_KIND_SHIFT;
+JitRegKind jit_reg_kind(JitReg r) {
+    return cast(JitRegKind)((r & _JIT_REG_KIND_MASK) >> _JIT_REG_KIND_SHIFT);
 }
 /**
  * Get the register no. of the given JIT IR register.
@@ -1646,8 +1645,8 @@ struct JitValue {
     JitValue* next;
     JitValue* prev;
     JitValueSlot* value;
-    /* VALUE_TYPE_I32/I64/F32/F64/VOID */
-    ubyte type;
+    /* ValueType.I32/I64/F32/F64/VOID */
+    ValueType type;
 }
 /**
  * Value stack, represents stack elements in a WASM block

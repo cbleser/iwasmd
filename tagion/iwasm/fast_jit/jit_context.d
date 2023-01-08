@@ -1,6 +1,7 @@
 module tagion.iwasm.fast_jit.jit_context;
 @nogc:
 nothrow:
+import core.stdc.stdio : snprintf, vsnprintf;
 import core.stdc.stdint : uintptr_t;
 import core.stdc.stdarg : va_list;
 import tagion.iwasm.fast_jit.jit_ir;
@@ -435,7 +436,7 @@ else {
  * 1) Reg: fixed-number register operands, @p OPND_NUM specifies the
  * number of operands;
  *
- * 2) VReg: variable-number register operands, @p OPND_NUM specifies
+ * 2) VReg: variable-number register operands, @p OPNutils specifies
  * the number of fixed register operands;
  *
  * 3) TableSwitch: tableswitch instruction's format, @p OPND_NUM must
