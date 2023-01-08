@@ -76,7 +76,46 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 import tagion.iwasm.fast_jit.jit_context;
-import tagion.iwasm.fast_jit.jit_ir :  JitReg;
+import tagion.iwasm.fast_jit.jit_ir :  JitReg,
+jit_insn_new_I32TOI8,
+jit_insn_new_I8TOI32,
+jit_insn_new_I8TOI64,
+
+jit_insn_new_I16TOI32,
+jit_insn_new_I16TOI64,
+
+jit_insn_new_I32TOI16,
+jit_insn_new_I32TOI64,
+jit_insn_new_I32TOF32,
+jit_insn_new_I32TOF64,
+
+jit_insn_new_U32TOI64,
+jit_insn_new_U32TOF32,
+jit_insn_new_U32TOF64,
+
+jit_insn_new_I64TOI8,
+jit_insn_new_I64TOI16,
+jit_insn_new_I64TOI32,
+jit_insn_new_I64TOF32,
+jit_insn_new_I64TOF64,
+
+jit_insn_new_F32TOI32,
+jit_insn_new_F32TOU32,
+jit_insn_new_F32TOI64,
+jit_insn_new_F32TOF64,
+
+jit_insn_new_F64TOI32,
+jit_insn_new_F64TOU32,
+jit_insn_new_F64TOI64,
+jit_insn_new_F64TOF32,
+
+jit_insn_new_F32CASTI32,
+jit_insn_new_F64CASTI64,
+jit_insn_new_I32CASTF32,
+jit_insn_new_I64CASTF64;
+
+import tagion.iwasm.fast_jit.fe.jit_emit_function : jit_emit_callnative;
+import tagion.iwasm.share.utils.bh_assert;
 //#include "jit_emit_conversion.h #include "jit_emit_exception.h"
 //#include "jit_emit_function.h"
 //#include "../jit_codegen.h"
@@ -173,16 +212,16 @@ private double f64_convert_u64(ulong i) {
 }
 bool jit_compile_op_i32_wrap_i64(JitCompContext* cc) {
     JitReg num = void, res = void;
-    POP_I64(num);
-    res = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64TOI32(res, num)));
-    PUSH_I32(res);
+    cc.pop_i64(num);
+    res = cc.new_reg_I32;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64TOI32(res, num)));
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 private bool jit_compile_check_value_range(JitCompContext* cc, JitReg value, JitReg min_fp, JitReg max_fp) {
-    JitReg nan_ret = jit_cc_new_reg_I32(cc);
+    JitReg nan_ret = cc.new_reg_I32;
     JitRegKind kind = jit_reg_kind(value);
     bool emit_ret = false;
     bh_assert(JIT_REG_KIND_F32 == kind || JIT_REG_KIND_F64 == kind);
@@ -193,16 +232,16 @@ private bool jit_compile_check_value_range(JitCompContext* cc, JitReg value, Jit
         emit_ret = jit_emit_callnative(cc, &local_isnan, nan_ret, &value, 1);
     if (!emit_ret)
         goto fail;
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, nan_ret, jit_cc_new_const_I32(cc, 1))));
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_CMP(cc.cmp_reg, nan_ret, cc.new_const_I32(1))));
     if (!jit_emit_exception(cc, EXCE_INVALID_CONVERSION_TO_INTEGER, JIT_OP_BEQ,
                             cc.cmp_reg, null))
         goto fail;
     /* If value is out of integer range, throw exception */
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, min_fp, value)));
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_CMP(cc.cmp_reg, min_fp, value)));
     if (!jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JIT_OP_BGES, cc.cmp_reg,
                             null))
         goto fail;
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, value, max_fp)));
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_CMP(cc.cmp_reg, value, max_fp)));
     if (!jit_emit_exception(cc, EXCE_INTEGER_OVERFLOW, JIT_OP_BGES, cc.cmp_reg,
                             null))
         goto fail;
@@ -212,91 +251,94 @@ fail:
 }
 bool jit_compile_op_i32_trunc_f32(JitCompContext* cc, bool sign, bool sat) {
     JitReg value = void, res = void;
-    POP_F32(value);
-    res = jit_cc_new_reg_I32(cc);
+    cc.pop_f32(value);
+    res = cc.new_reg_I32;
     if (!sat) {
-        JitReg min_fp = jit_cc_new_const_F32(cc, sign ? F32_I32_S_MIN : F32_I32_U_MIN);
-        JitReg max_fp = jit_cc_new_const_F32(cc, sign ? F32_I32_S_MAX : F32_I32_U_MAX);
+        JitReg min_fp = cc.new_const_F32(sign ? F32_I32_S_MIN : F32_I32_U_MIN);
+        JitReg max_fp = cc.new_const_F32(sign ? F32_I32_S_MAX : F32_I32_U_MAX);
         if (!jit_compile_check_value_range(cc, value, min_fp, max_fp))
             goto fail;
         if (sign)
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F32TOI32(res, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F32TOI32(res, value)));
         else
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F32TOU32(res, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F32TOU32(res, value)));
     }
     else {
-        if (!jit_emit_callnative(cc,
-                                 sign ? cast(void*)i32_trunc_f32_sat
-                                      : cast(void*)u32_trunc_f32_sat,
+		pragma(msg, typeof(&i32_trunc_f32_sat));
+		pragma(msg, typeof(&u32_trunc_f32_sat));
+
+        if (!jit_emit_callnative(cc, 
+                                 sign ? cast(void*)&i32_trunc_f32_sat
+                                      : cast(void*)&u32_trunc_f32_sat,
                                  res, &value, 1))
             goto fail;
     }
-    PUSH_I32(res);
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i32_trunc_f64(JitCompContext* cc, bool sign, bool sat) {
     JitReg value = void, res = void;
-    POP_F64(value);
-    res = jit_cc_new_reg_I32(cc);
+    cc.pop_f64(value);
+    res = cc.new_reg_I32;
     if (!sat) {
-        JitReg min_fp = jit_cc_new_const_F64(cc, sign ? F64_I32_S_MIN : F64_I32_U_MIN);
-        JitReg max_fp = jit_cc_new_const_F64(cc, sign ? F64_I32_S_MAX : F64_I32_U_MAX);
+        JitReg min_fp = cc.new_const_F64(sign ? F64_I32_S_MIN : F64_I32_U_MIN);
+        JitReg max_fp = cc.new_const_F64(sign ? F64_I32_S_MAX : F64_I32_U_MAX);
         if (!jit_compile_check_value_range(cc, value, min_fp, max_fp))
             goto fail;
         if (sign)
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F64TOI32(res, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F64TOI32(res, value)));
         else
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F64TOU32(res, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F64TOU32(res, value)));
     }
     else {
         if (!jit_emit_callnative(cc,
-                                 sign ? cast(void*)i32_trunc_f64_sat
-                                      : cast(void*)u32_trunc_f64_sat,
+                                 sign ? cast(void*)&i32_trunc_f64_sat
+                                      : cast(void*)&u32_trunc_f64_sat,
                                  res, &value, 1))
             goto fail;
     }
-    PUSH_I32(res);
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_extend_i32(JitCompContext* cc, bool sign) {
     JitReg num = void, res = void;
-    POP_I32(num);
-    res = jit_cc_new_reg_I64(cc);
+    cc.pop_i32(num);
+    res = cc.new_reg_I64;
     if (sign)
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32TOI64(res, num)));
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32TOI64(res, num)));
     else
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_U32TOI64(res, num)));
-    PUSH_I64(res);
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_U32TOI64(res, num)));
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_extend_i64(JitCompContext* cc, byte bitwidth) {
     JitReg value = void, tmp = void, res = void;
-    POP_I64(value);
-    tmp = jit_cc_new_reg_I32(cc);
-    res = jit_cc_new_reg_I64(cc);
+    cc.pop_i64(value);
+    tmp = cc.new_reg_I32;
+    res = cc.new_reg_I64;
     switch (bitwidth) {
         case 8:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64TOI8(tmp, value)));
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I8TOI64(res, tmp)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64TOI8(tmp, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I8TOI64(res, tmp)));
             break;
         }
         case 16:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64TOI16(tmp, value)));
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I16TOI64(res, tmp)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64TOI16(tmp, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I16TOI64(res, tmp)));
             break;
         }
         case 32:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64TOI32(tmp, value)));
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32TOI64(res, tmp)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64TOI32(tmp, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32TOI64(res, tmp)));
             break;
         }
         default:
@@ -305,27 +347,27 @@ bool jit_compile_op_i64_extend_i64(JitCompContext* cc, byte bitwidth) {
             goto fail;
         }
     }
-    PUSH_I64(res);
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i32_extend_i32(JitCompContext* cc, byte bitwidth) {
     JitReg value = void, tmp = void, res = void;
-    POP_I32(value);
-    tmp = jit_cc_new_reg_I32(cc);
-    res = jit_cc_new_reg_I32(cc);
+    cc.pop_i32(value);
+    tmp = cc.new_reg_I32;
+    res = cc.new_reg_I32;
     switch (bitwidth) {
         case 8:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32TOI8(tmp, value)));
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I8TOI32(res, tmp)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32TOI8(tmp, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I8TOI32(res, tmp)));
             break;
         }
         case 16:
         {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32TOI16(tmp, value)));
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I16TOI32(res, tmp)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32TOI16(tmp, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I16TOI32(res, tmp)));
             break;
         }
         default:
@@ -334,22 +376,22 @@ bool jit_compile_op_i32_extend_i32(JitCompContext* cc, byte bitwidth) {
             goto fail;
         }
     }
-    PUSH_I32(res);
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_trunc_f32(JitCompContext* cc, bool sign, bool sat) {
     JitReg value = void, res = void;
-    POP_F32(value);
-    res = jit_cc_new_reg_I64(cc);
+    cc.pop_f32(value);
+    res = cc.new_reg_I64;
     if (!sat) {
-        JitReg min_fp = jit_cc_new_const_F32(cc, sign ? F32_I64_S_MIN : F32_I64_U_MIN);
-        JitReg max_fp = jit_cc_new_const_F32(cc, sign ? F32_I64_S_MAX : F32_I64_U_MAX);
+        JitReg min_fp = cc.new_const_F32(sign ? F32_I64_S_MIN : F32_I64_U_MIN);
+        JitReg max_fp = cc.new_const_F32(sign ? F32_I64_S_MAX : F32_I64_U_MAX);
         if (!jit_compile_check_value_range(cc, value, min_fp, max_fp))
             goto fail;
         if (sign) {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F32TOI64(res, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F32TOI64(res, value)));
         }
         else {
             if (!jit_emit_callnative(cc, &u64_trunc_f32, res, &value, 1))
@@ -358,27 +400,27 @@ bool jit_compile_op_i64_trunc_f32(JitCompContext* cc, bool sign, bool sat) {
     }
     else {
         if (!jit_emit_callnative(cc,
-                                 sign ? cast(void*)i64_trunc_f32_sat
-                                      : cast(void*)u64_trunc_f32_sat,
+                                 sign ? cast(void*)&i64_trunc_f32_sat
+                                      : cast(void*)&u64_trunc_f32_sat,
                                  res, &value, 1))
             goto fail;
     }
-    PUSH_I64(res);
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_trunc_f64(JitCompContext* cc, bool sign, bool sat) {
     JitReg value = void, res = void;
-    POP_F64(value);
-    res = jit_cc_new_reg_I64(cc);
+    cc.pop_f64(value);
+    res = cc.new_reg_I64;
     if (!sat) {
-        JitReg min_fp = jit_cc_new_const_F64(cc, sign ? F64_I64_S_MIN : F64_I64_U_MIN);
-        JitReg max_fp = jit_cc_new_const_F64(cc, sign ? F64_I64_S_MAX : F64_I64_U_MAX);
+        JitReg min_fp = cc.new_const_F64(sign ? F64_I64_S_MIN : F64_I64_U_MIN);
+        JitReg max_fp = cc.new_const_F64(sign ? F64_I64_S_MAX : F64_I64_U_MAX);
         if (!jit_compile_check_value_range(cc, value, min_fp, max_fp))
             goto fail;
         if (sign) {
-            _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F64TOI64(res, value)));
+            cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F64TOI64(res, value)));
         }
         else {
             if (!jit_emit_callnative(cc, &u64_trunc_f64, res, &value, 1))
@@ -387,134 +429,134 @@ bool jit_compile_op_i64_trunc_f64(JitCompContext* cc, bool sign, bool sat) {
     }
     else {
         if (!jit_emit_callnative(cc,
-                                 sign ? cast(void*)i64_trunc_f64_sat
-                                      : cast(void*)u64_trunc_f64_sat,
+                                 sign ? cast(void*)&i64_trunc_f64_sat
+                                      : cast(void*)&u64_trunc_f64_sat,
                                  res, &value, 1))
             goto fail;
     }
-    PUSH_I64(res);
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f32_convert_i32(JitCompContext* cc, bool sign) {
     JitReg value = void, res = void;
-    POP_I32(value);
-    res = jit_cc_new_reg_F32(cc);
+    cc.pop_i32(value);
+    res = cc.new_reg_F32;
     if (sign) {
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32TOF32(res, value)));
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32TOF32(res, value)));
     }
     else {
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_U32TOF32(res, value)));
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_U32TOF32(res, value)));
     }
-    PUSH_F32(res);
+    cc.push_f32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f32_convert_i64(JitCompContext* cc, bool sign) {
     JitReg value = void, res = void;
-    POP_I64(value);
-    res = jit_cc_new_reg_F32(cc);
+    cc.pop_i64(value);
+    res = cc.new_reg_F32;
     if (sign) {
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64TOF32(res, value)));
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64TOF32(res, value)));
     }
     else {
         if (!jit_emit_callnative(cc, &f32_convert_u64, res, &value, 1)) {
             goto fail;
         }
     }
-    PUSH_F32(res);
+    cc.push_f32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f32_demote_f64(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_F64(value);
-    res = jit_cc_new_reg_F32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F64TOF32(res, value)));
-    PUSH_F32(res);
+    cc.pop_f64(value);
+    res = cc.new_reg_F32;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F64TOF32(res, value)));
+    cc.push_f32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f64_convert_i32(JitCompContext* cc, bool sign) {
     JitReg value = void, res = void;
-    POP_I32(value);
-    res = jit_cc_new_reg_F64(cc);
+    cc.pop_i32(value);
+    res = cc.new_reg_F64;
     if (sign)
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32TOF64(res, value)));
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32TOF64(res, value)));
     else
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_U32TOF64(res, value)));
-    PUSH_F64(res);
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_U32TOF64(res, value)));
+    cc.push_f64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f64_convert_i64(JitCompContext* cc, bool sign) {
     JitReg value = void, res = void;
-    POP_I64(value);
-    res = jit_cc_new_reg_F64(cc);
+    cc.pop_i64(value);
+    res = cc.new_reg_F64;
     if (sign) {
-        _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64TOF64(res, value)));
+        cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64TOF64(res, value)));
     }
     else {
         if (!jit_emit_callnative(cc, &f64_convert_u64, res, &value, 1)) {
             goto fail;
         }
     }
-    PUSH_F64(res);
+    cc.push_f64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f64_promote_f32(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_F32(value);
-    res = jit_cc_new_reg_F64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F32TOF64(res, value)));
-    PUSH_F64(res);
+    cc.pop_f32(value);
+    res = cc.new_reg_F64;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F32TOF64(res, value)));
+    cc.push_f64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i64_reinterpret_f64(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_F64(value);
-    res = jit_cc_new_reg_I64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F64CASTI64(res, value)));
-    PUSH_I64(res);
+    cc.pop_f64(value);
+    res = cc.new_reg_I64;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F64CASTI64(res, value)));
+    cc.push_i64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_i32_reinterpret_f32(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_F32(value);
-    res = jit_cc_new_reg_I32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_F32CASTI32(res, value)));
-    PUSH_I32(res);
+    cc.pop_f32(value);
+    res = cc.new_reg_I32;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_F32CASTI32(res, value)));
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f64_reinterpret_i64(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I64(value);
-    res = jit_cc_new_reg_F64(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I64CASTF64(res, value)));
-    PUSH_F64(res);
+    cc.pop_i64(value);
+    res = cc.new_reg_F64;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I64CASTF64(res, value)));
+    cc.push_f64(res);
     return true;
 fail:
     return false;
 }
 bool jit_compile_op_f32_reinterpret_i32(JitCompContext* cc) {
     JitReg value = void, res = void;
-    POP_I32(value);
-    res = jit_cc_new_reg_F32(cc);
-    _gen_insn(cc, _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_I32CASTF32(res, value)));
-    PUSH_F32(res);
+    cc.pop_i32(value);
+    res = cc.new_reg_F32;
+    cc._gen_insn(cc._set_insn_uid_for_new_insn(jit_insn_new_I32CASTF32(res, value)));
+    cc.push_f32(res);
     return true;
 fail:
     return false;
