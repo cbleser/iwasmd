@@ -1,7 +1,5 @@
 module tagion.iwasm.interpreter.wasm_runtime;
 @nogc nothrow:
-extern (C):
-__gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -62,7 +60,7 @@ import tagion.iwasm.share.utils.bh_vector;
 /*  Used by loader to represent any type of i32/i64/f32/f64 */
 /* = WASM_OP_REF_FUNC */
 /* = WASM_OP_REF_NULL */
-
+import std.algorithm.iteration : map, sum;
 union V128 {
     byte[16] i8x16;
     short[8] i16x8;
@@ -245,14 +243,14 @@ struct WASMModule {
  *
  * @return the aligned value
  */
-pragma(inline, true) private uint align_uint(uint v, uint b) {
+ uint align_uint(uint v, uint b) {
     uint m = b - 1;
     return (v + m) & ~m;
 }
 /**
  * Return the hash value of c string.
  */
-pragma(inline, true) private uint wasm_string_hash(const(char)* str) {
+ uint wasm_string_hash(const(char)* str) {
     uint h = cast(uint) strlen(str);
     const(ubyte)* p = cast(ubyte*) str;
     const(ubyte)* end = p + h;
@@ -263,14 +261,14 @@ pragma(inline, true) private uint wasm_string_hash(const(char)* str) {
 /**
  * Whether two c strings are equal.
  */
-pragma(inline, true) private bool wasm_string_equal(const(char)* s1, const(char)* s2) {
+ bool wasm_string_equal(const(char)* s1, const(char)* s2) {
     return strcmp(s1, s2) == 0 ? true : false;
 }
 /**
  * Return the byte size of value type.
  *
  */
-pragma(inline, true) private uint wasm_value_type_size(ubyte value_type) {
+ uint wasm_value_type_size(ubyte value_type) {
     switch (value_type) {
     case 0x7F:
     case 0x7D:
@@ -286,19 +284,14 @@ pragma(inline, true) private uint wasm_value_type_size(ubyte value_type) {
     return 0;
 }
 
-pragma(inline, true) private ushort wasm_value_type_cell_num(ubyte value_type) {
+ ushort wasm_value_type_cell_num(ubyte value_type) {
     return wasm_value_type_size(value_type) / 4;
 }
 
-pragma(inline, true) private uint wasm_get_cell_num(const(ubyte)* types, uint type_count) {
-    uint cell_num = 0;
-    uint i = void;
-    for (i = 0; i < type_count; i++)
-        cell_num += wasm_value_type_cell_num(types[i]);
-    return cell_num;
-}
 
-pragma(inline, true) private bool wasm_type_equal(const(WASMType)* type1, const(WASMType)* type2) {
+	
+
+ bool wasm_type_equal(const(WASMType)* type1, const(WASMType)* type2) {
     if (type1 == type2) {
         return true;
     }
@@ -310,17 +303,7 @@ pragma(inline, true) private bool wasm_type_equal(const(WASMType)* type1, const(
         ? true : false;
 }
 
-pragma(inline, true) private uint wasm_get_smallest_type_idx(WASMType** types, uint type_count, uint cur_type_idx) {
-    uint i = void;
-    for (i = 0; i < cur_type_idx; i++) {
-        if (wasm_type_equal(types[cur_type_idx], types[i]))
-        return i;
-    }
-    cast(void) type_count;
-    return cur_type_idx;
-}
-
-pragma(inline, true) private uint block_type_get_param_types(BlockType* block_type, ubyte** p_param_types) {
+ uint block_type_get_param_types(BlockType* block_type, ubyte** p_param_types) {
     uint param_count = 0;
     if (!block_type.is_value_type) {
         WASMType* wasm_type = block_type.u.type;
@@ -334,7 +317,7 @@ pragma(inline, true) private uint block_type_get_param_types(BlockType* block_ty
     return param_count;
 }
 
-pragma(inline, true) private uint block_type_get_result_types(BlockType* block_type, ubyte** p_result_types) {
+ uint block_type_get_result_types(BlockType* block_type, ubyte** p_result_types) {
     uint result_count = 0;
     if (block_type.is_value_type) {
         if (block_type.u.value_type != 0x40) {
@@ -640,7 +623,7 @@ alias WASMRuntimeFrame = WASMInterpFrame;
  *
  * @return the code block of the function
  */
-pragma(inline, true) private ubyte* wasm_get_func_code(WASMFunctionInstance* func) {
+ ubyte* wasm_get_func_code(WASMFunctionInstance* func) {
     return func.is_import_func ? null : func.u.func.code;
 }
 /**
@@ -650,7 +633,7 @@ pragma(inline, true) private ubyte* wasm_get_func_code(WASMFunctionInstance* fun
  *
  * @return the code block end of the function
  */
-pragma(inline, true) private ubyte* wasm_get_func_code_end(WASMFunctionInstance* func) {
+ ubyte* wasm_get_func_code_end(WASMFunctionInstance* func) {
     return func.is_import_func ? null : func.u.func.code + func.u.func.code_size;
 }
 
@@ -680,7 +663,7 @@ bool wasm_enlarge_memory(WASMModuleInstance* module_inst, uint inc_page_count);
 bool wasm_call_indirect(WASMExecEnv* exec_env, uint tbl_idx, uint elem_idx, uint argc, uint* argv);
 void wasm_get_module_mem_consumption(const(WASMModule)* module_, WASMModuleMemConsumption* mem_conspn);
 void wasm_get_module_inst_mem_consumption(const(WASMModuleInstance)* module_, WASMModuleInstMemConsumption* mem_conspn);
-pragma(inline, true) private WASMTableInstance* wasm_get_table_inst(const(WASMModuleInstance)* module_inst, uint tbl_idx) {
+ WASMTableInstance* wasm_get_table_inst(const(WASMModuleInstance)* module_inst, uint tbl_idx) {
     /* careful, it might be a table in another module */
     WASMTableInstance* tbl_inst = module_inst.tables[tbl_idx];
     bh_assert(tbl_inst);

@@ -56,11 +56,11 @@ private bool emit_callnative(JitCompContext* cc, JitReg native_func_reg, JitReg 
 /* Prepare parameters for the function to call */
 private bool pre_call(JitCompContext* cc, const(WASMType)* func_type) {
     JitReg value = void;
-    uint i = void, outs_off = void;
+    uint i = void;
     /* Prepare parameters for the function to call */
-    outs_off =
+    uint outs_off = cast(uint)(
         cc.total_frame_size + WASMInterpFrame.lp.offsetof
-        + wasm_get_cell_num(func_type.types, func_type.param_count) * 4;
+        + wasm_get_cell_num(func_type.types.ptr, func_type.param_count) * 4);
     for (i = 0; i < func_type.param_count; i++) {
         switch (func_type.types[func_type.param_count - 1 - i]) {
             case VALUE_TYPE_I32:
@@ -68,22 +68,22 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
-                POP_I32(value);
+                cc.pop_i32(value);
                 outs_off -= 4;
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, cc.fp_reg, cc.new_const_I32( outs_off))));
                 break;
             case VALUE_TYPE_I64:
-                POP_I64(value);
+                cc.pop_i64(value);
                 outs_off -= 8;
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, cc.fp_reg, cc.new_const_I32( outs_off))));
                 break;
             case VALUE_TYPE_F32:
-                POP_F32(value);
+                cc.pop_f32(value);
                 outs_off -= 4;
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, cc.fp_reg, cc.new_const_I32( outs_off))));
                 break;
             case VALUE_TYPE_F64:
-                POP_F64(value);
+                cc.pop_f64(value);
                 outs_off -= 8;
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, cc.fp_reg, cc.new_const_I32( outs_off))));
                 break;
@@ -93,7 +93,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
         }
     }
     /* Commit sp as the callee may use it to store the results */
-    gen_commit_sp_ip(cc.jit_frame);
+    cc.jit_frame.gen_commit_sp_ip;
     return true;
 fail:
     return false;
@@ -102,7 +102,7 @@ fail:
 private bool post_return(JitCompContext* cc, const(WASMType)* func_type, JitReg first_res, bool update_committed_sp) {
     uint i = void, n = void;
     JitReg value = void;
-    n = cc.jit_frame.sp - cc.jit_frame.lp;
+    n = cc.jit_frame.local_offset; 
     for (i = 0; i < func_type.result_count; i++) {
         switch (func_type.types[func_type.param_count + i]) {
             case VALUE_TYPE_I32:
@@ -118,7 +118,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
                     value = cc.new_reg_I32;
                     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(value, cc.fp_reg, cc.new_const_I32( offset_of_local(n)))));
                 }
-                PUSH_I32(value);
+                cc.push_i32(value);
                 n++;
                 break;
             case VALUE_TYPE_I64:
@@ -130,7 +130,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
                     value = cc.new_reg_I64;
                     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI64(value, cc.fp_reg, cc.new_const_I32( offset_of_local(n)))));
                 }
-                PUSH_I64(value);
+                cc.push_i64(value);
                 n += 2;
                 break;
             case VALUE_TYPE_F32:
@@ -154,7 +154,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
                     value = cc.new_reg_F64;
                     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDF64(value, cc.fp_reg, cc.new_const_I32( offset_of_local(n)))));
                 }
-                PUSH_F64(value);
+                cc.push_f64(value);
                 n += 2;
                 break;
             default:
@@ -180,19 +180,19 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
             case VALUE_TYPE_EXTERNREF:
             case VALUE_TYPE_FUNCREF:
 }
-                POP_I32(value);
+                cc.pop_i32(value);
                 argvs[func_type.param_count - 1 - i] = value;
                 break;
             case VALUE_TYPE_I64:
-                POP_I64(value);
+                cc.pop_i64(value);
                 argvs[func_type.param_count - 1 - i] = value;
                 break;
             case VALUE_TYPE_F32:
-                POP_F32(value);
+                cc.pop_f32(value);
                 argvs[func_type.param_count - 1 - i] = value;
                 break;
             case VALUE_TYPE_F64:
-                POP_F64(value);
+                cc.pop_f64(value);
                 argvs[func_type.param_count - 1 - i] = value;
                 break;
             default:
@@ -200,7 +200,7 @@ static if (ver.WASM_ENABLE_REF_TYPES) {
                 goto fail;
         }
     }
-    gen_commit_sp_ip(cc.jit_frame);
+    cc.jit_frame.gen_commit_sp_ip;
     return true;
 fail:
     return false;
@@ -413,7 +413,7 @@ private JitReg pack_argv(JitCompContext* cc) {
     /* reuse the stack of the next frame */
     uint stack_base = void;
     JitReg argv = void;
-    stack_base = cc.total_frame_size + WASMInterpFrame.lp.offsetof;
+    stack_base = cast(uint)(cc.total_frame_size + WASMInterpFrame.lp.offsetof);
     argv = cc.new_reg_ptr;
     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(argv, cc.fp_reg, cc.new_const_PTR( stack_base))));
     if (jit_get_last_error(cc)) {
@@ -677,7 +677,7 @@ fail:
 }
 static if (ver.WASM_ENABLE_REF_TYPES) {
 bool jit_compile_op_ref_null(JitCompContext* cc, uint ref_type) {
-    PUSH_I32(cc.new_const_I32( NULL_REF));
+    cc.push_i32(cc.new_const_I32( NULL_REF));
     cast(void)ref_type;
     return true;
 fail:
@@ -685,20 +685,17 @@ fail:
 }
 bool jit_compile_op_ref_is_null(JitCompContext* cc) {
     JitReg ref_ = void, res = void;
-    POP_I32(ref_);
+    cc.pop_i32(ref_);
     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, ref_, cc.new_const_I32( NULL_REF))));
     res = cc.new_reg_I32;
     cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_SELECTEQ(res, cc.cmp_reg, cc.new_const_I32( 1), jit_cc_new_const_I32(cc, 0))));
-    PUSH_I32(res);
+    cc.push_i32(res);
     return true;
 fail:
     return false;
 }
-bool jit_compile_op_ref_func(JitCompContext* cc, uint func_idx) {
-    PUSH_I32(cc.new_const_I32( func_idx));
-    return true;
-fail:
-    return false;
+void jit_compile_op_ref_func(JitCompContext* cc, uint func_idx) {
+    cc.push_i32(cc.new_const_I32( func_idx));
 }
 }
 static if (ver.BUILD_TARGET_X86_64 || ver.BUILD_TARGET_AMD_64) {

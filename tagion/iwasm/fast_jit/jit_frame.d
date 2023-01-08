@@ -1,13 +1,22 @@
 module tagion.iwasm.fast_jit.jit_frame;
 @nogc nothrow:
-import tagion.iwasm.interpreter.wasm_runtime : WASMModuleInstance, WASMMemoryInstance;
+import core.stdc.string : memset;
+import tagion.iwasm.interpreter.wasm_runtime : WASMModuleInstance, WASMMemoryInstance, WASMTableInstance;
 import tagion.iwasm.fast_jit.jit_ir : JitReg, JitMemRegs, JitTableRegs,
-jit_insn_new_LDPTR,
-_jit_cc_set_insn_uid_for_new_insn;
+    jit_insn_new_LDPTR,
+    jit_insn_new_ADD,
+    jit_insn_new_STPTR,
+    jit_insn_new_LDI32,
+    jit_insn_new_ADD,
+
+    _jit_cc_set_insn_uid_for_new_insn;
 import tagion.iwasm.fast_jit.jit_context;
+import tagion.iwasm.fast_jit.jit_frontend : offset_of_local, jit_frontend_get_table_inst_offset;
 import tagion.iwasm.common.wasm_exec_env : WASMExecEnv;
-import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction; 
+import tagion.iwasm.interpreter.wasm : WASMModule, WASMFunction;
+import tagion.iwasm.interpreter.wasm_interp : WASMInterpFrame;
 import tagion.iwasm.share.utils.bh_assert;
+
 /* Frame information for translation */
 struct JitFrame {
 @nogc nothrow:
@@ -51,61 +60,60 @@ struct JitFrame {
     JitTableRegs* table_regs;
     /* Local variables */
     JitValueSlot* lp;
-	ptrdiff_t local_offset() const pure {
-	return sp-lp;
-}
+    uint local_offset() const pure {
+        const offset = sp - lp;
+        assert(offset >= 0);
+        return cast(uint)offset;
+    }
+
     JitReg module_inst_reg() {
         if (!_module_inst_reg) {
             _module_inst_reg = cc.module_inst_reg;
-            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, 
-		jit_insn_new_LDPTR(_module_inst_reg, cc.exec_env_reg, 
-		cc.new_const_I32(WASMExecEnv.module_inst.offsetof))));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
+                    jit_insn_new_LDPTR(_module_inst_reg, cc.exec_env_reg,
+                    cc.new_const_I32(WASMExecEnv.module_inst.offsetof))));
         }
         return _module_inst_reg;
     }
 
     JitReg module_reg() {
-        //JitReg module_inst_reg = module_inst_reg(frame);
         if (!_module_reg) {
             _module_reg = cc._module_reg;
-            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, 
-		jit_insn_new_LDPTR(module_reg,
- module_inst_reg, 
-		cc.new_const_I32(WASMModuleInstance.module_.offsetof))));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
+                    jit_insn_new_LDPTR(module_reg,
+                    module_inst_reg,
+                    cc.new_const_I32(WASMModuleInstance.module_.offsetof))));
         }
         return _module_reg;
     }
 
     JitReg import_func_ptrs_reg() {
-        //JitReg module_inst_reg = module_inst_reg();
         if (!_import_func_ptrs_reg) {
             _import_func_ptrs_reg = cc.import_func_ptrs_reg;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDPTR(import_func_ptrs_reg, module_inst_reg, 
-		cc.new_const_I32(WASMModuleInstance.import_func_ptrs.offsetof))));
+                    jit_insn_new_LDPTR(import_func_ptrs_reg, module_inst_reg,
+                    cc.new_const_I32(WASMModuleInstance.import_func_ptrs.offsetof))));
         }
         return _import_func_ptrs_reg;
     }
 
     JitReg fast_jit_func_ptrs_reg() {
-        //JitReg module_inst_reg = module_inst_reg(frame);
         if (!_fast_jit_func_ptrs_reg) {
             _fast_jit_func_ptrs_reg = cc.fast_jit_func_ptrs_reg;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDPTR(fast_jit_func_ptrs_reg, module_inst_reg, 
-		cc.new_const_I32(WASMModuleInstance.fast_jit_func_ptrs.offsetof))));
+                    jit_insn_new_LDPTR(fast_jit_func_ptrs_reg, module_inst_reg,
+                    cc.new_const_I32(WASMModuleInstance.fast_jit_func_ptrs.offsetof))));
         }
         return _fast_jit_func_ptrs_reg;
     }
 
     JitReg func_type_indexes_reg() {
-        //JitReg module_inst_reg = module_inst_reg(frame);
         if (!_func_type_indexes_reg) {
             _func_type_indexes_reg = cc.func_type_indexes_reg;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDPTR(func_type_indexes_reg,
- module_inst_reg, 
-		cc.new_const_I32(WASMModuleInstance.func_type_indexes.offsetof))));
+                    jit_insn_new_LDPTR(func_type_indexes_reg,
+                    module_inst_reg,
+                    cc.new_const_I32(WASMModuleInstance.func_type_indexes.offsetof))));
         }
         return _func_type_indexes_reg;
     }
@@ -114,9 +122,9 @@ struct JitFrame {
         if (!_aux_stack_bound_reg) {
             _aux_stack_bound_reg = cc.aux_stack_bound_reg;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(aux_stack_bound_reg,
- cc.exec_env_reg, 
-		cc.new_const_I32(WASMExecEnv.aux_stack_boundary.boundary.offsetof))));
+                    jit_insn_new_LDI32(aux_stack_bound_reg,
+                    cc.exec_env_reg,
+                    cc.new_const_I32(WASMExecEnv.aux_stack_boundary.boundary.offsetof))));
         }
         return _aux_stack_bound_reg;
     }
@@ -125,9 +133,9 @@ struct JitFrame {
         if (!_aux_stack_bottom_reg) {
             _aux_stack_bottom_reg = cc.aux_stack_bottom_reg;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(aux_stack_bottom_reg,
- cc.exec_env_reg, 
-		cc.new_const_I32(WASMExecEnv.aux_stack_bottom.bottom.offsetof))));
+                    jit_insn_new_LDI32(aux_stack_bottom_reg,
+                    cc.exec_env_reg,
+                    cc.new_const_I32(WASMExecEnv.aux_stack_bottom.bottom.offsetof))));
         }
         return _aux_stack_bottom_reg;
     }
@@ -142,16 +150,15 @@ struct JitFrame {
             memory_regs[mem_idx].memory_data =
                 cc.memory_regs[mem_idx].memory_data;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDPTR(memory_regs[mem_idx].memory_data, 
-		module_inst_reg, 
-		cc.new_const_I32(memory_data_offset))));
+                    jit_insn_new_LDPTR(memory_regs[mem_idx].memory_data,
+            module_inst_reg,
+            cc.new_const_I32(memory_data_offset))));
         }
         return memory_regs[mem_idx].memory_data;
     }
 
     JitReg memory_data_end_reg(uint mem_idx) {
         JitCompContext* cc = cc;
-        JitReg module_inst_reg = module_inst_reg(frame);
         uint memory_data_end_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
             + cast(
                     uint) WASMMemoryInstance.memory_data_end.offsetof;
@@ -160,15 +167,14 @@ struct JitFrame {
             memory_regs[mem_idx].memory_data_end =
                 cc.memory_regs[mem_idx].memory_data_end;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDPTR(memory_regs[mem_idx].memory_data_end, 
-		module_inst_reg, 
-		cc.new_const_I32(memory_data_end_offset))));
+                    jit_insn_new_LDPTR(memory_regs[mem_idx].memory_data_end,
+            module_inst_reg,
+            cc.new_const_I32(memory_data_end_offset))));
         }
         return memory_regs[mem_idx].memory_data_end;
     }
 
     JitReg mem_bound_check_1byte_reg(uint mem_idx) {
-        JitReg module_inst_reg = module_inst_reg(frame);
         uint mem_bound_check_1byte_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
             + cast(
                     uint) WASMMemoryInstance.mem_bound_check_1byte.offsetof;
@@ -178,22 +184,21 @@ struct JitFrame {
                 cc.memory_regs[mem_idx].mem_bound_check_1byte;
             static if (UINTPTR_MAX == ulong.max) {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_1byte, 
-			module_inst_reg, 
-			cc.new_const_I32(mem_bound_check_1byte_offset))));
+                        jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_1byte,
+                module_inst_reg,
+                cc.new_const_I32(mem_bound_check_1byte_offset))));
             }
             else {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_1byte,
- module_inst_reg,
- cc.new_const_I32(mem_bound_check_1byte_offset))));
+                        jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_1byte,
+                module_inst_reg,
+                cc.new_const_I32(mem_bound_check_1byte_offset))));
             }
         }
         return memory_regs[mem_idx].mem_bound_check_1byte;
     }
 
     JitReg mem_bound_check_2bytes_reg(uint mem_idx) {
-        JitReg module_inst_reg = module_inst_reg(frame);
         uint mem_bound_check_2bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
             + cast(
                     uint) WASMMemoryInstance.mem_bound_check_2bytes.offsetof;
@@ -203,20 +208,19 @@ struct JitFrame {
                 cc.memory_regs[mem_idx].mem_bound_check_2bytes;
             static if (UINTPTR_MAX == ulong.max) {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_2bytes,
- module_inst_reg, cc.new_const_I32(mem_bound_check_2bytes_offset))));
+                        jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_2bytes,
+                module_inst_reg, cc.new_const_I32(mem_bound_check_2bytes_offset))));
             }
             else {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_2bytes,
- module_inst_reg, cc.new_const_I32(mem_bound_check_2bytes_offset))));
+                        jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_2bytes,
+                module_inst_reg, cc.new_const_I32(mem_bound_check_2bytes_offset))));
             }
         }
         return memory_regs[mem_idx].mem_bound_check_2bytes;
     }
 
     JitReg mem_bound_check_4bytes_reg(uint mem_idx) {
-        JitReg module_inst_reg = module_inst_reg(frame);
         uint mem_bound_check_4bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
             + cast(
                     uint) WASMMemoryInstance.mem_bound_check_4bytes.offsetof;
@@ -226,21 +230,20 @@ struct JitFrame {
                 cc.memory_regs[mem_idx].mem_bound_check_4bytes;
             static if (UINTPTR_MAX == ulong.max) {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_4bytes,
- module_inst_reg, cc.new_const_I32(mem_bound_check_4bytes_offset))));
+                        jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_4bytes,
+                module_inst_reg, cc.new_const_I32(mem_bound_check_4bytes_offset))));
             }
             else {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_4bytes,
- module_inst_reg,
- cc.new_const_I32(mem_bound_check_4bytes_offset))));
+                        jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_4bytes,
+                module_inst_reg,
+                cc.new_const_I32(mem_bound_check_4bytes_offset))));
             }
         }
         return memory_regs[mem_idx].mem_bound_check_4bytes;
     }
 
     JitReg mem_bound_check_8bytes_reg(uint mem_idx) {
-        JitReg module_inst_reg = module_inst_reg(frame);
         uint mem_bound_check_8bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
             + cast(
                     uint) WASMMemoryInstance.mem_bound_check_8bytes.offsetof;
@@ -250,38 +253,38 @@ struct JitFrame {
                 cc.memory_regs[mem_idx].mem_bound_check_8bytes;
             static if (UINTPTR_MAX == ulong.max) {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_8bytes,
- module_inst_reg,
- cc.new_const_I32(mem_bound_check_8bytes_offset))));
+                        jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_8bytes,
+                module_inst_reg,
+                cc.new_const_I32(mem_bound_check_8bytes_offset))));
             }
             else {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_8bytes,
- module_inst_reg,
- cc.new_const_I32(mem_bound_check_8bytes_offset))));
+                        jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_8bytes,
+                module_inst_reg,
+                cc.new_const_I32(mem_bound_check_8bytes_offset))));
             }
         }
         return memory_regs[mem_idx].mem_bound_check_8bytes;
     }
 
     JitReg mem_bound_check_16bytes_reg(uint mem_idx) {
-        JitReg module_inst_reg = module_inst_reg(frame);
         uint mem_bound_check_16bytes_offset = cast(uint) WASMModuleInstance.global_table_data.bytes.offsetof
-            + cast(uint) WASMMemoryInstance.mem_bound_check_16bytes.offsetof;
+            + cast(
+                    uint) WASMMemoryInstance.mem_bound_check_16bytes.offsetof;
         bh_assert(mem_idx == 0);
         if (!memory_regs[mem_idx].mem_bound_check_16bytes) {
             memory_regs[mem_idx].mem_bound_check_16bytes =
                 cc.memory_regs[mem_idx].mem_bound_check_16bytes;
             static if (UINTPTR_MAX == ulong.max) {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_16bytes,
- module_inst_reg,
-			cc.new_const_I32(mem_bound_check_16bytes_offset))));
+                        jit_insn_new_LDI64(memory_regs[mem_idx].mem_bound_check_16bytes,
+                module_inst_reg,
+                cc.new_const_I32(mem_bound_check_16bytes_offset))));
             }
             else {
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
-			jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_16bytes, 
-			module_inst_reg, cc.new_const_I32(mem_bound_check_16bytes_offset))));
+                        jit_insn_new_LDI32(memory_regs[mem_idx].mem_bound_check_16bytes,
+                module_inst_reg, cc.new_const_I32(mem_bound_check_16bytes_offset))));
             }
         }
         return memory_regs[mem_idx].mem_bound_check_16bytes;
@@ -289,30 +292,28 @@ struct JitFrame {
 
     JitReg table_elems_reg(uint tbl_idx) {
         JitCompContext* cc = cc;
-        JitReg module_inst = module_inst_reg(frame);
         uint offset = jit_frontend_get_table_inst_offset(cc.cur_wasm_module, tbl_idx)
             + cast(uint) WASMTableInstance.elems.offsetof;
         if (!table_regs[tbl_idx].table_elems) {
             table_regs[tbl_idx].table_elems =
                 cc.table_regs[tbl_idx].table_elems;
-            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, 
-		jit_insn_new_ADD(table_regs[tbl_idx].table_elems,
-		module_inst, cc.new_const_PTR(offset))));
+            cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
+                    jit_insn_new_ADD(table_regs[tbl_idx].table_elems,
+            module_inst_reg, cc.new_const_PTR(offset))));
         }
         return table_regs[tbl_idx].table_elems;
     }
 
     JitReg table_cur_size_reg(uint tbl_idx) {
         JitCompContext* cc = cc;
-        JitReg module_inst = module_inst_reg(frame);
         uint offset = jit_frontend_get_table_inst_offset(cc.cur_wasm_module, tbl_idx)
             + cast(uint) WASMTableInstance.cur_size.offsetof;
         if (!table_regs[tbl_idx].table_cur_size) {
             table_regs[tbl_idx].table_cur_size =
                 cc.table_regs[tbl_idx].table_cur_size;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDI32(
-                    table_regs[tbl_idx].table_cur_size, module_inst, 
-		cc.new_const_I32(offset))));
+                    table_regs[tbl_idx].table_cur_size, module_inst_reg,
+                    cc.new_const_I32(offset))));
         }
         return table_regs[tbl_idx].table_cur_size;
     }
@@ -320,7 +321,7 @@ struct JitFrame {
     void clear_fixed_virtual_regs() {
         WASMModule* module_ = cc.cur_wasm_module;
         uint count = void, i = void;
-        module_inst_reg = 0;
+        _module_inst_reg = 0;
         module_reg = 0;
         import_func_ptrs_reg = 0;
         fast_jit_func_ptrs_reg = 0;
@@ -370,48 +371,58 @@ struct JitFrame {
 
     JitReg gen_load_i32(ptrdiff_t n) {
         if (!lp[n].reg) {
-            lp[n].reg = jit_cc_new_reg_I32(cc);
+            lp[n].reg = cc.new_reg_I32;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI32(lp[n].reg, 
-		cc.fp_reg, cc.new_const_I32(offset_of_local(n)))));
+                    jit_insn_new_LDI32(lp[n].reg,
+            cc.fp_reg, cc.new_const_I32(offset_of_local(n)))));
         }
         return lp[n].reg;
     }
 
     JitReg gen_load_i64(ptrdiff_t n) {
         if (!lp[n].reg) {
-            lp[n].reg = lp[n + 1].reg = jit_cc_new_reg_I64(cc);
+            lp[n].reg = lp[n + 1].reg = cc.new_reg_I64;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_LDI64(lp[n].reg,
-		cc.fp_reg,
-		cc.new_const_I32(offset_of_local(n)))));
+                    jit_insn_new_LDI64(lp[n].reg,
+            cc.fp_reg,
+            cc.new_const_I32(offset_of_local(n)))));
         }
         return lp[n].reg;
     }
 
     JitReg gen_load_f32(ptrdiff_t n) {
         if (!lp[n].reg) {
-            lp[n].reg = jit_cc_new_reg_F32(cc);
+            lp[n].reg = cc.new_reg_F32;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
-		jit_insn_new_LDF32(lp[n].reg,
-		cc.fp_reg, cc.new_const_I32(offset_of_local(n)))));
+                    jit_insn_new_LDF32(lp[n].reg,
+            cc.fp_reg, cc.new_const_I32(offset_of_local(n)))));
         }
         return lp[n].reg;
     }
 
     JitReg gen_load_f64(ptrdiff_t n) {
         if (!lp[n].reg) {
-            lp[n].reg = lp[n + 1].reg = jit_cc_new_reg_F64(cc);
+            lp[n].reg = lp[n + 1].reg = cc.new_reg_F64;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
-		jit_insn_new_LDF64(lp[n].reg,
-		cc.fp_reg, cc.new_const_I32(offset_of_local(n)))));
+                    jit_insn_new_LDF64(lp[n].reg,
+            cc.fp_reg, cc.new_const_I32(offset_of_local(n)))));
         }
         return lp[n].reg;
     }
 
     void gen_commit_values() {
-	gen_commit_values(lp, sp);
-	}
+        gen_commit_values(lp, sp);
+    }
+   /**
+ * Generate instructions to commit computation result to the 
+ * The general principle is to only commit values that will be used
+ * through the 
+ *
+ * @param frame the frame information
+ * @param begin the begin value slot to commit
+ * @param end the end value slot to commit
+ */
+  
     private void gen_commit_values(JitValueSlot* begin, JitValueSlot* end) {
         JitValueSlot* p = void;
         ptrdiff_t n = void;
@@ -423,25 +434,25 @@ struct JitFrame {
             switch (jit_reg_kind(p.reg)) {
             case JitRegKind.I32:
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_STI32(p.reg,
- cc.fp_reg, jit_cc_new_const_I32(
+                        jit_insn_new_STI32(p.reg,
+                        cc.fp_reg, jit_cc_new_const_I32(
                         cc, offset_of_local(n)))));
                 break;
             case JitRegKind.I64:
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_STI65(p.reg, cc.fp_reg, jit_cc_new_const_I32(
+                        jit_insn_new_STI65(p.reg, cc.fp_reg, jit_cc_new_const_I32(
                         cc, offset_of_local(n)))));
                 (++p).dirty = 0;
                 break;
             case JitRegKind.F32:
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_STF32(p.reg, cc.fp_reg, jit_cc_new_const_I32(
+                        jit_insn_new_STF32(p.reg, cc.fp_reg, jit_cc_new_const_I32(
                         cc,
- offset_of_local(n)))));
+                        offset_of_local(n)))));
                 break;
             case JitRegKind.F64:
                 cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_STF64(p.reg, cc.fp_reg, jit_cc_new_const_I32(
+                        jit_insn_new_STF64(p.reg, cc.fp_reg, jit_cc_new_const_I32(
                         cc, offset_of_local(n)))));
                 (++p).dirty = 0;
                 break;
@@ -456,24 +467,24 @@ struct JitFrame {
  * @param frame the frame information
  */
     void gen_commit_sp_ip() {
-        JitReg sp = void;
-        if (sp != committed_sp) {
-            sp = jit_cc_new_reg_ptr(cc);
+		
+        if (sp !is committed_sp) {
+            JitReg reg_sp = cc.new_reg_ptr;
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_ADD(sp, cc.fp_reg, jit_cc_new_const_PTR(
-                    cc, offset_of_local(
-                    sp - lp)))));
+
+                    jit_insn_new_ADD(reg_sp,
+                    cc.fp_reg, cc.new_const_PTR(offset_of_local(local_offset)))));
             cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
- jit_insn_new_STPTR(sp, cc.fp_reg, jit_cc_new_const_I32(
-                    cc, WASMInterpFrame
+
+                    jit_insn_new_STPTR(reg_sp, cc.fp_reg, cc.new_const_I32(WASMInterpFrame
                     .sp.offsetof))));
             committed_sp = sp;
         }
         version (none) { /* Disable committing ip currently */
             if (ip != committed_ip) {
-                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(cc.new_const_PTR(cast(uintptr_t) frame
-                        .ip),
- cc.fp_reg, cc.new_const_I32(WASMInterpip.offsetof))));
+                cc._gen_insn(_jit_cc_set_insn_uid_for_new_insn(cc,
+                        jit_insn_new_STPTR(cc.new_const_PTR(cast(uintptr_t) frame.ip),
+                        cc.fp_reg, cc.new_const_I32(WASMInterpip.offsetof))));
                 committed_ip = ip;
             }
         }
@@ -519,17 +530,7 @@ struct JitFrame {
  * @return register holding the loaded value
  */
     JitReg gen_load_f64(uint n);
-    /**
- * Generate instructions to commit computation result to the 
- * The general principle is to only commit values that will be used
- * through the 
- *
- * @param frame the frame information
- * @param begin the begin value slot to commit
- * @param end the end value slot to commit
- */
-    void gen_commit_values(JitValueSlot* begin, JitValueSlot* end);
-    /**
+   /**
  * Generate instructions to commit SP and IP pointers to the 
  *
  * @param frame the frame information
@@ -567,7 +568,7 @@ struct JitFrame {
         memset(lp, 0, total_size);
         committed_sp = null;
         committed_ip = null;
-        clear_fixed_virtual_regs(frame);
+        clear_fixed_virtual_regs;
     }
 
     void push_i32(JitReg value) {
@@ -595,22 +596,22 @@ struct JitFrame {
 
     JitReg pop_i32() {
         sp--;
-        return gen_load_i32(sp - lp);
+        return gen_load_i32(local_offset);
     }
 
     JitReg pop_i64() {
         sp -= 2;
-        return gen_load_i64(sp - lp);
+        return gen_load_i64(local_offset);
     }
 
     JitReg pop_f32() {
         sp--;
-        return gen_load_f32(sp - lp);
+        return gen_load_f32(local_offset);
     }
 
     JitReg pop_f64() {
         sp -= 2;
-        return gen_load_f64(sp - lp);
+        return gen_load_f64(local_offset);
     }
 
     void pop(int n) {
@@ -671,5 +672,3 @@ struct JitValueSlot {
        reference.  */
     uint committed_ref; /*: 1 !!*/
 }
-
-
