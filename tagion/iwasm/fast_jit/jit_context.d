@@ -112,17 +112,41 @@ else {
 	}
      }
     void pop_f32(ref JitReg value) {
-        if (!pop_value(ValueType.f32, &value)) {
+        if (!pop_value(ValueType.F32, &value)) {
 		error(ErrorCode.Stack_Overflow, "Stack error while poping");
 	}
      }
      void pop_f64(ref JitReg value) {
-        if ( !pop_value(ValueType.f64, &value)) {
+        if ( !pop_value(ValueType.F64, &value)) {
 		error(ErrorCode.Stack_Overflow, "Stack error while poping");
 	}
      }
 
-      /* Error long-jumper */
+	void push_i32(JitReg value) {
+		if (!push_value(ValueType.I32, value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+		}
+	}
+
+	void push_i64(JitReg value) {
+		if (!push_value(ValueType.I64, value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+		}
+	}
+
+	void push_f32(JitReg value) {
+		if (!push_value(ValueType.F32, value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+		}
+	}
+
+	void push_f64(JitReg value) {
+		if (!push_value(ValueType.F64, value)) {
+		error(ErrorCode.Stack_Overflow, "Stack error while pushing");
+		}
+	}
+
+/* Error long-jumper */
     private Error _error;
     void error(ErrorCode err, string msg, string file = __FILE__, const size_t line = __LINE__) {
         _error(err, msg, file, line);
