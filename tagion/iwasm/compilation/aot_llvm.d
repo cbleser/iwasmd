@@ -63,7 +63,7 @@ import tagion.iwasm.llvm.llvm_c.Support;
 import tagion.iwasm.llvm.llvm_c.Initialization;
 import tagion.iwasm.llvm.llvm_c.TargetMachine;
 import tagion.iwasm.llvm.llvm_c.LLJIT;
-import aot_orc_extra;
+import tagion.iwasm.compilation.aot_orc_extra;
 // #define DEBUG_PASS
 // #define DUMP_MODULE
 /**
