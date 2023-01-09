@@ -10,7 +10,8 @@
 |* This file defines the C interface to the LLVM support library.             *|
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
-
+import tagion.iwasm.llvm.llvm_c.Types;
+@nogc nothrow:
 extern (C):
 
 /**

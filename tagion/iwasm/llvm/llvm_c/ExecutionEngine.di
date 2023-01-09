@@ -17,7 +17,10 @@
 \*===----------------------------------------------------------------------===*/
 
 import core.stdc.inttypes;
-
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.llvm.llvm_c.TargetMachine;
+import tagion.iwasm.llvm.llvm_c.Target;
+@nogc nothrow:
 extern (C):
 
 /**

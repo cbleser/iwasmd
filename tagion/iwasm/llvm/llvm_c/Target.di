@@ -16,8 +16,9 @@
 /*                                                                            */
 /*===----------------------------------------------------------------------===*/
 
+@nogc nothrow:
 extern (C):
-
+import tagion.iwasm.llvm.llvm_c.Types;
 /**
  * @defgroup LLVMCTarget Target information
  * @ingroup LLVMC

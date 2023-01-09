@@ -10,6 +10,8 @@
 |* This header declares the C interface to the PassManagerBuilder class.      *|
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
+import tagion.iwasm.llvm.llvm_c.Types;
+@nogc nothrow:
 
 extern (C):
 

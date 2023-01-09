@@ -12,7 +12,9 @@
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
 
+@nogc nothrow:
 extern (C):
+import tagion.iwasm.llvm.llvm_c.Types;
 
 /**
  * @defgroup LLVMC LLVM-C: C interface to LLVM

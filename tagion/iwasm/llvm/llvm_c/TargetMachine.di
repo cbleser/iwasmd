@@ -15,7 +15,9 @@
 |* tools written in such languages.                                           *|
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
-
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.llvm.llvm_c.Target;
+@nogc nothrow:
 extern (C):
 
 struct LLVMOpaqueTargetMachine;

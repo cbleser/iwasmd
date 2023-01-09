@@ -25,7 +25,10 @@
 \*===----------------------------------------------------------------------===*/
 
 import core.stdc.config;
-
+import tagion.iwasm.llvm.llvm_c.Error;
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.llvm.llvm_c.TargetMachine;
+@nogc nothrow:
 extern (C):
 
 /**

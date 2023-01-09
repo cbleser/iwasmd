@@ -16,7 +16,9 @@
 /*                                                                            */
 /*===----------------------------------------------------------------------===*/
 
+@nogc nothrow:
 extern (C):
+import tagion.iwasm.llvm.llvm_c.Types;
 
 /**
  * @defgroup LLVMCObject Object file reading and writing

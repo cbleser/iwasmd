@@ -20,7 +20,10 @@
 |*       details.                                                             *|
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
-
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.llvm.llvm_c.Orc;
+import tagion.iwasm.llvm.llvm_c.Error;
+@nogc nothrow:
 extern (C):
 
 /**

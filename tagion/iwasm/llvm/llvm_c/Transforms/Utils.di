@@ -15,7 +15,8 @@
 |* tools written in such languages.                                           *|
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
-
+import tagion.iwasm.llvm.llvm_c.Types;
+@nogc nothrow:
 extern (C):
 
 /**

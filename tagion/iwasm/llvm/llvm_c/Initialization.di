@@ -12,6 +12,8 @@
 |* the corresponding LLVM library.                                            *|
 |*                                                                            *|
 \*===----------------------------------------------------------------------===*/
+import tagion.iwasm.llvm.llvm_c.Types;
+@nogc nothrow:
 
 extern (C):
 

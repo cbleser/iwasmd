@@ -11,6 +11,7 @@
    can be in exported headers and won't override package specific directives.
    This is a C header that can be included in the llvm-c headers. */
 
+@nogc nothrow:
 extern (C):
 
 /* Define if LLVM_ENABLE_DUMP is enabled */
