@@ -1,13 +1,12 @@
-module aot_emit_const;
+module tagion.iwasm.compilation.aot_emit_const;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_emit_const;
-public import ...aot.aot_intrinsic;
+import tagion.iwasm.compilation.aot_emit_const;
+import tagion.iwasm.aot.aot_intrinsic;
 
 bool aot_compile_op_i32_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, int i32_const) {
     LLVMValueRef value = void;
@@ -167,22 +166,3 @@ fail:
  */
 
  
-public import aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_op_i32_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, int i32_const);
-
-bool aot_compile_op_i64_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, long i64_const);
-
-bool aot_compile_op_f32_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, float32 f32_const);
-
-bool aot_compile_op_f64_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, float64 f64_const);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _AOT_EMIT_CONST_H_ */

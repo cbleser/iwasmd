@@ -1,4 +1,4 @@
-module aot_emit_exception;
+module tagion.iwasm.compilation.aot_emit_exception;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,9 +6,9 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_emit_exception;
-public import ...interpreter.wasm_runtime;
-public import ...aot.aot_runtime;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.interpreter.wasm_runtime;
+import tagion.iwasm.aot.aot_runtime;
 
 bool aot_emit_exception(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, int exception_id, bool is_cond_br, LLVMValueRef cond_br_if, LLVMBasicBlockRef cond_br_else_block) {
     LLVMBasicBlockRef block_curr = LLVMGetInsertBlock(comp_ctx.builder);
@@ -144,16 +144,3 @@ fail:
  */
 
  
-public import aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_emit_exception(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, int exception_id, bool is_cond_br, LLVMValueRef cond_br_if, LLVMBasicBlockRef cond_br_else_block);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _AOT_EMIT_EXCEPTION_H_ */

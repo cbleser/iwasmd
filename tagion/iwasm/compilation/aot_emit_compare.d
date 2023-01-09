@@ -222,22 +222,3 @@ fail:
  */
 
  
-public import aot_compiler;
-
-version (none) {
-extern (C) {
-//! #endif
-
-bool aot_compile_op_i32_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);
-
-bool aot_compile_op_i64_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);
-
-bool aot_compile_op_f32_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatCond cond);
-
-bool aot_compile_op_f64_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatCond cond);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _AOT_EMIT_COMPARE_H_ */

@@ -1,12 +1,11 @@
-module aot_emit_parametric;
+module tagion.iwasm.compilation.aot_emit_parametric;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_emit_parametric;
+import tagion.iwasm.compilation.aot_emit_parametric;
 
 private bool pop_value_from_wasm_stack(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, LLVMValueRef* p_value, bool is_32, ubyte* p_type) {
     AOTValue* aot_value = void;
@@ -105,18 +104,3 @@ fail:
  */
 
  
-public import aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_op_drop(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool is_drop_32);
-
-bool aot_compile_op_select(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool is_select_32);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _AOT_EMIT_PARAMETRIC_H_ */

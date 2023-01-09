@@ -7,11 +7,11 @@ extern(C): __gshared:
  */
 
  
-public import llvm-c.Error;
-public import llvm-c.ExternC;
-public import llvm-c.LLJIT;
-public import llvm-c.Orc;
-public import llvm-c.Types;
+import tagion.iwasm.llvm.llvm_c.Error;
+import tagion.iwasm.llvm.llvm_c.ExternC;
+import tagion.iwasm.llvm.llvm_c.LLJIT;
+import tagion.iwasm.llvm.llvm_c.Orc;
+import tagion.iwasm.llvm.llvm_c.Types;
 
 LLVM_C_EXTERN_C_BEGIN typedef; LLVMOrcOpaqueLLLazyJITBuilder* LLVMOrcLLLazyJITBuilderRef;
 alias LLVMOrcLLLazyJITRef = LLVMOrcOpaqueLLLazyJIT*;
@@ -48,5 +48,4 @@ LLVMOrcIRTransformLayerRef LLVMOrcLLLazyJITGetIRTransformLayer(LLVMOrcLLLazyJITR
 
 LLVMOrcObjectTransformLayerRef LLVMOrcLLLazyJITGetObjTransformLayer(LLVMOrcLLLazyJITRef J);
 
-LLVM_C_EXTERN_C_END
 

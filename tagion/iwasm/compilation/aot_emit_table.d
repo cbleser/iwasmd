@@ -1,14 +1,13 @@
-module aot_emit_table;
+module tagion.iwasm.compilation.aot_emit_table;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_emit_table;
-public import aot_emit_exception;
-public import ...aot.aot_runtime;
+import tagion.iwasm.compilation.aot_emit_table;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 ulong get_tbl_inst_offset(const(AOTCompContext)* comp_ctx, const(AOTFuncContext)* func_ctx, uint tbl_idx) {
     ulong offset = 0, i = 0;
@@ -477,32 +476,4 @@ fail:
  */
 
  
-public import aot_compiler;
 
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_op_elem_drop(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_seg_idx);
-
-bool aot_compile_op_table_get(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx);
-
-bool aot_compile_op_table_set(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx);
-
-bool aot_compile_op_table_init(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx, uint tbl_seg_idx);
-
-bool aot_compile_op_table_copy(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint src_tbl_idx, uint dst_tbl_idx);
-
-bool aot_compile_op_table_size(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx);
-
-bool aot_compile_op_table_grow(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx);
-
-bool aot_compile_op_table_fill(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx);
-
-ulong get_tbl_inst_offset(const(AOTCompContext)* comp_ctx, const(AOTFuncContext)* func_ctx, uint tbl_idx);
-
-LLVMValueRef aot_compile_get_tbl_inst(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx);
-
-version (none) {}
-} /* end of extern "C" */
-}

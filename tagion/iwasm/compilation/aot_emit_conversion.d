@@ -1,4 +1,4 @@
-module aot_emit_conversion;
+module tagion.iwasm.compilation.aot_emit_conversion;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,11 +6,11 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_emit_conversion;
-public import aot_emit_exception;
-public import aot_emit_numberic;
-public import ...aot.aot_intrinsic;
-public import ...aot.aot_runtime;
+public import tagion.iwasm.compilation.aot_emit_conversion;
+public import tagion.iwasm.compilation.aot_emit_exception;
+public import tagion.iwasm.compilation.aot_emit_numberic;
+public import tagion.iwasm.aot.aot_intrinsic;
+public import tagion.iwasm.aot.aot_runtime;
 
 private bool trunc_float_to_int(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, LLVMValueRef operand, LLVMTypeRef src_type, LLVMTypeRef dest_type, LLVMValueRef min_value, LLVMValueRef max_value, char* name, bool sign) {
     LLVMBasicBlockRef check_nan_succ = void, check_overflow_succ = void;
@@ -904,50 +904,3 @@ fail:
  */
 
  
-public import aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_op_i32_wrap_i64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_op_i32_trunc_f32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign, bool saturating);
-
-bool aot_compile_op_i32_trunc_f64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign, bool saturating);
-
-bool aot_compile_op_i64_extend_i32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign);
-
-bool aot_compile_op_i64_extend_i64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, byte bitwidth);
-
-bool aot_compile_op_i32_extend_i32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, byte bitwidth);
-
-bool aot_compile_op_i64_trunc_f32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign, bool saturating);
-
-bool aot_compile_op_i64_trunc_f64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign, bool saturating);
-
-bool aot_compile_op_f32_convert_i32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign);
-
-bool aot_compile_op_f32_convert_i64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign);
-
-bool aot_compile_op_f32_demote_f64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_op_f64_convert_i32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign);
-
-bool aot_compile_op_f64_convert_i64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool sign);
-
-bool aot_compile_op_f64_promote_f32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_op_i64_reinterpret_f64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_op_i32_reinterpret_f32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_op_f64_reinterpret_i64(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_op_f32_reinterpret_i32(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _AOT_EMIT_CONVERSION_H_ */
