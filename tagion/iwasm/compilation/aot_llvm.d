@@ -44,26 +44,26 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-public import aot;
-public import llvm.Config.llvm-config;
-public import llvm-c.Types;
-public import llvm-c.Target;
-public import llvm-c.Core;
-public import llvm-c.Object;
-public import llvm-c.ExecutionEngine;
-public import llvm-c.Analysis;
-public import llvm-c.BitWriter;
-public import llvm-c.Transforms.Utils;
-public import llvm-c.Transforms.Scalar;
-public import llvm-c.Transforms.Vectorize;
-public import llvm-c.Transforms.PassManagerBuilder;
-public import llvm-c.Orc;
-public import llvm-c.Error;
-public import llvm-c.Support;
-public import llvm-c.Initialization;
-public import llvm-c.TargetMachine;
-public import llvm-c.LLJIT;
-public import aot_orc_extra;
+import tagion.iwasm.compilation.aot;
+import tagion.iwasm.llvm.llvm.Config.llvm_config;
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.llvm.llvm_c.Target;
+import tagion.iwasm.llvm.llvm_c.Core;
+import tagion.iwasm.llvm.llvm_c.Object;
+import tagion.iwasm.llvm.llvm_c.ExecutionEngine;
+import tagion.iwasm.llvm.llvm_c.Analysis;
+import tagion.iwasm.llvm.llvm_c.BitWriter;
+import tagion.iwasm.llvm.llvm_c.Transforms.Utils;
+import tagion.iwasm.llvm.llvm_c.Transforms.Scalar;
+import tagion.iwasm.llvm.llvm_c.Transforms.Vectorize;
+import tagion.iwasm.llvm.llvm_c.Transforms.PassManagerBuilder;
+import tagion.iwasm.llvm.llvm_c.Orc;
+import tagion.iwasm.llvm.llvm_c.Error;
+import tagion.iwasm.llvm.llvm_c.Support;
+import tagion.iwasm.llvm.llvm_c.Initialization;
+import tagion.iwasm.llvm.llvm_c.TargetMachine;
+import tagion.iwasm.llvm.llvm_c.LLJIT;
+import aot_orc_extra;
 // #define DEBUG_PASS
 // #define DUMP_MODULE
 /**
@@ -387,10 +387,10 @@ void aot_add_expand_memory_op_pass(LLVMPassManagerRef pass);
 void aot_add_simple_loop_unswitch_pass(LLVMPassManagerRef pass);
 void aot_apply_llvm_new_pass_manager(AOTCompContext* comp_ctx, LLVMModuleRef module_);
 void aot_handle_llvm_errmsg(const(char)* string, LLVMErrorRef err);
-public import aot_compiler;
-public import aot_emit_exception;
-public import ...aot.aot_runtime;
-public import ...aot.aot_intrinsic;
+import tagion.iwasm.compilation.aot_compiler;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
+import tagion.iwasm.aot.aot_intrinsic;
 LLVMTypeRef wasm_type_to_llvm_type(AOTLLVMTypes* llvm_types, ubyte wasm_type) {
     switch (wasm_type) {
         case VALUE_TYPE_I32:
@@ -433,7 +433,7 @@ private LLVMValueRef aot_add_llvm_func(AOTCompContext* comp_ctx, LLVMModuleRef m
     if (aot_func_type.result_count > 1)
         param_count += aot_func_type.result_count - 1;
     /* Initialize parameter types of the LLVM function */
-    size = sizeof(LLVMTypeRef) * (cast(ulong)param_count);
+    size = LLVMTypeRef.sizeof * (cast(ulong)param_count);
     if (size >= UINT32_MAX
         || ((param_types = wasm_runtime_malloc(cast(uint)size)) == 0)) {
         aot_set_last_error("allocate memory failed.");
@@ -760,7 +760,7 @@ private bool create_memory_info(AOTCompContext* comp_ctx, AOTFuncContext* func_c
     if (memory_count == 0)
         memory_count = 1;
     if (((func_ctx.mem_info =
-              wasm_runtime_malloc(sizeof(AOTMemInfo) * memory_count)) == 0)) {
+              wasm_runtime_malloc(AOTMemInfo.sizeof * memory_count)) == 0)) {
         return false;
     }
     memset(func_ctx.mem_info, 0, AOTMemInfo.sizeof);
@@ -1013,7 +1013,7 @@ private AOTFuncContext* aot_create_func_context(AOTCompData* comp_data, AOTCompC
     ulong size = void;
     /* Allocate memory for the function context */
     size = AOTFuncContext.locals.offsetof
-           + sizeof(LLVMValueRef)
+           + LLVMValueRef.sizeof
                  * (cast(ulong)aot_func_type.param_count + func.local_count);
     if (size >= UINT32_MAX || ((func_ctx = wasm_runtime_malloc(cast(uint)size)) == 0)) {
         aot_set_last_error("allocate memory failed.");
@@ -1195,7 +1195,7 @@ private bool aot_create_llvm_consts(AOTLLVMConsts* consts, AOTCompContext* comp_
     if (((consts.f64_zero = F64_CONST(0)) == 0))
         return false;
     if (((consts.i32_min = LLVMConstInt(I32_TYPE, cast(uint)INT32_MIN, true)) == 0)) return false;
-    if (((consts.i32_neg_one = LLVMConstInt(I32_TYPE, (uint32)-1, true)) == 0)) return false;
+    if (((consts.i32_neg_one = LLVMConstInt(I32_TYPE, cast(uint)-1, true)) == 0)) return false;
     if (((consts.i32_zero = LLVMConstInt(I32_TYPE, 0, true)) == 0)) return false;
     if (((consts.i32_one = LLVMConstInt(I32_TYPE, 1, true)) == 0)) return false;
     if (((consts.i32_two = LLVMConstInt(I32_TYPE, 2, true)) == 0)) return false;
@@ -1650,7 +1650,7 @@ AOTCompContext* aot_create_comp_context(AOTCompData* comp_data, aot_comp_option_
                 vendor_sys = strstr(default_triple, "-");
                 bh_assert(vendor_sys);
                 bh_memcpy_s(default_arch.ptr, default_arch.sizeof, default_triple,
-                            (uint32)(vendor_sys - default_triple));
+                            cast(uint)(vendor_sys - default_triple));
                 arch1 = default_arch;
                 LLVMDisposeMessage(default_triple);
             }
@@ -1675,10 +1675,10 @@ AOTCompContext* aot_create_comp_context(AOTCompData* comp_data, aot_comp_option_
             bh_memcpy_s(triple_buf.ptr, cast(uint)triple_buf.sizeof, arch1,
                         cast(uint)strlen(arch1));
             bh_memcpy_s(triple_buf.ptr + strlen(arch1),
-                        (uint32)(sizeof(triple_buf).ptr - strlen(arch1)),
+                        cast(uint)(triple_buf.length - strlen(arch1)),
                         vendor_sys, cast(uint)strlen(vendor_sys));
             bh_memcpy_s(triple_buf.ptr + strlen(arch1) + strlen(vendor_sys),
-                        (uint32)(sizeof(triple_buf).ptr - strlen(arch1)
+                        cast(uint)(triple_buf.length - strlen(arch1)
                                  - strlen(vendor_sys)),
                         abi, cast(uint)strlen(abi));
             triple = triple_buf;
@@ -1712,10 +1712,10 @@ AOTCompContext* aot_create_comp_context(AOTCompData* comp_data, aot_comp_option_
             bh_memcpy_s(triple_buf.ptr, cast(uint)triple_buf.sizeof, arch,
                         cast(uint)strlen(arch));
             bh_memcpy_s(triple_buf.ptr + strlen(arch),
-                        (uint32)(sizeof(triple_buf).ptr - strlen(arch)), vendor_sys,
+                        cast(uint)(triple_buf.length - strlen(arch)), vendor_sys,
                         cast(uint)strlen(vendor_sys));
             bh_memcpy_s(triple_buf.ptr + strlen(arch) + strlen(vendor_sys),
-                        (uint32)(sizeof(triple_buf).ptr - strlen(arch)
+                        cast(uint)(triple_buf.length - strlen(arch)
                                  - strlen(vendor_sys)),
                         abi, cast(uint)strlen(abi));
             triple = triple_buf;
@@ -2274,7 +2274,7 @@ LLVMValueRef aot_call_llvm_intrinsic(const(AOTCompContext)* comp_ctx, const(AOTF
     ulong total_size = void;
     int i = 0;
     /* Create param values */
-    total_size = sizeof(LLVMValueRef) * cast(ulong)param_count;
+    total_size = LLVMValueRef.sizeof * cast(ulong)param_count;
     if (total_size >= UINT32_MAX
         || ((param_values = wasm_runtime_malloc(cast(uint)total_size)) == 0)) {
         aot_set_last_error("allocate memory for param values failed.");
@@ -2295,7 +2295,7 @@ LLVMValueRef aot_call_llvm_intrinsic_v(const(AOTCompContext)* comp_ctx, const(AO
     ulong total_size = void;
     int i = 0;
     /* Create param values */
-    total_size = sizeof(LLVMValueRef) * cast(ulong)param_count;
+    total_size = LLVMValueRef.sizeof * cast(ulong)param_count;
     if (total_size >= UINT32_MAX
         || ((param_values = wasm_runtime_malloc(cast(uint)total_size)) == 0)) {
         aot_set_last_error("allocate memory for param values failed.");
@@ -2344,25 +2344,25 @@ LLVMValueRef aot_load_const_from_table(AOTCompContext* comp_ctx, LLVMValueRef ba
     switch (value_type) {
         case VALUE_TYPE_I32:
             /* Store the raw int bits of i32 const as a hex string */
-            snprintf(buf.ptr, buf.sizeof, "i32#%08" PRIX32, value.i32);
+            snprintf(buf.ptr, buf.sizeof, "i32#%08X", value.i32);
             const_ptr_type = INT32_PTR_TYPE;
             const_type = I32_TYPE;
             break;
         case VALUE_TYPE_I64:
             /* Store the raw int bits of i64 const as a hex string */
-            snprintf(buf.ptr, buf.sizeof, "i64#%016" PRIX64, value.i64);
+            snprintf(buf.ptr, buf.sizeof, "i64#%016X", value.i64);
             const_ptr_type = INT64_PTR_TYPE;
             const_type = I64_TYPE;
             break;
         case VALUE_TYPE_F32:
             /* Store the raw int bits of f32 const as a hex string */
-            snprintf(buf.ptr, buf.sizeof, "f32#%08" PRIX32, value.i32);
+            snprintf(buf.ptr, buf.sizeof, "f32#%08X", value.i32);
             const_ptr_type = F32_PTR_TYPE;
             const_type = F32_TYPE;
             break;
         case VALUE_TYPE_F64:
             /* Store the raw int bits of f64 const as a hex string */
-            snprintf(buf.ptr, buf.sizeof, "f64#%016" PRIX64, value.i64);
+            snprintf(buf.ptr, buf.sizeof, "f64#%016X", value.i64);
             const_ptr_type = F64_PTR_TYPE;
             const_type = F64_TYPE;
             break;
