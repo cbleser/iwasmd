@@ -102,6 +102,11 @@ nothrow:
     else {
         alias new_const_PTR = new_const_I32;
     }
+    void pop(ref JitReg value, ValueType type) {
+        if (!pop_value(type, &value)) {
+            error(ErrorCode.Stack_Overflow, "Stack error while poping");
+        }
+}
 
     void pop_i32(ref JitReg value) {
         if (!pop_value(ValueType.I32, &value)) {
@@ -126,6 +131,48 @@ nothrow:
             error(ErrorCode.Stack_Overflow, "Stack error while poping");
         }
     }
+
+    private bool push_value(ubyte type, JitReg value) {
+        JitValue* jit_value = void;
+        if (!jit_block_stack_top(&block_stack)) {
+            jit_set_last_error("WASM block stack underflow");
+            return false;
+        }
+        if (((jit_value = jit_calloc_value(JitValue.sizeof)) is null)) {
+            jit_set_last_error("allocate memory failed");
+            return false;
+        }
+        bh_assert(value);
+        jit_value.type = to_stack_value_type(type);
+        jit_value.value = jit_frame.sp;
+        jit_value_stack_push(&jit_block_stack_top(&block_stack).value_stack,
+                jit_value);
+        switch (jit_value.type) {
+        case ValueType.I32:
+            jit_frame.push_i32(value);
+            break;
+        case ValueType.I64:
+            jit_frame.push_i64(value);
+            break;
+        case ValueType.F32:
+            jit_frame.push_f32(value);
+            break;
+        case ValueType.F64:
+            jit_frame.push_f64(value);
+            break;
+        default:
+            break;
+        }
+        return true;
+    }
+
+    void push(JitReg value, ValueType type) {
+        if (!push_value(type, value)) {
+            error(ErrorCode.Stack_Overflow, "Stack overflow while pushing");
+        }
+    }
+
+
 
     void push_i32(JitReg value) {
         if (!push_value(ValueType.I32, value)) {
@@ -592,46 +639,6 @@ nothrow:
     /* indicate if the last comparision is about floating-point numbers or not
      */
     bool last_cmp_on_fp;
-    private bool push_value(ubyte type, JitReg value) {
-        JitValue* jit_value = void;
-        if (!jit_block_stack_top(&block_stack)) {
-            jit_set_last_error("WASM block stack underflow");
-            return false;
-        }
-        if (((jit_value = jit_calloc_value(JitValue.sizeof)) is null)) {
-            jit_set_last_error("allocate memory failed");
-            return false;
-        }
-        bh_assert(value);
-        jit_value.type = to_stack_value_type(type);
-        jit_value.value = jit_frame.sp;
-        jit_value_stack_push(&jit_block_stack_top(&block_stack).value_stack,
-                jit_value);
-        switch (jit_value.type) {
-        case ValueType.I32:
-            jit_frame.push_i32(value);
-            break;
-        case ValueType.I64:
-            jit_frame.push_i64(value);
-            break;
-        case ValueType.F32:
-            jit_frame.push_f32(value);
-            break;
-        case ValueType.F64:
-            jit_frame.push_f64(value);
-            break;
-        default:
-            break;
-        }
-        return true;
-    }
-
-    void push(JitReg value, ValueType type) {
-        if (!push_value(type, value)) {
-            error(ErrorCode.Stack_Overflow, "Stack overflow while pushing");
-        }
-    }
-
     void jit_set_last_error_v(const(char)* format_, va_list args) {
         va_start(args, format_);
         vsnprintf(last_error.ptr, last_error.length, format_, args);
@@ -977,8 +984,6 @@ nothrow:
  */
             /* Defining instruction of registers satisfying SSA property.  */
             if (successful && _ann._reg_def_insn_enabled) {
-                pragma(msg, typeof(_ann._reg_def_insn[kind]));
-                pragma(msg, typeof(_ann._reg_def_insn));
                 JitInsn* ptr = jit_realloc(_ann._reg_def_insn[kind], JitInsn.sizeof * capacity, JitInsn.sizeof * num);
                 if (ptr)
                     _ann._reg_def_insn[kind] = ptr;

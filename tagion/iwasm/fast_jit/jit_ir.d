@@ -1705,10 +1705,10 @@ struct JitBlock {
     JitValueStack value_stack;
     /* Param count/types/PHIs of this block */
     uint param_count;
-    ubyte* param_types;
+    ValueType* param_types;
     /* Result count/types/PHIs of this block */
     uint result_count;
-    ubyte* result_types;
+    ValueType* result_types;
     /* The begin frame stack pointer of this block */
     JitValueSlot* frame_sp_begin;
 }

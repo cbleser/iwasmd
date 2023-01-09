@@ -33,10 +33,8 @@
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-module jit_emit_control_tmp;
+module tagion.iwasm.fast_jit.fe.jit_emit_control;
 @nogc nothrow:
-extern (C):
-__gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -81,29 +79,19 @@ __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 import tagion.iwasm.config : BLOCK_ADDR_CACHE_SIZE, BLOCK_ADDR_CONFLICT_SIZE;
-import tagion.iwasm.interpreter.wasm : BlockAddr, LABEL_TYPE_BLOCK, LABEL_TYPE_LOOP, LABEL_TYPE_IF;
+import tagion.iwasm.interpreter.wasm : BlockAddr, ValueType, LabelType,
+wasm_get_cell_num;
 import tagion.iwasm.interpreter.wasm_loader : wasm_loader_find_block_addr;
+import tagion.iwasm.interpreter.wasm_interp : WASMInterpFrame;  
+import tagion.iwasm.common.wasm_exec_env : WASMExecEnv;  
 import tagion.iwasm.fast_jit.jit_context : JitCompContext;
 import tagion.iwasm.fast_jit.jit_utils;
 import tagion.iwasm.fast_jit.jit_frame;
 import tagion.iwasm.fast_jit.jit_compiler;
+
 import tagion.iwasm.fast_jit.jit_frontend : POP_I32, POP_I64;
 import tagion.iwasm.fast_jit.fe.jit_emit_exception : jit_emit_exception;
 import tagion.iwasm.share.utils.bh_assert;
-
-bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_ip_end, uint label_type, uint param_count, ubyte* param_types, uint result_count, ubyte* result_types, bool merge_cmp_and_if);
-bool jit_compile_op_else(JitCompContext* cc, ubyte** p_frame_ip);
-bool jit_compile_op_end(JitCompContext* cc, ubyte** p_frame_ip);
-bool jit_compile_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip);
-bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_br_if, ubyte** p_frame_ip);
-bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count, ubyte** p_frame_ip);
-bool jit_compile_op_return(JitCompContext* cc, ubyte** p_frame_ip);
-bool jit_compile_op_unreachable(JitCompContext* cc, ubyte** p_frame_ip);
-bool jit_handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip);
-//#include "jit_emit_exception.h"
-//#include "jit_emit_function.h"
-//#include "../jit_frontend.h"
-//#include "../interpreter/wasm_loader.h"
 private JitBlock* get_target_block(JitCompContext* cc, uint br_depth) {
     uint i = br_depth;
     JitBlock* block = jit_block_stack_top(&cc.block_stack);
@@ -118,38 +106,37 @@ private JitBlock* get_target_block(JitCompContext* cc, uint br_depth) {
 }
 
 private bool load_block_params(JitCompContext* cc, JitBlock* block) {
-    JitFrame* jit_frame = cc.jit_frame;
-    uint offset = void, i = void;
+    uint i = void;
     JitReg value = 0;
     /* Clear jit frame's locals and stacks */
-    clear_values(jit_frame);
+    cc.jit_frame.clear_values;
     /* Restore jit frame's sp to block's sp begin */
-    jit_frame.sp = block.frame_sp_begin;
+    cc.jit_frame.sp = block.frame_sp_begin;
     /* Load params to new block */
-    offset = cast(uint)(jit_frame.sp - jit_frame.lp);
+    auto offset = cc.jit_frame.local_offset;
     for (i = 0; i < block.param_count; i++) {
         switch (block.param_types[i]) {
-        case VALUE_TYPE_I32:
-            value = gen_load_i32(jit_frame, offset);
+        case ValueType.I32:
+            value = cc.jit_frame.gen_load_i32(offset);
             offset++;
             break;
-            case VALUE_TYPE_I64:
-            value = gen_load_i64(jit_frame, offset);
+            case ValueType.I64:
+            value = cc.jit_frame.gen_load_i64(offset);
             offset += 2;
             break;
-            case VALUE_TYPE_F32:
-            value = gen_load_f32(jit_frame, offset);
+            case ValueType.F32:
+            value = cc.jit_frame.gen_load_f32(offset);
             offset++;
             break;
-            case VALUE_TYPE_F64:
-            value = gen_load_f64(jit_frame, offset);
+            case ValueType.F64:
+            value = cc.jit_frame.gen_load_f64(offset);
             offset += 2;
             break;
             default:
             bh_assert(0);
             break;
         }
-        PUSH(value, block.param_types[i]);
+        cc.push(value, block.param_types[i]);
     }
     return true;
 fail:
@@ -157,36 +144,34 @@ fail:
 }
 
 private bool load_block_results(JitCompContext* cc, JitBlock* block) {
-    JitFrame* jit_frame = cc.jit_frame;
-    uint offset = void, i = void;
     JitReg value = 0;
     /* Restore jit frame's sp to block's sp begin */
-    jit_frame.sp = block.frame_sp_begin;
+    cc.jit_frame.sp = block.frame_sp_begin;
     /* Load results to new block */
-    offset = cast(uint)(jit_frame.sp - jit_frame.lp);
-    for (i = 0; i < block.result_count; i++) {
+    auto offset = cc.jit_frame.local_offset;
+    for (uint i = 0; i < block.result_count; i++) {
         switch (block.result_types[i]) {
-        case VALUE_TYPE_I32:
-            value = gen_load_i32(jit_frame, offset);
+        case ValueType.I32:
+            value = cc.jit_frame.gen_load_i32(offset);
             offset++;
             break;
-            case VALUE_TYPE_I64:
-            value = gen_load_i64(jit_frame, offset);
+            case ValueType.I64:
+            value = cc.jit_frame.gen_load_i64(offset);
             offset += 2;
             break;
-            case VALUE_TYPE_F32:
-            value = gen_load_f32(jit_frame, offset);
+            case ValueType.F32:
+            value = cc.jit_frame.gen_load_f32(offset);
             offset++;
             break;
-            case VALUE_TYPE_F64:
-            value = gen_load_f64(jit_frame, offset);
+            case ValueType.F64:
+            value = cc.jit_frame.gen_load_f64(offset);
             offset += 2;
             break;
             default:
             bh_assert(0);
             break;
         }
-        PUSH(value, block.result_types[i]);
+        cc.push(value, block.result_types[i]);
     }
     return true;
 fail:
@@ -216,7 +201,6 @@ private void get_last_cmp_and_selectcc(JitCompContext* cc, JitReg cond, JitInsn*
 }
 
 private bool push_jit_block_to_stack_and_pass_params(JitCompContext* cc, JitBlock* block, JitBasicBlock* basic_block, JitReg cond, bool merge_cmp_and_if) {
-    JitFrame* jit_frame = cc.jit_frame;
     JitValue* value_list_head = null, value_list_end = null, jit_value = void;
     JitInsn* insn = void;
     JitReg value = void;
@@ -243,7 +227,7 @@ private bool push_jit_block_to_stack_and_pass_params(JitCompContext* cc, JitBloc
         block.value_stack.value_list_end = value_list_end;
         /* Save block's begin frame sp */
         cell_num = wasm_get_cell_num(block.param_types, block.param_count);
-        block.frame_sp_begin = jit_frame.sp - cell_num;
+        block.frame_sp_begin = cc.jit_frame.sp - cell_num;
         /* Push the new block to block stack */
         jit_block_stack_push(&cc.block_stack, block);
         /* Continue to translate current block */
@@ -254,19 +238,19 @@ private bool push_jit_block_to_stack_and_pass_params(JitCompContext* cc, JitBloc
             get_last_cmp_and_selectcc(cc, cond, &insn_cmp, &insn_select);
         }
         /* Commit register values to locals and stacks */
-        gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+        cc.jit_frame.gen_commit_values;
         /* Pop param values from current block's value stack */
         for (i = 0; i < block.param_count; i++) {
             param_index = block.param_count - 1 - i;
-            POP(value, block.param_types[param_index]);
+            cc.pop(value, block.param_types[param_index]);
         }
         /* Clear frame values */
-        clear_values(jit_frame);
+        cc.jit_frame.clear_values;
         /* Save block's begin frame sp */
-        block.frame_sp_begin = jit_frame.sp;
+        block.frame_sp_begin = cc.jit_frame.sp;
         /* Push the new block to block stack */
         jit_block_stack_push(&cc.block_stack, block);
-        if (block.label_type == LABEL_TYPE_LOOP) {
+        if (block.label_type == LabelType.LOOP) {
             if (!cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(basic_block))))) {
                 jit_set_last_error(cc, "generate jmp insn failed");
                 goto fail;
@@ -276,22 +260,21 @@ private bool push_jit_block_to_stack_and_pass_params(JitCompContext* cc, JitBloc
             /* IF block with condition br insn */
             if (insn_select && insn_cmp) {
                 /* Change `CMP + SELECTcc` into `CMP + Bcc` */
-                if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BEQ(cc.cmp_reg, jit_basic_block_label(
-                        basic_block), 0)))) == 0)) {
+                if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc,
+				jit_insn_new_BEQ(cc.cmp_reg,
+				jit_basic_block_label(basic_block), 0)))) is null)) {
                     jit_set_last_error(cc, "generate cond br failed");
                     goto fail;
                 }
-                insn.opcode =
-                    JIT_OP_BEQ + (insn_select.opcode - JIT_OP_SELECTEQ);
+                insn.opcode =cast(JitOpcode)(JIT_OP_BEQ + (insn_select.opcode - JIT_OP_SELECTEQ));
                 jit_insn_unlink(insn_select);
                 jit_insn_delete(insn_select);
             }
             else {
-                if (!cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cond, jit_cc_new_const_I32(
-                        cc, 0))))
-                        || ((insn =
-                            cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(
-                            basic_block), 0)))) == 0)) {
+                if (!cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc,
+				jit_insn_new_CMP(cc.cmp_reg, cond, cc.new_const_I32(0))))
+                        || ((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc,
+				jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(basic_block), 0)))) is null)) {
                     jit_set_last_error(cc, "generate cond br failed");
                     goto fail;
                 }
@@ -321,54 +304,48 @@ fail:
     return false;
 }
 
-private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* dst_types, uint dst_type_count, JitReg* p_first_res_reg) {
-    JitFrame* jit_frame = void;
-    uint offset_src = void, offset_dst = void, i = void;
+private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ValueType* dst_types, uint dst_type_count, JitReg* p_first_res_reg) {
+    uint offset_dst = void, i = void;
     JitReg value = void;
-    jit_frame = cc.jit_frame;
-    offset_src = cast(uint)(jit_frame.sp - jit_frame.lp)
+    auto offset_src =  cc.jit_frame.local_offset 
         - wasm_get_cell_num(dst_types, dst_type_count);
     offset_dst = 0;
     /* pop values from stack and store to dest frame */
     for (i = 0; i < dst_type_count; i++) {
         switch (dst_types[i]) {
-        case VALUE_TYPE_I32:
-            value = gen_load_i32(jit_frame, offset_src);
+        case ValueType.I32:
+            value = cc.jit_frame.gen_load_i32(offset_src);
             if (i == 0 && p_first_res_reg)
                 *p_first_res_reg = value;
             else
-                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, dst_frame_sp, jit_cc_new_const_I32(
-                        cc, offset_dst * 4))));
+                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI32(value, dst_frame_sp, cc.new_const_I32(offset_dst * 4))));
             offset_src++;
             offset_dst++;
             break;
-            case VALUE_TYPE_I64:
-            value = gen_load_i64(jit_frame, offset_src);
+            case ValueType.I64:
+            value = cc.jit_frame.gen_load_i64(offset_src);
             if (i == 0 && p_first_res_reg)
                 *p_first_res_reg = value;
             else
-                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, dst_frame_sp, jit_cc_new_const_I32(
-                        cc, offset_dst * 4))));
+                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STI64(value, dst_frame_sp, cc.new_const_I32(offset_dst * 4))));
             offset_src += 2;
             offset_dst += 2;
             break;
-            case VALUE_TYPE_F32:
-            value = gen_load_f32(jit_frame, offset_src);
+            case ValueType.F32:
+            value = cc.jit_frame.gen_load_f32(offset_src);
             if (i == 0 && p_first_res_reg)
                 *p_first_res_reg = value;
             else
-                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, dst_frame_sp, jit_cc_new_const_I32(
-                        cc, offset_dst * 4))));
+                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF32(value, dst_frame_sp, cc.new_const_I32(offset_dst * 4))));
             offset_src++;
             offset_dst++;
             break;
-            case VALUE_TYPE_F64:
-            value = gen_load_f64(jit_frame, offset_src);
+            case ValueType.F64:
+            value = cc.jit_frame.gen_load_f64(offset_src);
             if (i == 0 && p_first_res_reg)
                 *p_first_res_reg = value;
             else
-                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, dst_frame_sp, jit_cc_new_const_I32(
-                        cc, offset_dst * 4))));
+                cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STF64(value, dst_frame_sp, cc.new_const_I32(offset_dst * 4))));
             offset_src += 2;
             offset_dst += 2;
             break;
@@ -382,31 +359,25 @@ private void copy_block_arities(JitCompContext* cc, JitReg dst_frame_sp, ubyte* 
 private bool handle_func_return(JitCompContext* cc, JitBlock* block) {
     JitReg prev_frame = void, prev_frame_sp = void;
     JitReg ret_reg = 0;
-    prev_frame = jit_cc_new_reg_ptr(cc);
-    prev_frame_sp = jit_cc_new_reg_ptr(cc);
+    prev_frame = cc.new_reg_ptr;
+    prev_frame_sp = cc.new_reg_ptr;
     /* prev_frame = cur_frame->prev_frame */
-    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(prev_frame, cc.fp_reg, jit_cc_new_const_I32(
-            cc, WASMInterpFrame.prev_frame.offsetof))));
-    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(prev_frame_sp, prev_frame, jit_cc_new_const_I32(
-            cc, WASMInterpFrame.sp.offsetof))));
+    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(prev_frame, cc.fp_reg, cc.new_const_I32(WASMInterpFrame.prev_frame.offsetof))));
+    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_LDPTR(prev_frame_sp, prev_frame, cc.new_const_I32(WASMInterpFrame.sp.offsetof))));
     if (block.result_count) {
         uint cell_num = wasm_get_cell_num(block.result_types, block.result_count);
         copy_block_arities(cc, prev_frame_sp, block.result_types,
                 block.result_count, &ret_reg);
         /* prev_frame->sp += cell_num */
-        cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(prev_frame_sp, prev_frame_sp, jit_cc_new_const_PTR(
-                cc, cell_num * 4))));
-        cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(prev_frame_sp, prev_frame, jit_cc_new_const_I32(
-                cc, WASMInterpFrame.sp.offsetof))));
+        cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(prev_frame_sp, prev_frame_sp, cc.new_const_PTR(cell_num * 4))));
+        cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(prev_frame_sp, prev_frame, cc.new_const_I32(WASMInterpFrame.sp.offsetof))));
     }
     /* Free stack space of the current frame:
        exec_env->wasm_stack.s.top = cur_frame */
-    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(cc.fp_reg, cc.exec_env_reg, jit_cc_new_const_I32(
-            cc, offsetof(WASMExecEnv, wasm_stack.s.top)))));
+    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(cc.fp_reg, cc.exec_env_reg, cc.new_const_I32(WASMExecEnv.wasm_stack.s.top.offsetof))));
     /* Set the prev_frame as the current frame:
        exec_env->cur_frame = prev_frame */
-    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(prev_frame, cc.exec_env_reg, jit_cc_new_const_I32(
-            cc, WASMExecEnv.cur_frame.offsetof))));
+    cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_STPTR(prev_frame, cc.exec_env_reg, cc.new_const_I32(WASMExecEnv.cur_frame.offsetof))));
     /* fp_reg = prev_frame */
     cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_MOV(cc.fp_reg, prev_frame)));
     /* return 0 */
@@ -419,12 +390,11 @@ private bool handle_func_return(JitCompContext* cc, JitBlock* block) {
  * to polymorphic state until the block's 'end' opcode is processed
  */
 private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block_polymorphic) {
-    JitFrame* jit_frame = cc.jit_frame;
     JitBlock* block = void, block_prev = void;
     JitIncomingInsn* incoming_insn = void;
     JitInsn* insn = void;
     /* Check block stack */
-    if (((block = jit_block_stack_top(&cc.block_stack)) == 0)) {
+    if (((block = jit_block_stack_top(&cc.block_stack)) is null)) {
         jit_set_last_error(cc, "WASM block stack underflow");
         return false;
     }
@@ -432,12 +402,12 @@ private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block
         /* No other basic blocks jumping to this end, no need to
            create the end basic block, just continue to translate
            the following opcodes */
-        if (block.label_type == LABEL_TYPE_FUNCTION) {
+        if (block.label_type == LabelType.FUNCTION) {
             if (!handle_func_return(cc, block)) {
                 return false;
             }
             *(cc.jit_annl_end_bcip( jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1;
-            clear_values(jit_frame);
+            cc.jit_frame.clear_values;
         }
         else if (block.result_count > 0) {
             JitValue* value_list_head = null, value_list_end = null;
@@ -449,7 +419,7 @@ private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block
             block_prev = block.prev;
             for (i = 0; i < block.result_count; i++) {
                 jit_value = jit_value_stack_pop(&block.value_stack);
-                bh_assert(jit_value);
+                bh_assert(jit_value !is null);
                 if (!value_list_head) {
                     value_list_head = value_list_end = jit_value;
                     jit_value.prev = jit_value.next = null;
@@ -479,12 +449,12 @@ private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block
     }
     else {
         /* Commit register values to locals and stacks */
-        gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+        cc.jit_frame.gen_commit_values;
         /* Clear frame values */
-        clear_values(jit_frame);
+        cc.jit_frame.clear_values;
         /* Create the end basic block */
         bh_assert(!block.basic_block_end);
-        if (((block.basic_block_end = cc.new_basic_block( 0)) == 0)) {
+        if (((block.basic_block_end = cc.new_basic_block( 0)) is null)) {
             jit_set_last_error(cc, "create basic block failed");
             goto fail;
         }
@@ -532,13 +502,13 @@ private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block
         cc.cur_basic_block = block.basic_block_end;
         /* Pop block and load block results */
         block = jit_block_stack_pop(&cc.block_stack);
-        if (block.label_type == LABEL_TYPE_FUNCTION) {
+        if (block.label_type == LabelType.FUNCTION) {
             if (!handle_func_return(cc, block)) {
                 jit_block_destroy(block);
                 goto fail;
             }
             *(cc.jit_annl_end_bcip( jit_basic_block_label(cc.cur_basic_block))) = *p_frame_ip - 1;
-            clear_values(jit_frame);
+            cc.jit_frame.clear_values;
         }
         else {
             if (!load_block_results(cc, block)) {
@@ -560,14 +530,13 @@ fail:
  */
 private bool handle_op_else(JitCompContext* cc, ubyte** p_frame_ip, bool is_block_polymorphic) {
     JitBlock* block = jit_block_stack_top(&cc.block_stack);
-    JitFrame* jit_frame = cc.jit_frame;
     JitInsn* insn = void;
     /* Check block */
     if (!block) {
         jit_set_last_error(cc, "WASM block stack underflow");
         return false;
     }
-    if (block.label_type != LABEL_TYPE_IF) {
+    if (block.label_type != LabelType.IF) {
         jit_set_last_error(cc, "Invalid WASM block type");
         return false;
     }
@@ -580,15 +549,15 @@ private bool handle_op_else(JitCompContext* cc, ubyte** p_frame_ip, bool is_bloc
     else {
         /* Has else branch and need to translate else branch */
         /* Commit register values to locals and stacks */
-        gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+        cc.jit_frame.gen_commit_values;
         /* Clear frame values */
-        clear_values(jit_frame);
+        cc.jit_frame.clear_values;
         /* No need to create 'JMP' insn if block is in stack polymorphic
            state, as previous br/br_table opcode has created 'JMP' insn
            to this end basic block */
         if (!is_block_polymorphic) {
             /* Jump to end basic block */
-            if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)))) == 0)) {
+            if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)))) is null)) {
                 jit_set_last_error(cc, "generate jmp insn failed");
                 return false;
             }
@@ -602,7 +571,7 @@ private bool handle_op_else(JitCompContext* cc, ubyte** p_frame_ip, bool is_bloc
         jit_value_stack_destroy(&block.value_stack);
         /* create else basic block */
         bh_assert(!block.basic_block_else);
-        if (((block.basic_block_else = cc.new_basic_block( 0)) == 0)) {
+        if (((block.basic_block_else = cc.new_basic_block( 0)) is null)) {
             jit_set_last_error(cc, "create basic block failed");
             goto fail;
         }
@@ -626,9 +595,9 @@ fail:
 
 private bool handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip) {
     JitBlock* block = jit_block_stack_top(&cc.block_stack);
-    bh_assert(block);
+    bh_assert(block !is null);
     do {
-        if (block.label_type == LABEL_TYPE_IF
+        if (block.label_type == LabelType.IF
                 && block.incoming_insn_for_else_bb
                 && *p_frame_ip <= block.wasm_code_else) {
             /* Else branch hasn't been translated,
@@ -680,11 +649,11 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
         jit_set_last_error(cc, "allocate memory failed");
         return false;
     }
-    if (param_count && ((block.param_types = jit_calloc_buffer(param_count)) is null)) {
+    if (param_count && ((block.param_types = jit_calloc_valuetype(param_count)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         goto fail;
     }
-    if (result_count && ((block.result_types = jit_calloc_buffer(result_count)) is null)) {
+    if (result_count && ((block.result_types = jit_calloc_valuetype(result_count)) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         goto fail;
     }
@@ -701,14 +670,14 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
     }
     block.wasm_code_else = else_addr;
     block.wasm_code_end = end_addr;
-    if (label_type == LABEL_TYPE_BLOCK) {
+    if (label_type == LabelType.BLOCK) {
         /* Push the new jit block to block stack and continue to
            translate current basic block */
         if (!push_jit_block_to_stack_and_pass_params(
                 cc, block, cc.cur_basic_block, 0, false))
             goto fail;
     }
-    else if (label_type == LABEL_TYPE_LOOP) {
+    else if (label_type == LabelType.LOOP) {
         bh_assert(!block.basic_block_entry);
         if (((block.basic_block_entry = cc.new_basic_block( 0)) is null)) {
             jit_set_last_error(cc, "create basic block failed");
@@ -722,7 +691,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
                 cc, block, block.basic_block_entry, 0, false))
             goto fail;
     }
-    else if (label_type == LABEL_TYPE_IF) {
+    else if (label_type == LabelType.IF) {
         cc.pop_i32(value);
         if (!jit_reg_is_const_val(value)) {
             /* Compare value is not constant, create condition br IR */
@@ -746,7 +715,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
             if (cc.get_const_I32( value) != 0) {
                 /* Compare value is not 0, condition is true, else branch of
                    BASIC_BLOCK if cannot be reached, we treat it same as
-                   LABEL_TYPE_BLOCK and start to translate if branch */
+                   LabelType.BLOCK and start to translate if branch */
                 if (!push_jit_block_to_stack_and_pass_params(
                         cc, block, cc.cur_basic_block, 0, false))
                     goto fail;
@@ -755,7 +724,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
                 if (else_addr) {
                     /* Compare value is not 0, condition is false, if branch of
                        BASIC_BLOCK if cannot be reached, we treat it same as
-                       LABEL_TYPE_BLOCK and start to translate else branch */
+                       LabelType.BLOCK and start to translate else branch */
                     if (!push_jit_block_to_stack_and_pass_params(
                             cc, block, cc.cur_basic_block, 0, false))
                         goto fail;
@@ -794,7 +763,7 @@ bool jit_compile_op_end(JitCompContext* cc, ubyte** p_frame_ip) {
    to the dest block */
 private bool check_copy_arities(const(JitBlock)* block_dst, JitFrame* jit_frame) {
     JitValueSlot* frame_sp_src = null;
-    if (block_dst.label_type == LABEL_TYPE_LOOP) {
+    if (block_dst.label_type == LabelType.LOOP) {
         frame_sp_src =
             jit_frame.sp
             - wasm_get_cell_num(block_dst.param_types, block_dst.param_count);
@@ -820,39 +789,37 @@ private bool handle_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip)
     JitReg frame_sp_dst = void;
     JitInsn* insn = void;
     bool copy_arities = void;
-    uint offset = void;
+    //uint offset = void;
     /* Check block stack */
-    if (((block = jit_block_stack_top(&cc.block_stack)) == 0)) {
+    if (((block = jit_block_stack_top(&cc.block_stack)) is null)) {
         jit_set_last_error(cc, "WASM block stack underflow");
         return false;
     }
-    if (((block_dst = get_target_block(cc, br_depth)) == 0)) {
+    if (((block_dst = get_target_block(cc, br_depth)) is null)) {
         return false;
     }
-    jit_frame = cc.jit_frame;
     /* Only opy parameters or results when their count > 0 and
        the src/dst addr are different */
     copy_arities = check_copy_arities(block_dst, jit_frame);
     if (copy_arities) {
-        frame_sp_dst = jit_cc_new_reg_ptr(cc);
-        offset = WASMInterpFrame.lp.offsetof
+        frame_sp_dst = cc.new_reg_ptr;
+        const offset = WASMInterpFrame.lp.offsetof
             + (block_dst.frame_sp_begin - jit_frame.lp) * 4;
-        cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_sp_dst, cc.fp_reg, jit_cc_new_const_PTR(
-                cc, offset))));
+        cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_ADD(frame_sp_dst, cc.fp_reg, cc.new_const_PTR(offset))));
         /* No need to commit results as they will be copied to dest block */
-        gen_commit_values(jit_frame, jit_frame.lp, block.frame_sp_begin);
+        cc.jit_frame.gen_commit_values;
     }
     else {
         /* Commit all including results as they won't be copied */
-        gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+        cc.jit_frame.gen_commit_values;
     }
-    if (block_dst.label_type == LABEL_TYPE_LOOP) {
+    if (block_dst.label_type == LabelType.LOOP) {
         if (copy_arities) {
             /* Dest block is Loop block, copy loop parameters */
             copy_block_arities(cc, frame_sp_dst, block_dst.param_types,
                     block_dst.param_count, null);
         }
-        clear_values(jit_frame);
+        cc.jit_frame.clear_values;
         /* Jump to the begin basic block */
         if (!cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(jit_basic_block_label(block_dst
                 .basic_block_entry))))) {
@@ -867,9 +834,9 @@ private bool handle_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip)
             copy_block_arities(cc, frame_sp_dst, block_dst.result_types,
                     block_dst.result_count, null);
         }
-        clear_values(jit_frame);
+        cc.jit_frame.clear_values;
         /* Jump to the end basic block */
-        if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)))) == 0)) {
+        if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_JMP(0)))) is null)) {
             jit_set_last_error(cc, "generate jmp insn failed");
             goto fail;
         }
@@ -895,8 +862,8 @@ private JitFrame* jit_frame_clone(const(JitFrame)* jit_frame) {
     uint max_stacks = jit_frame.max_stacks;
     uint total_size = void;
     total_size = cast(uint)(JitFrame.lp.offsetof
-            + sizeof(*jit_frame.lp) * (max_locals + max_stacks));
-    jit_frame_cloned = jit_calloc(total_size);
+            + (*jit_frame.lp).sizeof * (max_locals + max_stacks));
+    jit_frame_cloned = jit_calloc_frame(total_size);
     if (jit_frame_cloned) {
         bh_memcpy_s(jit_frame_cloned, total_size, jit_frame, total_size);
         jit_frame_cloned.sp =
@@ -911,7 +878,7 @@ private void jit_frame_copy(JitFrame* jit_frame_dst, const(JitFrame)* jit_frame_
     uint total_size = void;
     total_size =
         cast(uint)(JitFrame.lp.offsetof
-                + sizeof(*jit_frame_src.lp) * (max_locals + max_stacks));
+                + (*jit_frame_src.lp).sizeof * (max_locals + max_stacks));
     bh_memcpy_s(jit_frame_dst, total_size, jit_frame_src, total_size);
     jit_frame_dst.sp =
         jit_frame_dst.lp + (jit_frame_src.sp - jit_frame_src.lp);
@@ -932,9 +899,8 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
     if (merge_cmp_and_br_if) {
         get_last_cmp_and_selectcc(cc, cond, &insn_cmp, &insn_select);
     }
-    jit_frame = cc.jit_frame;
     cur_basic_block = cc.cur_basic_block;
-    //    gen_commit_values(jit_frame, jit_frame.lp, jit_frame.sp);
+    //    cc.jit_frame.gen_commit_values;
     jit_frame.gen_commit_values; //(jit_frame, jit_frame.lp, jit_frame.sp);
     if (!(insn_select && insn_cmp)) {
         if (!cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_CMP(cc.cmp_reg, cond, 
@@ -947,7 +913,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
        the src/dst addr are different */
     copy_arities = check_copy_arities(block_dst, jit_frame);
     if (!copy_arities) {
-        if (block_dst.label_type == LABEL_TYPE_LOOP) {
+        if (block_dst.label_type == LabelType.LOOP) {
             if (((insn = cc._gen_insn( _jit_cc_set_insn_uid_for_new_insn(cc, jit_insn_new_BNE(cc.cmp_reg, jit_basic_block_label(
                     block_dst.basic_block_entry), 0)))) is null)) {
                 jit_set_last_error(cc, "generate bne insn failed");
@@ -990,7 +956,7 @@ bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_
     cc.cur_basic_block = if_basic_block;
     *(cc.jit_annl_begin_bcip( jit_basic_block_label(if_basic_block))) = *p_frame_ip - 1;
     /* Clone current jit frame to a new jit fame */
-    if (((jit_frame_cloned = jit_frame_clone(jit_frame)) is null)) {
+    if (((jit_frame_cloned = cc.jit_frame.jit_frame_clone) is null)) {
         jit_set_last_error(cc, "allocate memory failed");
         goto fail;
     }
@@ -1047,7 +1013,7 @@ bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count,
             /* No need to create new basic block, direclty jump to
                the existing basic block when no need to copy arities */
             if (i == br_count) {
-                if (block_dst.label_type == LABEL_TYPE_LOOP) {
+                if (block_dst.label_type == LabelType.LOOP) {
                     opnd.default_target =
                         jit_basic_block_label(block_dst.basic_block_entry);
                 }
@@ -1061,7 +1027,7 @@ bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count,
             }
             else {
                 opnd.match_pairs[i].value = i;
-                if (block_dst.label_type == LABEL_TYPE_LOOP) {
+                if (block_dst.label_type == LabelType.LOOP) {
                     opnd.match_pairs[i].target =
                         jit_basic_block_label(block_dst.basic_block_entry);
                 }

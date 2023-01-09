@@ -89,38 +89,6 @@ struct WASMImport {
     _U u;
 }
 
-version(none) // Double declaration
-struct WASMFunction {
-    /* the type of function */
-    WASMType* func_type;
-    uint local_count;
-    ubyte* local_types;
-    /* cell num of parameters */
-    ushort param_cell_num;
-    /* cell num of return type */
-    ushort ret_cell_num;
-    /* cell num of local variables */
-    ushort local_cell_num;
-    /* offset of each local, including function parameters
-       and local variables */
-    ushort* local_offsets;
-    uint max_stack_cell_num;
-    uint max_block_num;
-    uint code_size;
-    ubyte* code;
-    /* Whether function has opcode memory.grow */
-    bool has_op_memory_grow;
-    /* Whether function has opcode call or call_indirect */
-    bool has_op_func_call;
-    /* Whether function has memory operation opcodes */
-    bool has_memory_operations;
-    /* Whether function has opcode call_indirect */
-    bool has_op_call_indirect;
-    /* Whether function has opcode set_global_aux_stack */
-    bool has_op_set_global_aux_stack;
-    void* fast_jit_jitted_code;
-}
-
 
 struct WASMDataSeg {
     uint memory_index;

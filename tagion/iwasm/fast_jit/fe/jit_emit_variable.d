@@ -33,10 +33,8 @@
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-module jit_emit_variable_tmp;
+module tagion.iwasm.fast_jit.fe.jit_emit_variable;
 @nogc nothrow:
-extern (C):
-__gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -80,7 +78,7 @@ __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-import tagion.iwasm.interpreter.wasm : WASMFunction, WASMModule, ValueType;
+import tagion.iwasm.interpreter.wasm : WASMFunction, WASMModule, WASMGlobal, WASMGlobalImport, ValueType;
 import tagion.iwasm.interpreter.wasm_runtime :  EXCE_AUX_STACK_OVERFLOW,EXCE_AUX_STACK_UNDERFLOW ;
 import tagion.iwasm.fast_jit.jit_ir : JitReg, JitOpcode,
 jit_insn_new_LDI32,
@@ -97,17 +95,12 @@ import tagion.iwasm.fast_jit.jit_frontend : jit_frontend_get_global_data_offset;
 import tagion.iwasm.fast_jit.fe.jit_emit_exception : jit_emit_exception;
 import tagion.iwasm.share.utils.bh_assert;
 
-//#include "../jit_compiler.h"
-bool jit_compile_op_get_local(JitCompContext* cc, uint local_idx);
-bool jit_compile_op_set_local(JitCompContext* cc, uint local_idx);
-bool jit_compile_op_tee_local(JitCompContext* cc, uint local_idx);
-bool jit_compile_op_get_global(JitCompContext* cc, uint global_idx);
-bool jit_compile_op_set_global(JitCompContext* cc, uint global_idx, bool is_aux_stack);
-//#include "jit_emit_exception.h"
-//#include "../jit_frontend.h"
 private ValueType get_local_type(const(WASMFunction)* wasm_func, uint local_idx) {
     const param_count = wasm_func.func_type.param_count;
-    return local_idx < param_count
+	pragma(msg, ":", typeof(
+         wasm_func.func_type.types[local_idx]), " : ",
+	typeof(wasm_func.local_types[local_idx - param_count]));
+    return (local_idx < param_count)
         ? wasm_func.func_type.types[local_idx] : wasm_func.local_types[local_idx - param_count];
 }
 

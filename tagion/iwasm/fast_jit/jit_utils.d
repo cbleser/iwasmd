@@ -80,6 +80,9 @@ pragma(inline, true) JitInsn** jit_calloc_ref(size_t size) {
 pragma(inline, true) uint* jit_calloc_reg(size_t size) {
 	return jit_calloc!(uint)(size);
 }
+pragma(inline, true) ValueType* jit_calloc_valuetype(size_t size) {
+	return jit_calloc!(ValueType)(size);
+}
 pragma(inline, true) ubyte* jit_calloc_buffer(size_t size) {
 	return jit_calloc!(ubyte)(size);
 }

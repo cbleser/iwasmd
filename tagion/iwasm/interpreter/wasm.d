@@ -1,7 +1,5 @@
 module wasm;
 @nogc nothrow:
-extern (C):
-__gshared:
 /*
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -96,10 +94,12 @@ enum EXPORT_KIND_TABLE = 1;
 enum EXPORT_KIND_MEMORY = 2;
 enum EXPORT_KIND_GLOBAL = 3;
 
-enum LABEL_TYPE_BLOCK = 0;
-enum LABEL_TYPE_LOOP = 1;
-enum LABEL_TYPE_IF = 2;
-enum LABEL_TYPE_FUNCTION = 3;
+enum LabelType : ubyte {
+BLOCK = 0,
+LOOP = 1,
+IF = 2,
+FUNCTION = 3,
+}
 
 union V128 {
     byte[16] i8x16;
@@ -143,7 +143,7 @@ struct WASMType {
     void* call_to_llvm_jit_from_fast_jit;
     //    }
     /* types of params and results */
-    ubyte[1] types;
+    ValueType[1] types;
 }
 
 struct WASMTable {
@@ -212,7 +212,7 @@ struct WASMFunctionImport {
 struct WASMGlobalImport {
     char* module_name;
     char* field_name;
-    ubyte type;
+    ValueType type;
     bool is_mutable;
     /* global data after linked */
     WASMValue global_data_linked;
@@ -254,7 +254,7 @@ struct WASMFunction {
     /* the type of function */
     WASMType* func_type;
     uint local_count;
-    WASMType* local_types;
+    ValueType* local_types;
 
     /* cell num of parameters */
     ushort param_cell_num;
@@ -302,7 +302,7 @@ struct WASMFunction {
 }
 
 struct WASMGlobal {
-    ubyte type;
+    ValueType type;
     bool is_mutable;
     InitializerExpression init_expr;
     //static if (ver.WASM_ENABLE_FAST_JIT) {
@@ -674,7 +674,7 @@ ushort wasm_value_type_cell_num(ubyte value_type) {
     return wasm_value_type_size(value_type) / 4;
 }
 
-uint wasm_get_cell_num(const(ubyte)* types, uint type_count) {
+uint wasm_get_cell_num(const(ValueType)* types, uint type_count) {
     uint cell_num = 0;
     uint i = void;
     for (i = 0; i < type_count; i++)
