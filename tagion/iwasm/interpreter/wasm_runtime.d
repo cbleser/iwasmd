@@ -71,23 +71,6 @@ union V128 {
 }
 
 
-struct WASMImport {
-    ubyte kind;
-    union _U {
-        WASMFunctionImport function_;
-        WASMTableImport table;
-        WASMMemoryImport memory;
-        WASMGlobalImport global;
-        struct _Names {
-            char* module_name;
-            char* field_name;
-        }
-
-        _Names names;
-    }
-
-    _U u;
-}
 
 
 struct WASMDataSeg {

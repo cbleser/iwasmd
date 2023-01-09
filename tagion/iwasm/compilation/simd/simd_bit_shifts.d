@@ -1,15 +1,14 @@
-module simd_bit_shifts;
+module tagion.iwasm.compilation.simd.simd_bit_shifts;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_bit_shifts;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_bit_shifts;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 enum integer_shift {
     e_shift_i8x16,
@@ -141,22 +140,3 @@ bool aot_compile_simd_i64x2_shift(AOTCompContext* comp_ctx, AOTFuncContext* func
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_i8x16_shift(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntShift shift_op);
-
-bool aot_compile_simd_i16x8_shift(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntShift shift_op);
-
-bool aot_compile_simd_i32x4_shift(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntShift shift_op);
-
-bool aot_compile_simd_i64x2_shift(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntShift shift_op);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_BIT_SHIFTS_H_ */

@@ -1,15 +1,14 @@
-module simd_comparisons;
+module tagion.iwasm.compilation.simd.simd_comparisons;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_comparisons;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_comparisons;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 private bool float_cond_2_predicate(FloatCond cond, LLVMRealPredicate* out_) {
     switch (cond) {
@@ -206,27 +205,3 @@ bool aot_compile_simd_f64x2_compare(AOTCompContext* comp_ctx, AOTFuncContext* fu
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
- 
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_i8x16_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);
-
-bool aot_compile_simd_i16x8_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);
-
-bool aot_compile_simd_i32x4_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);
-
-bool aot_compile_simd_i64x2_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntCond cond);
-
-bool aot_compile_simd_f32x4_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatCond cond);
-
-bool aot_compile_simd_f64x2_compare(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatCond cond);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_COMPARISONS_H_ */

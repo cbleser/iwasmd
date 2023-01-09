@@ -1,15 +1,14 @@
-module simd_access_lanes;
+module tagion.iwasm.compilation.simd.simd_access_lanes;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_access_lanes;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_access_lanes;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 bool aot_compile_simd_shuffle(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, const(ubyte)* frame_ip) {
     LLVMValueRef vec1 = void, vec2 = void, mask = void, result = void;
@@ -366,50 +365,3 @@ bool aot_compile_simd_replace_f64x2(AOTCompContext* comp_ctx, AOTFuncContext* fu
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_shuffle(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, const(ubyte)* frame_ip);
-
-bool aot_compile_simd_swizzle(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_extract_i8x16(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id, bool is_signed);
-
-bool aot_compile_simd_extract_i16x8(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id, bool is_signed);
-
-bool aot_compile_simd_extract_i32x4(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_extract_i64x2(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_extract_f32x4(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_extract_f64x2(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_replace_i8x16(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_replace_i16x8(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_replace_i32x4(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_replace_i64x2(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_replace_f32x4(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_replace_f64x2(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_load8_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_load16_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_load32_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-bool aot_compile_simd_load64_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte lane_id);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_ACCESS_LANES_H_ */

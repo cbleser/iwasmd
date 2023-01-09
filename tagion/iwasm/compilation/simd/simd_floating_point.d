@@ -1,16 +1,15 @@
-module simd_floating_point;
+module tagion.iwasm.compilation.simd.simd_floating_point;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_floating_point;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ...aot_emit_numberic;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_floating_point;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.compilation.aot_emit_numberic;
+import tagion.iwasm.aot.aot_runtime;
 
 private bool simd_v128_float_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatArithmetic arith_op, LLVMTypeRef vector_type) {
     LLVMValueRef lhs = void, rhs = void, result = null;
@@ -322,62 +321,3 @@ bool aot_compile_simd_f32x4_promote(AOTCompContext* comp_ctx, AOTFuncContext* fu
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_f32x4_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatArithmetic arith_op);
-
-bool aot_compile_simd_f64x2_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatArithmetic arith_op);
-
-bool aot_compile_simd_f32x4_neg(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_neg(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_abs(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_abs(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_round(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_round(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_sqrt(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_sqrt(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_ceil(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_ceil(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_floor(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_floor(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_trunc(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_trunc(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_nearest(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f64x2_nearest(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_min_max(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool run_min);
-
-bool aot_compile_simd_f64x2_min_max(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool run_min);
-
-bool aot_compile_simd_f32x4_pmin_pmax(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool run_min);
-
-bool aot_compile_simd_f64x2_pmin_pmax(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, bool run_min);
-
-bool aot_compile_simd_f64x2_demote(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_f32x4_promote(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_FLOATING_POINT_H_ */

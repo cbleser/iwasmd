@@ -1,15 +1,14 @@
-module simd_bool_reductions;
+module tagion.iwasm.compilation.simd.simd_bool_reductions;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_bool_reductions;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_bool_reductions;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 enum integer_all_true {
     e_int_all_true_v16i8,
@@ -131,25 +130,4 @@ fail:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
- 
-public import ...aot_compiler;
 
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_i8x16_all_true(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i16x8_all_true(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i32x4_all_true(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i64x2_all_true(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_v128_any_true(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_BOOL_REDUCTIONS_H_ */

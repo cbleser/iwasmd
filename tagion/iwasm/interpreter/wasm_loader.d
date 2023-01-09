@@ -1,4 +1,4 @@
-module tagion.iwasm.interpreter.wwasm_loader;
+module tagion.iwasm.interpreter.wasm_loader;
 @nogc nothrow:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
@@ -47,9 +47,12 @@ module tagion.iwasm.interpreter.wwasm_loader;
  * Copyright (C) 2019 Intel Corporation.  All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.basic;
+import tagion.iwasm.config;
 public import tagion.iwasm.app_framework.base.app.bh_platform;
 public import tagion.iwasm.share.utils.bh_hashmap;
 public import tagion.iwasm.share.utils.bh_assert;
+public import tagion.iwasm.share.utils.bh_list;
 /** Value Type */
 /* Used by AOT */
 /*  Used by loader to represent any type of i32/i64/f32/f64 */
@@ -63,35 +66,8 @@ union V128 {
     short[8] i16x8;
     int[4] i32x8;
     long[2] i64x2;
-    float32[4] f32x4;
-    float64[2] f64x2;
-}
-union WASMValue {
-    int i32;
-    uint u32;
-    uint global_index;
-    uint ref_index;
-    long i64;
-    ulong u64;
-    float32 f32;
-    float64 f64;
-    uintptr_t addr;
-    V128 v128;
-}
-struct InitializerExpression {
-    /* type of INIT_EXPR_TYPE_XXX */
-    /* it actually is instr, in some places, requires constant only */
-    ubyte init_expr_type;
-    WASMValue u;
-}
-struct WASMType {
-    ushort param_count;
-    ushort result_count;
-    ushort param_cell_num;
-    ushort ret_cell_num;
-    ushort ref_count;
-    /* types of params and results */
-    ubyte[1] types;
+    float[4] f32x4;
+    double[2] f64x2;
 }
 struct WASMTable {
     ubyte elem_type;
@@ -124,74 +100,6 @@ struct WASMMemoryImport {
     uint num_bytes_per_page;
     uint init_page_count;
     uint max_page_count;
-}
-struct WASMFunctionImport {
-    char* module_name;
-    char* field_name;
-    /* function type */
-    WASMType* func_type;
-    /* native function pointer after linked */
-    void* func_ptr_linked;
-    /* signature from registered native symbols */
-    const(char)* signature;
-    /* attachment */
-    void* attachment;
-    bool call_conv_raw;
-    bool call_conv_wasm_c_api;
-}
-struct WASMGlobalImport {
-    char* module_name;
-    char* field_name;
-    ubyte type;
-    bool is_mutable;
-    /* global data after linked */
-    WASMValue global_data_linked;
-    bool is_linked;
-    /* The data offset of current global in global data */
-    uint data_offset;
-}
-struct WASMImport {
-    ubyte kind;
-    union _U {
-        WASMFunctionImport function_;
-        WASMTableImport table;
-        WASMMemoryImport memory;
-        WASMGlobalImport global;
-        struct _Names {
-            char* module_name;
-            char* field_name;
-        }_Names names;
-    }_U u;
-}
-struct WASMFunction {
-    /* the type of function */
-    WASMType* func_type;
-    uint local_count;
-    ubyte* local_types;
-    /* cell num of parameters */
-    ushort param_cell_num;
-    /* cell num of return type */
-    ushort ret_cell_num;
-    /* cell num of local variables */
-    ushort local_cell_num;
-    /* offset of each local, including function parameters
-       and local variables */
-    ushort* local_offsets;
-    uint max_stack_cell_num;
-    uint max_block_num;
-    uint code_size;
-    ubyte* code;
-    /* Whether function has opcode memory.grow */
-    bool has_op_memory_grow;
-    /* Whether function has opcode call or call_indirect */
-    bool has_op_func_call;
-    /* Whether function has memory operation opcodes */
-    bool has_memory_operations;
-    /* Whether function has opcode call_indirect */
-    bool has_op_call_indirect;
-    /* Whether function has opcode set_global_aux_stack */
-    bool has_op_set_global_aux_stack;
-    void* fast_jit_jitted_code;
 }
 struct WASMGlobal {
     ubyte type;
@@ -247,104 +155,7 @@ struct OrcJitThreadArg {
     WASMModule* module_;
     uint group_idx;
 }
-struct WASMModuleInstance;
-struct WASMModule {
-    /* Module type, for module loaded from WASM bytecode binary,
-       this field is Wasm_Module_Bytecode;
-       for module loaded from AOT file, this field is
-       Wasm_Module_AoT, and this structure should be treated as
-       AOTModule structure. */
-    uint module_type;
-    uint type_count;
-    uint import_count;
-    uint function_count;
-    uint table_count;
-    uint memory_count;
-    uint global_count;
-    uint export_count;
-    uint table_seg_count;
-    /* data seg count read from data segment section */
-    uint data_seg_count;
-    uint import_function_count;
-    uint import_table_count;
-    uint import_memory_count;
-    uint import_global_count;
-    WASMImport* import_functions;
-    WASMImport* import_tables;
-    WASMImport* import_memories;
-    WASMImport* import_globals;
-    WASMType** types;
-    WASMImport* imports;
-    WASMFunction** functions;
-    WASMTable* tables;
-    WASMMemory* memories;
-    WASMGlobal* globals;
-    WASMExport* exports;
-    WASMTableSeg* table_segments;
-    WASMDataSeg** data_segments;
-    uint start_function;
-    /* total global variable size */
-    uint global_data_size;
-    /* the index of auxiliary __data_end global,
-       -1 means unexported */
-    uint aux_data_end_global_index;
-    /* auxiliary __data_end exported by wasm app */
-    uint aux_data_end;
-    /* the index of auxiliary __heap_base global,
-       -1 means unexported */
-    uint aux_heap_base_global_index;
-    /* auxiliary __heap_base exported by wasm app */
-    uint aux_heap_base;
-    /* the index of auxiliary stack top global,
-       -1 means unexported */
-    uint aux_stack_top_global_index;
-    /* auxiliary stack bottom resolved */
-    uint aux_stack_bottom;
-    /* auxiliary stack size resolved */
-    uint aux_stack_size;
-    /* the index of malloc/free function,
-       -1 means unexported */
-    uint malloc_function;
-    uint free_function;
-    /* the index of __retain function,
-       -1 means unexported */
-    uint retain_function;
-    /* Whether there is possible memory grow, e.g. memory.grow opcode */
-    bool possible_memory_grow;
-    StringList const_str_list;
-    bh_list br_table_cache_list_head;
-    bh_list* br_table_cache_list;
-    ubyte* load_addr;
-    ulong load_size;
-    /* func pointers of Fast JITed (un-imported) functions */
-    void** fast_jit_func_ptrs;
-    /* locks for Fast JIT lazy compilation */
-    korp_mutex[WASM_ORC_JIT_BACKEND_THREAD_NUM] fast_jit_thread_locks;
-    bool[WASM_ORC_JIT_BACKEND_THREAD_NUM] fast_jit_thread_locks_inited;
-    AOTCompData* comp_data;
-    AOTCompContext* comp_ctx;
-    /* func pointers of LLVM JITed (un-imported) functions */
-    void** func_ptrs;
-    /* whether the func pointers are compiled */
-    bool* func_ptrs_compiled;
-    /* backend compilation threads */
-    korp_tid[WASM_ORC_JIT_BACKEND_THREAD_NUM] orcjit_threads;
-    /* backend thread arguments */
-    OrcJitThreadArg[WASM_ORC_JIT_BACKEND_THREAD_NUM] orcjit_thread_args;
-    /* whether to stop the compilation of backend threads */
-    bool orcjit_stop_compiling;
-}
-struct BlockType {
-    /* Block type may be expressed in one of two forms:
-     * either by the type of the single return value or
-     * by a type index of module.
-     */
-    union _U {
-        ubyte value_type;
-        WASMType* type;
-    }_U u;
-    bool is_value_type;
-}
+
 struct WASMBranchBlock {
     ubyte* begin_addr;
     ubyte* target_addr;
@@ -801,7 +612,7 @@ private bool load_init_expr(const(ubyte)** p_buf, const(ubyte)* buf_end, Initial
                 goto fail_type_mismatch;
             do { if (!check_buf(p, p_end, 4, error_buf, error_buf_size)) { goto fail; } } while (0);
             p_float = cast(ubyte*)&init_expr.u.f32;
-            for (i = 0; i < float32.sizeof; i++)
+            for (i = 0; i < float.sizeof; i++)
                 *p_float++ = *p++;
             break;
         /* f64.const */
@@ -810,7 +621,7 @@ private bool load_init_expr(const(ubyte)** p_buf, const(ubyte)* buf_end, Initial
                 goto fail_type_mismatch;
             do { if (!check_buf(p, p_end, 8, error_buf, error_buf_size)) { goto fail; } } while (0);
             p_float = cast(ubyte*)&init_expr.u.f64;
-            for (i = 0; i < float64.sizeof; i++)
+            for (i = 0; i < double.sizeof; i++)
                 *p_float++ = *p++;
             break;
         /* get_global */
@@ -3039,10 +2850,10 @@ bool wasm_loader_find_block_addr(WASMExecEnv* exec_env, BlockAddr* block_addr_ca
                 while (*p++ & 0x80){}
                 break;
             case WASM_OP_F32_CONST:
-                p += float32.sizeof;
+                p += float.sizeof;
                 break;
             case WASM_OP_F64_CONST:
-                p += float64.sizeof;
+                p += double.sizeof;
                 break;
             case WASM_OP_I32_EQZ:
             case WASM_OP_I32_EQ:
@@ -4148,11 +3959,11 @@ private bool wasm_loader_prepare_bytecode(WASMModule* module_, WASMFunction* fun
                 do { if (!(wasm_loader_push_frame_ref(loader_ctx, 0X7E, error_buf, error_buf_size))) goto fail; } while (0);
                 break;
             case WASM_OP_F32_CONST:
-                p += float32.sizeof;
+                p += float.sizeof;
                 do { if (!(wasm_loader_push_frame_ref(loader_ctx, 0x7D, error_buf, error_buf_size))) goto fail; } while (0);
                 break;
             case WASM_OP_F64_CONST:
-                p += float64.sizeof;
+                p += double.sizeof;
                 do { if (!(wasm_loader_push_frame_ref(loader_ctx, 0x7C, error_buf, error_buf_size))) goto fail; } while (0);
                 break;
             case WASM_OP_I32_EQZ:

@@ -1,4 +1,4 @@
-module simd_bitwise_ops;
+module tagion.iwasm.compilation.simd.simd_bitwise_ops;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,9 +6,9 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_bitwise_ops;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_bitwise_ops;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 private bool v128_bitwise_two_component(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Bitwise bitwise_op) {
     LLVMValueRef vector1 = void, vector2 = void, result = void;
@@ -141,16 +141,3 @@ bool aot_compile_simd_v128_bitwise(AOTCompContext* comp_ctx, AOTFuncContext* fun
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_v128_bitwise(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Bitwise bitwise_op);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_BITWISE_OPS_H_ */

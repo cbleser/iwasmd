@@ -1,4 +1,4 @@
-module simd_load_store;
+module tagion.iwasm.compilation.simd.simd_load_store;
 @nogc nothrow:
 extern(C): __gshared:
 /*
@@ -6,12 +6,12 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_common;
-public import simd_load_store;
-public import ...aot_emit_exception;
-public import ...aot_emit_memory;
-public import ......aot.aot_runtime;
-public import ......interpreter.wasm_opcode;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.simd.simd_load_store;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.compilation.aot_emit_memory;
+import tagion.iwasm.aot.aot_runtime;
+import tagion.iwasm.interpreter.wasm_opcode;
 
 /* data_length in bytes */
 private LLVMValueRef simd_load(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint align_, uint offset, uint data_length, LLVMTypeRef ptr_type, LLVMTypeRef data_type) {
@@ -307,28 +307,3 @@ bool aot_compile_simd_store_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_v128_load(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint align_, uint offset);
-
-bool aot_compile_simd_load_extend(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte opcode, uint align_, uint offset);
-
-bool aot_compile_simd_load_splat(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte opcode, uint align_, uint offset);
-
-bool aot_compile_simd_load_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte opcode, uint align_, uint offset, ubyte lane_id);
-
-bool aot_compile_simd_load_zero(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte opcode, uint align_, uint offset);
-
-bool aot_compile_simd_v128_store(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint align_, uint offset);
-
-bool aot_compile_simd_store_lane(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte opcode, uint align_, uint offset, ubyte lane_id);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_LOAD_STORE_H_ */

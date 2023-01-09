@@ -1,15 +1,14 @@
-module simd_sat_int_arith;
+module tagion.iwasm.compilation.simd.simd_sat_int_arith;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_sat_int_arith;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_sat_int_arith;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 private bool simd_sat_int_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, LLVMTypeRef vector_type, const(char)* intrinsics) {
     LLVMValueRef lhs = void, rhs = void, result = void;
@@ -71,21 +70,3 @@ bool aot_compile_simd_i32x4_saturate(AOTCompContext* comp_ctx, AOTFuncContext* f
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
- 
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_i8x16_saturate(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, bool is_signed);
-
-bool aot_compile_simd_i16x8_saturate(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, bool is_signed);
-
-bool aot_compile_simd_i32x4_saturate(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, bool is_signed);
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_SAT_INT_ARITH_H_ */

@@ -1,16 +1,15 @@
-module simd_construct_values;
+module tagion.iwasm.compilation.simd.simd_construct_values;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_common;
-public import simd_construct_values;
-public import ...aot_emit_exception;
-public import ...interpreter.wasm_opcode;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.simd.simd_construct_values;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.interpreter.wasm_opcode;
+import tagion.iwasm.aot.aot_runtime;
 
 bool aot_compile_simd_v128_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, const(ubyte)* imm_bytes) {
     ulong imm1 = void, imm2 = void;
@@ -136,18 +135,3 @@ fail:
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_v128_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, const(ubyte)* imm_bytes);
-
-bool aot_compile_simd_splat(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte splat_opcode);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_CONSTRUCT_VALUES_H_ */

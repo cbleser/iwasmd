@@ -1,15 +1,14 @@
-module simd_int_arith;
+module tagion.iwasm.compilation.simd.simd_int_arith;
 @nogc nothrow:
-extern(C): __gshared:
 /*
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import simd_int_arith;
-public import simd_common;
-public import ...aot_emit_exception;
-public import ......aot.aot_runtime;
+import tagion.iwasm.compilation.simd.simd_int_arith;
+import tagion.iwasm.compilation.simd.simd_common;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
 
 private bool simd_integer_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, LLVMTypeRef vector_type) {
     LLVMValueRef lhs = void, rhs = void, result = null;
@@ -351,54 +350,3 @@ bool aot_compile_simd_i32x4_dot_i16x8(AOTCompContext* comp_ctx, AOTFuncContext* 
  */
 
  
-public import ...aot_compiler;
-
-version (none) {
-extern "C" {
-//! #endif
-
-bool aot_compile_simd_i8x16_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic cond);
-
-bool aot_compile_simd_i16x8_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic cond);
-
-bool aot_compile_simd_i32x4_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic cond);
-
-bool aot_compile_simd_i64x2_arith(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic cond);
-
-bool aot_compile_simd_i8x16_neg(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i16x8_neg(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i32x4_neg(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i64x2_neg(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i8x16_popcnt(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i8x16_cmp(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, bool is_signed);
-
-bool aot_compile_simd_i16x8_cmp(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, bool is_signed);
-
-bool aot_compile_simd_i32x4_cmp(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, V128Arithmetic arith_op, bool is_signed);
-
-bool aot_compile_simd_i8x16_abs(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i16x8_abs(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i32x4_abs(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i64x2_abs(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i8x16_avgr_u(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i16x8_avgr_u(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i32x4_avgr_u(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-bool aot_compile_simd_i32x4_dot_i16x8(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-
-version (none) {}
-} /* end of extern "C" */
-}
-
- /* end of _SIMD_INT_ARITH_H_ */
