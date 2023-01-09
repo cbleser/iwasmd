@@ -1,6 +1,5 @@
 module aot_llvm;
 @nogc nothrow:
-extern(C): __gshared:
 
 private template HasVersion(string versionId) {
 	mixin("version("~versionId~") {enum HasVersion = true;} else {enum HasVersion = false;}");
@@ -10,14 +9,13 @@ private template HasVersion(string versionId) {
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import aot_llvm;
-public import aot_compiler;
-public import aot_emit_exception;
-public import ...aot.aot_runtime;
-public import ...aot.aot_intrinsic;
+import tagion.iwasm.compilation.aot_compiler;
+import tagion.iwasm.compilation.aot_emit_exception;
+import tagion.iwasm.aot.aot_runtime;
+import tagion.iwasm.aot.aot_intrinsic;
 
 static if (WASM_ENABLE_DEBUG_AOT != 0) {
-public import debug.dwarf_extractor;
+import tagion.iwasm.compilation.debug_.dwarf_extractor;
 }
 
 LLVMTypeRef wasm_type_to_llvm_type(AOTLLVMTypes* llvm_types, ubyte wasm_type) {
@@ -2624,31 +2622,31 @@ LLVMValueRef aot_load_const_from_table(AOTCompContext* comp_ctx, LLVMValueRef ba
  */
 
  
-public import aot;
-public import llvm.Config.llvm-config;
-public import llvm-c.Types;
-public import llvm-c.Target;
-public import llvm-c.Core;
-public import llvm-c.Object;
-public import llvm-c.ExecutionEngine;
-public import llvm-c.Analysis;
-public import llvm-c.BitWriter;
-public import llvm-c.Transforms.Utils;
-public import llvm-c.Transforms.Scalar;
-public import llvm-c.Transforms.Vectorize;
-public import llvm-c.Transforms.PassManagerBuilder;
+import tagion.iwasm.compilation.aot;
+import tagion.iwasm.compilation.llvm.Config.llvm-config;
+import tagion.iwasm.compilation.llvm_c.Types;
+import tagion.iwasm.compilation.llvm_c.Target;
+import tagion.iwasm.compilation.llvm_c.Core;
+import tagion.iwasm.compilation.llvm_c.Object;
+import tagion.iwasm.compilation.llvm_c.ExecutionEngine;
+import tagion.iwasm.compilation.llvm_c.Analysis;
+import tagion.iwasm.compilation.llvm_c.BitWriter;
+import tagion.iwasm.compilation.llvm_c.Transforms.Utils;
+import tagion.iwasm.compilation.llvm_c.Transforms.Scalar;
+import tagion.iwasm.compilation.llvm_c.Transforms.Vectorize;
+import tagion.iwasm.compilation.llvm_c.Transforms.PassManagerBuilder;
 
-public import llvm-c.Orc;
-public import llvm-c.Error;
-public import llvm-c.Support;
-public import llvm-c.Initialization;
-public import llvm-c.TargetMachine;
-public import llvm-c.LLJIT;
+import tagion.iwasm.compilation.llvm_c.Orc;
+import tagion.iwasm.compilation.llvm_c.Error;
+import tagion.iwasm.compilation.llvm_c.Support;
+import tagion.iwasm.compilation.llvm_c.Initialization;
+import tagion.iwasm.compilation.llvm_c.TargetMachine;
+import tagion.iwasm.compilation.llvm_c.LLJIT;
 static if (WASM_ENABLE_DEBUG_AOT != 0) {
-public import llvm-c.DebugInfo;
+import tagion.iwasm.compilation.llvm_c.DebugInfo;
 }
 
-public import aot_orc_extra;
+import tagion.iwasm.compilation.aot_orc_extra;
 
 version (none) {
 extern "C" {
