@@ -11,8 +11,16 @@
    can be in exported headers and won't override package specific directives.
    This is a C header that can be included in the llvm-c headers. */
 
+import tagion.iwasm.basic;
 @nogc nothrow:
 extern (C):
+void LLVMInitializeX86AsmParser();
+void LLVMInitializeX86AsmPrinter();
+void LLVMInitializeX86Disassembler();
+void LLVMInitializeX86Target();
+void LLVMInitializeX86TargetInfo();
+void LLVMInitializeX86TargetMC();
+
 
 /* Define if LLVM_ENABLE_DUMP is enabled */
 /* #undef LLVM_ENABLE_DUMP */
@@ -30,25 +38,25 @@ enum LLVM_HAS_ATOMICS = 1;
 enum LLVM_HOST_TRIPLE = "x86_64-unknown-linux-gnu";
 
 /* LLVM architecture name for the native architecture, if available */
-enum LLVM_NATIVE_ARCH = X86;
+enum LLVM_NATIVE_ARCH = ver.X86;
 
 /* LLVM name for the native AsmParser init function, if available */
-enum LLVM_NATIVE_ASMPARSER = LLVMInitializeX86AsmParser;
+alias LLVM_NATIVE_ASMPARSER = LLVMInitializeX86AsmParser;
 
 /* LLVM name for the native AsmPrinter init function, if available */
-enum LLVM_NATIVE_ASMPRINTER = LLVMInitializeX86AsmPrinter;
+alias LLVM_NATIVE_ASMPRINTER = LLVMInitializeX86AsmPrinter;
 
 /* LLVM name for the native Disassembler init function, if available */
-enum LLVM_NATIVE_DISASSEMBLER = LLVMInitializeX86Disassembler;
+alias LLVM_NATIVE_DISASSEMBLER = LLVMInitializeX86Disassembler;
 
 /* LLVM name for the native Target init function, if available */
-enum LLVM_NATIVE_TARGET = LLVMInitializeX86Target;
+alias LLVM_NATIVE_TARGET = LLVMInitializeX86Target;
 
 /* LLVM name for the native TargetInfo init function, if available */
-enum LLVM_NATIVE_TARGETINFO = LLVMInitializeX86TargetInfo;
+alias LLVM_NATIVE_TARGETINFO = LLVMInitializeX86TargetInfo;
 
 /* LLVM name for the native target MC init function, if available */
-enum LLVM_NATIVE_TARGETMC = LLVMInitializeX86TargetMC;
+alias LLVM_NATIVE_TARGETMC = LLVMInitializeX86TargetMC;
 
 /* Define if this is Unixish platform */
 enum LLVM_ON_UNIX = 1;

@@ -44,6 +44,7 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.llvm.llvm_c.Types;
 import tagion.iwasm.compilation.aot_compiler;
 bool aot_compile_op_block(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte** p_frame_ip, ubyte* frame_ip_end, uint label_type, uint param_count, ubyte* param_types, uint result_count, ubyte* result_types);
 bool aot_compile_op_else(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, ubyte** p_frame_ip);
@@ -57,8 +58,8 @@ bool aot_handle_next_reachable_block(AOTCompContext* comp_ctx, AOTFuncContext* f
 import tagion.iwasm.compilation.aot_emit_exception;
 import tagion.iwasm.aot.aot_runtime;
 import tagion.iwasm.interpreter.wasm_loader;
-private char*[3] block_name_prefix = [ "block", "loop", "if" ];
-private char*[3] block_name_suffix = [ "begin", "else", "end" ];
+immutable block_name_prefix = [ "block", "loop", "if" ];
+immutable block_name_suffix = [ "begin", "else", "end" ];
 /* clang-format off */
 enum {
     LABEL_BEGIN = 0,

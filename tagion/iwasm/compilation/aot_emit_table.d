@@ -4,8 +4,8 @@ module tagion.iwasm.compilation.aot_emit_table;
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-
-import tagion.iwasm.compilation.aot_emit_table;
+import tagion.iwasm.basic;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.compilation.aot_emit_exception;
 import tagion.iwasm.aot.aot_runtime;
 
@@ -45,7 +45,7 @@ ulong get_tbl_inst_offset(const(AOTCompContext)* comp_ctx, const(AOTFuncContext)
     return offset;
 }
 
-static if (WASM_ENABLE_REF_TYPES != 0) {
+static if (ver.WASM_ENABLE_REF_TYPES) {
 
 LLVMValueRef aot_compile_get_tbl_inst(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint tbl_idx) {
     LLVMValueRef offset = void, tbl_inst = void;

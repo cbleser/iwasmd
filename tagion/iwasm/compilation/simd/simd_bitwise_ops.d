@@ -6,6 +6,8 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import tagion.iwasm.compilation.aot_llvm;
+import tagion.iwasm.compilation.aot_compiler;
 import tagion.iwasm.compilation.simd.simd_bitwise_ops;
 import tagion.iwasm.compilation.aot_emit_exception;
 import tagion.iwasm.aot.aot_runtime;

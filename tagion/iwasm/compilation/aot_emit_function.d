@@ -43,6 +43,8 @@ module tagion.iwasm.compilation.aot_emit_function_tmp;
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.compilation.aot_compiler;
 bool aot_compile_op_call(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint func_idx, bool tail_call);
 bool aot_compile_op_call_indirect(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, uint type_idx, uint tbl_idx);

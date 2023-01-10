@@ -6,8 +6,10 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-public import tagion.iwasm.aot.aot_intrinsic;
-
+import tagion.iwasm.llvm.llvm_c.Core;
+import tagion.iwasm.aot.aot_intrinsic;
+import tagion.iwasm.compilation.aot_llvm;
+import tagion.iwasm.compilation.aot_compiler : FloatCond, IntCond;
 private bool int_cond_to_llvm_op(IntCond cond, LLVMIntPredicate* op) {
     if (cond < INT_EQZ || cond > INT_GE_U)
         return false;

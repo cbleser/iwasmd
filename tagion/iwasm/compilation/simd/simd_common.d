@@ -5,6 +5,8 @@ module tagion.iwasm.compilation.simd.simd_common;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.compilation.simd.simd_common;
 
 LLVMValueRef simd_pop_v128_and_bitcast(const(AOTCompContext)* comp_ctx, const(AOTFuncContext)* func_ctx, LLVMTypeRef vec_type, const(char)* name) {

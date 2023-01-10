@@ -5,7 +5,8 @@ module tagion.iwasm.compilation.aot_emit_const;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-import tagion.iwasm.compilation.aot_emit_const;
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.aot.aot_intrinsic;
 
 bool aot_compile_op_i32_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, int i32_const) {
@@ -56,14 +57,14 @@ fail:
     return false;
 }
 
-bool aot_compile_op_f32_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, float32 f32_const) {
+bool aot_compile_op_f32_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, float f32_const) {
     LLVMValueRef alloca = void, value = void;
 
     if (!isnan(f32_const)) {
         if (comp_ctx.is_indirect_mode
             && aot_intrinsic_check_capability(comp_ctx, "f32.const")) {
             WASMValue wasm_value = void;
-            memcpy(&wasm_value.f32, &f32_const, float32.sizeof);
+            memcpy(&wasm_value.f32, &f32_const, float.sizeof);
             value = aot_load_const_from_table(comp_ctx, func_ctx.native_symbol,
                                               &wasm_value, VALUE_TYPE_F32);
             if (!value) {
@@ -108,14 +109,14 @@ fail:
     return false;
 }
 
-bool aot_compile_op_f64_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, float64 f64_const) {
+bool aot_compile_op_f64_const(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, double f64_const) {
     LLVMValueRef alloca = void, value = void;
 
     if (!isnan(f64_const)) {
         if (comp_ctx.is_indirect_mode
             && aot_intrinsic_check_capability(comp_ctx, "f64.const")) {
             WASMValue wasm_value = void;
-            memcpy(&wasm_value.f64, &f64_const, float64.sizeof);
+            memcpy(&wasm_value.f64, &f64_const, double.sizeof);
             value = aot_load_const_from_table(comp_ctx, func_ctx.native_symbol,
                                               &wasm_value, VALUE_TYPE_F64);
             if (!value) {

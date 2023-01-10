@@ -88,8 +88,6 @@ struct StringNode {
 
 alias StringList = StringNode*;
 
-struct AOTCompData;
-struct AOTCompContext;
 /* Orc JIT thread arguments */
 struct OrcJitThreadArg {
     AOTCompContext* comp_ctx;

@@ -6,15 +6,18 @@ extern(C): __gshared:
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
- 
 import tagion.iwasm.llvm.llvm_c.Error;
 import tagion.iwasm.llvm.llvm_c.ExternC;
 import tagion.iwasm.llvm.llvm_c.LLJIT;
 import tagion.iwasm.llvm.llvm_c.Orc;
 import tagion.iwasm.llvm.llvm_c.Types;
 
-LLVM_C_EXTERN_C_BEGIN typedef; LLVMOrcOpaqueLLLazyJITBuilder* LLVMOrcLLLazyJITBuilderRef;
+//LLVM_C_EXTERN_C_BEGIN typedef; LLVMOrcOpaqueLLLazyJITBuilder* LLVMOrcLLLazyJITBuilderRef;
+struct LLVMOrcOpaqueLLLazyJIT {
+}
+
 alias LLVMOrcLLLazyJITRef = LLVMOrcOpaqueLLLazyJIT*;
+version(IWASM_PROBLEM) { 
 
 // Extra bindings for LLJIT
 void LLVMOrcLLJITBuilderSetNumCompileThreads(LLVMOrcLLJITBuilderRef Builder, uint NumCompileThreads);
@@ -47,5 +50,5 @@ LLVMOrcExecutionSessionRef LLVMOrcLLLazyJITGetExecutionSession(LLVMOrcLLLazyJITR
 LLVMOrcIRTransformLayerRef LLVMOrcLLLazyJITGetIRTransformLayer(LLVMOrcLLLazyJITRef J);
 
 LLVMOrcObjectTransformLayerRef LLVMOrcLLLazyJITGetObjTransformLayer(LLVMOrcLLLazyJITRef J);
-
+}
 

@@ -1,4 +1,4 @@
-module aot_llvm_tmp;
+module taagion.iwasm.compilation.aot_llvm_tmp;
 @nogc nothrow:
 extern(C): __gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
@@ -44,6 +44,7 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import core.stdc.stdarg : va_list;
 import tagion.iwasm.compilation.aot;
 import tagion.iwasm.llvm.llvm.Config.llvm_config;
 import tagion.iwasm.llvm.llvm_c.Types;
@@ -64,6 +65,7 @@ import tagion.iwasm.llvm.llvm_c.Initialization;
 import tagion.iwasm.llvm.llvm_c.TargetMachine;
 import tagion.iwasm.llvm.llvm_c.LLJIT;
 import tagion.iwasm.compilation.aot_orc_extra;
+import tagion.iwasm.share.utils.bh_list;
 // #define DEBUG_PASS
 // #define DUMP_MODULE
 /**
@@ -1232,67 +1234,67 @@ private bool aot_create_llvm_consts(AOTLLVMConsts* consts, AOTCompContext* comp_
     return true;
 }
 struct ArchItem {
-    char* arch;
+    string arch;
     bool support_eb;
 }
 /* clang-format off */
-private ArchItem[56] valid_archs = [
-    [ "x86_64", false ],
-    [ "i386", false ],
-    [ "xtensa", false ],
-    [ "mips", true ],
-    [ "mipsel", false ],
-    [ "aarch64v8", false ],
-    [ "aarch64v8.1", false ],
-    [ "aarch64v8.2", false ],
-    [ "aarch64v8.3", false ],
-    [ "aarch64v8.4", false ],
-    [ "aarch64v8.5", false ],
-    [ "aarch64_bev8", false ], /* big endian */
-    [ "aarch64_bev8.1", false ],
-    [ "aarch64_bev8.2", false ],
-    [ "aarch64_bev8.3", false ],
-    [ "aarch64_bev8.4", false ],
-    [ "aarch64_bev8.5", false ],
-    [ "armv4", true ],
-    [ "armv4t", true ],
-    [ "armv5t", true ],
-    [ "armv5te", true ],
-    [ "armv5tej", true ],
-    [ "armv6", true ],
-    [ "armv6kz", true ],
-    [ "armv6t2", true ],
-    [ "armv6k", true ],
-    [ "armv7", true ],
-    [ "armv6m", true ],
-    [ "armv6sm", true ],
-    [ "armv7em", true ],
-    [ "armv8a", true ],
-    [ "armv8r", true ],
-    [ "armv8m.base", true ],
-    [ "armv8m.main", true ],
-    [ "armv8.1m.main", true ],
-    [ "thumbv4", true ],
-    [ "thumbv4t", true ],
-    [ "thumbv5t", true ],
-    [ "thumbv5te", true ],
-    [ "thumbv5tej", true ],
-    [ "thumbv6", true ],
-    [ "thumbv6kz", true ],
-    [ "thumbv6t2", true ],
-    [ "thumbv6k", true ],
-    [ "thumbv7", true ],
-    [ "thumbv6m", true ],
-    [ "thumbv6sm", true ],
-    [ "thumbv7em", true ],
-    [ "thumbv8a", true ],
-    [ "thumbv8r", true ],
-    [ "thumbv8m.base", true ],
-    [ "thumbv8m.main", true ],
-    [ "thumbv8.1m.main", true ],
-    [ "riscv32", true ],
-    [ "riscv64", true ],
-    [ "arc", true ]
+immutable(ArchItem[]) valid_archs = [
+    ArchItem( "x86_64", false ),
+    ArchItem( "i386", false ),
+    ArchItem( "xtensa", false ),
+    ArchItem( "mips", true ),
+    ArchItem( "mipsel", false ),
+    ArchItem( "aarch64v8", false ),
+    ArchItem( "aarch64v8.1", false ),
+    ArchItem( "aarch64v8.2", false ),
+    ArchItem( "aarch64v8.3", false ),
+    ArchItem( "aarch64v8.4", false ),
+    ArchItem( "aarch64v8.5", false ),
+    ArchItem( "aarch64_bev8", false ), /* big endian */
+    ArchItem( "aarch64_bev8.1", false ),
+    ArchItem( "aarch64_bev8.2", false ),
+    ArchItem( "aarch64_bev8.3", false ),
+    ArchItem( "aarch64_bev8.4", false ),
+    ArchItem( "aarch64_bev8.5", false ),
+    ArchItem( "armv4", true ),
+    ArchItem( "armv4t", true ),
+    ArchItem( "armv5t", true ),
+    ArchItem( "armv5te", true ),
+    ArchItem( "armv5tej", true ),
+    ArchItem( "armv6", true ),
+    ArchItem( "armv6kz", true ),
+    ArchItem( "armv6t2", true ),
+    ArchItem( "armv6k", true ),
+    ArchItem( "armv7", true ),
+    ArchItem( "armv6m", true ),
+    ArchItem( "armv6sm", true ),
+    ArchItem( "armv7em", true ),
+    ArchItem( "armv8a", true ),
+    ArchItem( "armv8r", true ),
+    ArchItem( "armv8m.base", true ),
+    ArchItem( "armv8m.main", true ),
+    ArchItem( "armv8.1m.main", true ),
+    ArchItem( "thumbv4", true ),
+    ArchItem( "thumbv4t", true ),
+    ArchItem( "thumbv5t", true ),
+    ArchItem( "thumbv5te", true ),
+    ArchItem( "thumbv5tej", true ),
+    ArchItem( "thumbv6", true ),
+    ArchItem( "thumbv6kz", true ),
+    ArchItem( "thumbv6t2", true ),
+    ArchItem( "thumbv6k", true ),
+    ArchItem( "thumbv7", true ),
+    ArchItem( "thumbv6m", true ),
+    ArchItem( "thumbv6sm", true ),
+    ArchItem( "thumbv7em", true ),
+    ArchItem( "thumbv8a", true ),
+    ArchItem( "thumbv8r", true ),
+    ArchItem( "thumbv8m.base", true ),
+    ArchItem( "thumbv8m.main", true ),
+    ArchItem( "thumbv8.1m.main", true ),
+    ArchItem( "riscv32", true ),
+    ArchItem( "riscv64", true ),
+    ArchItem( "arc", true )
 ];
 private const(char)*[10] valid_abis = [
     "gnu",

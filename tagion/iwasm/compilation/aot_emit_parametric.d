@@ -5,6 +5,8 @@ module tagion.iwasm.compilation.aot_emit_parametric;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.compilation.aot_emit_parametric;
 
 private bool pop_value_from_wasm_stack(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, LLVMValueRef* p_value, bool is_32, ubyte* p_type) {

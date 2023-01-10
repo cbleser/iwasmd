@@ -2532,10 +2532,16 @@ private void exchange32(ubyte* p_data) {
     *(p_data + 1) = *(p_data + 2);
     *(p_data + 2) = value;
 }
+
+version(none) {
+
 union ___ue {
     int a;
     char b = 0;
-}private ___ue __ue = { a: 1 };
+}
+private ___ue __ue = { a: 1 };
+}
+
 private bool load(const(ubyte)* buf, uint size, WASMModule* module_, char* error_buf, uint error_buf_size) {
     const(ubyte)* buf_end = buf + size;
     const(ubyte)* p = buf, p_end = buf_end;

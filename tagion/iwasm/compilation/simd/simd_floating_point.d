@@ -5,7 +5,9 @@ module tagion.iwasm.compilation.simd.simd_floating_point;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-import tagion.iwasm.compilation.simd.simd_floating_point;
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
+import tagion.iwasm.compilation.aot_compiler;
 import tagion.iwasm.compilation.simd.simd_common;
 import tagion.iwasm.compilation.aot_emit_exception;
 import tagion.iwasm.compilation.aot_emit_numberic;

@@ -1,4 +1,4 @@
-module aot_emit_numberic_tmp;
+module tagion.iwasm.compilation.aot_emit_numberic;
 @nogc nothrow:
 extern(C): __gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
@@ -44,25 +44,9 @@ extern(C): __gshared:
  * Copyright (C) 2019 Intel Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.compilation.aot_compiler;
-bool aot_compile_op_i32_clz(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_i32_ctz(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_i32_popcnt(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_i64_clz(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_i64_ctz(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_i64_popcnt(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_i32_arithmetic(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntArithmetic arith_op, ubyte** p_frame_ip);
-bool aot_compile_op_i64_arithmetic(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntArithmetic arith_op, ubyte** p_frame_ip);
-bool aot_compile_op_i32_bitwise(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntBitwise bitwise_op);
-bool aot_compile_op_i64_bitwise(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntBitwise bitwise_op);
-bool aot_compile_op_i32_shift(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntShift shift_op);
-bool aot_compile_op_i64_shift(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, IntShift shift_op);
-bool aot_compile_op_f32_math(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatMath math_op);
-bool aot_compile_op_f64_math(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatMath math_op);
-bool aot_compile_op_f32_arithmetic(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatArithmetic arith_op);
-bool aot_compile_op_f64_arithmetic(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx, FloatArithmetic arith_op);
-bool aot_compile_op_f32_copysign(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
-bool aot_compile_op_f64_copysign(AOTCompContext* comp_ctx, AOTFuncContext* func_ctx);
 import tagion.iwasm.compilation.aot_emit_exception;
 import tagion.iwasm.compilation.aot_emit_control;
 import tagion.iwasm.aot.aot_runtime;
@@ -190,7 +174,7 @@ alias POP_CNT32 = BitCountType.POP_CNT32;
 alias POP_CNT64 = BitCountType.POP_CNT64;
 
 /* clang-format off */
-private char*[7] bit_cnt_llvm_intrinsic = [
+immutable bit_cnt_llvm_intrinsic = [
     "llvm.ctlz.i32",
     "llvm.ctlz.i64",
     "llvm.cttz.i32",

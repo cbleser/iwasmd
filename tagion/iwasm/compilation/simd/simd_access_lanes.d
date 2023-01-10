@@ -5,6 +5,8 @@ module tagion.iwasm.compilation.simd.simd_access_lanes;
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+import tagion.iwasm.llvm.llvm_c.Types;
+import tagion.iwasm.compilation.aot_llvm;
 import tagion.iwasm.compilation.simd.simd_access_lanes;
 import tagion.iwasm.compilation.simd.simd_common;
 import tagion.iwasm.compilation.aot_emit_exception;
