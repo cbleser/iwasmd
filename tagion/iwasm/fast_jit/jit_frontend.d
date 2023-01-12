@@ -63,6 +63,7 @@ import tagion.iwasm.fast_jit.fe.jit_emit_variable;
 import tagion.iwasm.interpreter.wasm_interp;
 import tagion.iwasm.interpreter.wasm_opcode;
 import tagion.iwasm.interpreter.wasm_runtime;
+import tagion.iwasm.interpreter.wasm : LabelType;
 import tagion.iwasm.common.wasm_exec_env;
 import tagion.iwasm.share.utils.bh_list;
 //import tagion.iwasm.share.utils.bh_assert;
@@ -184,7 +185,7 @@ private bool read_leb(JitCompContext* cc, scope const(ubyte)* buf, scope const(u
     return true;
 }
 
-bool read_lebT(T)(JitCompContext* cc, ref ubyte* p, scope const(ubyte*) p_end, ref T res)  if (isIntegral!T) { 
+bool read_lebT(T)(JitCompContext* cc, ref const(ubyte)* p, scope const(ubyte*) p_end, ref T res)  if (isIntegral!T) { 
 	uint off; 
 	ulong res64;
 	enum max_bits=T.sizeof * 8;
@@ -204,12 +205,12 @@ enum string read_leb_int64(cc, string p, string p_end, string res) = ` do { uint
 private bool jit_compile_func(JitCompContext* cc) {
     WASMFunction* cur_func = cc.cur_wasm_func;
     WASMType* func_type = null;
-    ubyte* frame_ip = cur_func.code;
+    const(ubyte)* frame_ip = cur_func.code;
     ubyte opcode = void;
     ubyte* p_f32 = void, p_f64 = void;
-    ubyte* frame_ip_end = frame_ip + cur_func.code_size;
-    ubyte* param_types = null, result_types = null;
-    ubyte value_type = void;
+    const(ubyte)* frame_ip_end = frame_ip + cur_func.code_size;
+    ValueType* param_types = null, result_types = null;
+    ValueType value_type = void;
     ushort param_count = void, result_count = void;
     uint br_depth = void;
     uint* br_depths = void;
@@ -244,7 +245,7 @@ private bool jit_compile_func(JitCompContext* cc) {
         case WASM_OP_BLOCK:
         case WASM_OP_LOOP:
         case WASM_OP_IF: {
-                value_type = *frame_ip++;
+                value_type = cast(ValueType)(*frame_ip++);
                 if (value_type == VALUE_TYPE_I32 || value_type == VALUE_TYPE_I64
                         || value_type == VALUE_TYPE_F32
                         || value_type == VALUE_TYPE_F64
@@ -269,7 +270,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                 }
                 if (!jit_compile_op_block(
                         cc, &frame_ip, frame_ip_end,
-                        cast(uint)(LABEL_TYPE_BLOCK + opcode - WASM_OP_BLOCK),
+                        cast(uint)(LabelType.BLOCK + opcode - WASM_OP_BLOCK),
                         param_count, param_types, result_count, result_types,
                         merge_cmp_and_if))
                     return false;
@@ -283,13 +284,12 @@ private bool jit_compile_func(JitCompContext* cc) {
                 read_lebT!uint(cc, frame_ip, frame_ip_end, type_idx);
                 func_type = cc.cur_wasm_module.types[type_idx];
                 param_count = func_type.param_count;
-				pragma(msg, typeof(func_type.types.ptr), " ", typeof(param_types));
                 param_types = func_type.types.ptr;
                 result_count = func_type.result_count;
                 result_types = func_type.types.ptr + param_count;
                 if (!jit_compile_op_block(
                         cc, &frame_ip, frame_ip_end,
-                        cast(uint)(LABEL_TYPE_BLOCK + opcode - EXT_OP_BLOCK),
+                        cast(uint)(LabelType.BLOCK + opcode - EXT_OP_BLOCK),
                         param_count, param_types, result_count, result_types,
                         merge_cmp_and_if))
                     return false;
@@ -345,7 +345,7 @@ private bool jit_compile_func(JitCompContext* cc) {
                     BrTableCache* node = bh_list_first_elemT!BrTableCache(
                             cc.cur_wasm_module.br_table_cache_list);
                     BrTableCache* node_next = void;
-                    ubyte* p_opcode = frame_ip - 1;
+                    const(ubyte)* p_opcode = frame_ip - 1;
                     read_lebT!uint(cc, frame_ip, frame_ip_end, br_count);
                     while (node) {
                         node_next = bh_list_elem_nextT!(BrTableCache)(node);

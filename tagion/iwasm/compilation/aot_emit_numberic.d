@@ -174,7 +174,7 @@ alias POP_CNT32 = BitCountType.POP_CNT32;
 alias POP_CNT64 = BitCountType.POP_CNT64;
 
 /* clang-format off */
-immutable bit_cnt_llvm_intrinsic = [
+private char*[7] bit_cnt_llvm_intrinsic = [
     "llvm.ctlz.i32",
     "llvm.ctlz.i64",
     "llvm.cttz.i32",

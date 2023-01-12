@@ -33,7 +33,7 @@ struct JitFrame {
     /* Max operand stack slot number.  */
     uint max_stacks;
     /* Instruction pointer */
-    ubyte* ip;
+    const(ubyte)* ip;
     /* Stack top pointer */
     JitValueSlot* sp;
     /* Committed instruction pointer */

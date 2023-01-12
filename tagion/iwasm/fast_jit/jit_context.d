@@ -411,9 +411,9 @@ nothrow:
    empty blocks so we don't need to store frequencies of edges.  */
         ushort* _label_freq;
         /* Begin bytecode instruction pointer of the block.  */
-        ubyte** _label_begin_bcip;
+        const(ubyte)** _label_begin_bcip;
         /* End bytecode instruction pointer of the block.  */
-        ubyte** _label_end_bcip;
+        const(ubyte)** _label_end_bcip;
         /* Stack pointer offset at the end of the block.  */
         ushort* _label_end_sp;
         /* The label of the next physically adjacent block.  */
@@ -1139,7 +1139,7 @@ nothrow:
         return &_ann._label_freq[idx];
     }
     /* Begin bytecode instruction pointer of the block.  */
-    ubyte** jit_annl_begin_bcip(JitReg label) {
+    const(ubyte)** jit_annl_begin_bcip(JitReg label) {
         uint idx = jit_reg_no(label);
         bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
         bh_assert(idx < _ann._label_num);
@@ -1147,7 +1147,7 @@ nothrow:
         return &_ann._label_begin_bcip[idx];
     }
     /* End bytecode instruction pointer of the block.  */
-    ubyte** jit_annl_end_bcip(JitReg label) {
+    const(ubyte)** jit_annl_end_bcip(JitReg label) {
         uint idx = jit_reg_no(label);
         bh_assert(jit_reg_kind(label) == JIT_REG_KIND_L32);
         bh_assert(idx < _ann._label_num);

@@ -1,4 +1,4 @@
-module tagion.iwasm.aot.aot_intrinsic;
+module aot_intrinsic_tmp;
 @nogc nothrow:
 extern(C): __gshared:
 /* Copyright (C) 1991-2022 Free Software Foundation, Inc.
@@ -44,66 +44,66 @@ extern(C): __gshared:
  * Copyright (C) 2021 XiaoMi Corporation. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
-import tagion.iwasm.aot.aot_runtime;
-import tagion.iwasm.compilation.aot_llvm;
+#include "aot_runtime.h"
+#include "aot_llvm.h"
 /* Use uint64 as flag container:
  *   - The upper 16 bits are the intrinsic group number
  *   - The lower 48 bits are the intrinsic capability mask
  */
 /* clang-format off */
 /* clang-format on */
-float aot_intrinsic_fadd_f32(float a, float b);
-double aot_intrinsic_fadd_f64(double a, double b);
-float aot_intrinsic_fsub_f32(float a, float b);
-double aot_intrinsic_fsub_f64(double a, double b);
-float aot_intrinsic_fmul_f32(float a, float b);
-double aot_intrinsic_fmul_f64(double a, double b);
-float aot_intrinsic_fdiv_f32(float a, float b);
-double aot_intrinsic_fdiv_f64(double a, double b);
-float aot_intrinsic_fabs_f32(float a);
-double aot_intrinsic_fabs_f64(double a);
-float aot_intrinsic_ceil_f32(float a);
-double aot_intrinsic_ceil_f64(double a);
-float aot_intrinsic_floor_f32(float a);
-double aot_intrinsic_floor_f64(double a);
-float aot_intrinsic_trunc_f32(float a);
-double aot_intrinsic_trunc_f64(double a);
-float aot_intrinsic_rint_f32(float a);
-double aot_intrinsic_rint_f64(double a);
-float aot_intrinsic_sqrt_f32(float a);
-double aot_intrinsic_sqrt_f64(double a);
-float aot_intrinsic_copysign_f32(float a, float b);
-double aot_intrinsic_copysign_f64(double a, double b);
-float aot_intrinsic_fmin_f32(float a, float b);
-double aot_intrinsic_fmin_f64(double a, double b);
-float aot_intrinsic_fmax_f32(float a, float b);
-double aot_intrinsic_fmax_f64(double a, double b);
+float32 aot_intrinsic_fadd_f32(float32 a, float32 b);
+float64 aot_intrinsic_fadd_f64(float64 a, float64 b);
+float32 aot_intrinsic_fsub_f32(float32 a, float32 b);
+float64 aot_intrinsic_fsub_f64(float64 a, float64 b);
+float32 aot_intrinsic_fmul_f32(float32 a, float32 b);
+float64 aot_intrinsic_fmul_f64(float64 a, float64 b);
+float32 aot_intrinsic_fdiv_f32(float32 a, float32 b);
+float64 aot_intrinsic_fdiv_f64(float64 a, float64 b);
+float32 aot_intrinsic_fabs_f32(float32 a);
+float64 aot_intrinsic_fabs_f64(float64 a);
+float32 aot_intrinsic_ceil_f32(float32 a);
+float64 aot_intrinsic_ceil_f64(float64 a);
+float32 aot_intrinsic_floor_f32(float32 a);
+float64 aot_intrinsic_floor_f64(float64 a);
+float32 aot_intrinsic_trunc_f32(float32 a);
+float64 aot_intrinsic_trunc_f64(float64 a);
+float32 aot_intrinsic_rint_f32(float32 a);
+float64 aot_intrinsic_rint_f64(float64 a);
+float32 aot_intrinsic_sqrt_f32(float32 a);
+float64 aot_intrinsic_sqrt_f64(float64 a);
+float32 aot_intrinsic_copysign_f32(float32 a, float32 b);
+float64 aot_intrinsic_copysign_f64(float64 a, float64 b);
+float32 aot_intrinsic_fmin_f32(float32 a, float32 b);
+float64 aot_intrinsic_fmin_f64(float64 a, float64 b);
+float32 aot_intrinsic_fmax_f32(float32 a, float32 b);
+float64 aot_intrinsic_fmax_f64(float64 a, float64 b);
 uint aot_intrinsic_clz_i32(uint type);
 uint aot_intrinsic_clz_i64(ulong type);
 uint aot_intrinsic_ctz_i32(uint type);
 uint aot_intrinsic_ctz_i64(ulong type);
 uint aot_intrinsic_popcnt_i32(uint u);
 uint aot_intrinsic_popcnt_i64(ulong u);
-float aot_intrinsic_i32_to_f32(int i);
-float aot_intrinsic_u32_to_f32(uint u);
-double aot_intrinsic_i32_to_f64(int i);
-double aot_intrinsic_u32_to_f64(uint u);
-float aot_intrinsic_i64_to_f32(long i);
-float aot_intrinsic_u64_to_f32(ulong u);
-double aot_intrinsic_i64_to_f64(long i);
-double aot_intrinsic_u64_to_f64(ulong u);
-int aot_intrinsic_f32_to_i32(float f);
-uint aot_intrinsic_f32_to_u32(float f);
-long aot_intrinsic_f32_to_i64(float f);
-ulong aot_intrinsic_f32_to_u64(float f);
-int aot_intrinsic_f64_to_i32(double f);
-uint aot_intrinsic_f64_to_u32(double f);
-long aot_intrinsic_f64_to_i64(double f);
-ulong aot_intrinsic_f64_to_u64(double f);
-double aot_intrinsic_f32_to_f64(float f);
-float aot_intrinsic_f64_to_f32(double f);
-int aot_intrinsic_f32_cmp(AOTFloatCond cond, float lhs, float rhs);
-int aot_intrinsic_f64_cmp(AOTFloatCond cond, double lhs, double rhs);
+float32 aot_intrinsic_i32_to_f32(int i);
+float32 aot_intrinsic_u32_to_f32(uint u);
+float64 aot_intrinsic_i32_to_f64(int i);
+float64 aot_intrinsic_u32_to_f64(uint u);
+float32 aot_intrinsic_i64_to_f32(long i);
+float32 aot_intrinsic_u64_to_f32(ulong u);
+float64 aot_intrinsic_i64_to_f64(long i);
+float64 aot_intrinsic_u64_to_f64(ulong u);
+int aot_intrinsic_f32_to_i32(float32 f);
+uint aot_intrinsic_f32_to_u32(float32 f);
+long aot_intrinsic_f32_to_i64(float32 f);
+ulong aot_intrinsic_f32_to_u64(float32 f);
+int aot_intrinsic_f64_to_i32(float64 f);
+uint aot_intrinsic_f64_to_u32(float64 f);
+long aot_intrinsic_f64_to_i64(float64 f);
+ulong aot_intrinsic_f64_to_u64(float64 f);
+float64 aot_intrinsic_f32_to_f64(float32 f);
+float32 aot_intrinsic_f64_to_f32(float64 f);
+int aot_intrinsic_f32_cmp(AOTFloatCond cond, float32 lhs, float32 rhs);
+int aot_intrinsic_f64_cmp(AOTFloatCond cond, float64 lhs, float64 rhs);
 long aot_intrinsic_i64_div_s(long l, long r);
 int aot_intrinsic_i32_div_s(int l, int r);
 uint aot_intrinsic_i32_div_u(uint l, uint r);
@@ -117,172 +117,170 @@ ulong aot_intrinsic_i64_bit_and(ulong l, ulong r);
 const(char)* aot_intrinsic_get_symbol(const(char)* llvm_intrinsic);
 bool aot_intrinsic_check_capability(const(AOTCompContext)* comp_ctx, const(char)* llvm_intrinsic);
 void aot_intrinsic_fill_capability_flags(AOTCompContext* comp_ctx);
-struct Aot_intrinsic {
-    string llvm_intrinsic;
-    string native_intrinsic;
+struct _Aot_intrinsic {
+    const(char)* llvm_intrinsic;
+    const(char)* native_intrinsic;
     ulong flag;
-}
-//alias aot_intrinsic = _Aot_intrinsic;
+}alias aot_intrinsic = _Aot_intrinsic;
 /* clang-format off */
-immutable(Aot_intrinsic[]) g_intrinsic_mapping = [
-    Aot_intrinsic( "llvm.experimental.constrained.fadd.f32", "aot_intrinsic_fadd_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 0)) ),
-Aot_intrinsic( "llvm.experimental.constrained.fadd.f64", "aot_intrinsic_fadd_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 0)) ),
-    Aot_intrinsic( "llvm.experimental.constrained.fsub.f32", "aot_intrinsic_fsub_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 1)) ),
-    Aot_intrinsic( "llvm.experimental.constrained.fsub.f64", "aot_intrinsic_fsub_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 1)) ),
-    Aot_intrinsic( "llvm.experimental.constrained.fmul.f32", "aot_intrinsic_fmul_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 2)) ),
-    Aot_intrinsic( "llvm.experimental.constrained.fmul.f64", "aot_intrinsic_fmul_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 2)) ),
-    Aot_intrinsic( "llvm.experimental.constrained.fdiv.f32", "aot_intrinsic_fdiv_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 3)) ),
-    Aot_intrinsic( "llvm.experimental.constrained.fdiv.f64", "aot_intrinsic_fdiv_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 3)) ),
-    Aot_intrinsic( "llvm.fabs.f32", "aot_intrinsic_fabs_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 4)) ),
-    Aot_intrinsic( "llvm.fabs.f64", "aot_intrinsic_fabs_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 4)) ),
-    Aot_intrinsic( "llvm.ceil.f32", "aot_intrinsic_ceil_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 5)) ),
-    Aot_intrinsic( "llvm.ceil.f64", "aot_intrinsic_ceil_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 5)) ),
-    Aot_intrinsic( "llvm.floor.f32", "aot_intrinsic_floor_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 6)) ),
-    Aot_intrinsic( "llvm.floor.f64", "aot_intrinsic_floor_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 6)) ),
-    Aot_intrinsic( "llvm.trunc.f32", "aot_intrinsic_trunc_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 7)) ),
-    Aot_intrinsic( "llvm.trunc.f64", "aot_intrinsic_trunc_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 7)) ),
-    Aot_intrinsic( "llvm.rint.f32", "aot_intrinsic_rint_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 8)) ),
-    Aot_intrinsic( "llvm.rint.f64", "aot_intrinsic_rint_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 8)) ),
-    Aot_intrinsic( "llvm.sqrt.f32", "aot_intrinsic_sqrt_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 9)) ),
-    Aot_intrinsic( "llvm.sqrt.f64", "aot_intrinsic_sqrt_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 9)) ),
-    Aot_intrinsic( "llvm.copysign.f32", "aot_intrinsic_copysign_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 10)) ),
-    Aot_intrinsic( "llvm.copysign.f64", "aot_intrinsic_copysign_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 10)) ),
-    Aot_intrinsic( "llvm.minnum.f32", "aot_intrinsic_fmin_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 11)) ),
-    Aot_intrinsic( "llvm.minnum.f64", "aot_intrinsic_fmin_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 11)) ),
-    Aot_intrinsic( "llvm.maxnum.f32", "aot_intrinsic_fmax_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 12)) ),
-    Aot_intrinsic( "llvm.maxnum.f64", "aot_intrinsic_fmax_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 12)) ),
-    Aot_intrinsic( "llvm.ctlz.i32", "aot_intrinsic_clz_i32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 13)) ),
-    Aot_intrinsic( "llvm.ctlz.i64", "aot_intrinsic_clz_i64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 13)) ),
-    Aot_intrinsic( "llvm.cttz.i32", "aot_intrinsic_ctz_i32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 14)) ),
-    Aot_intrinsic( "llvm.cttz.i64", "aot_intrinsic_ctz_i64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 14)) ),
-    Aot_intrinsic( "llvm.ctpop.i32", "aot_intrinsic_popcnt_i32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 15)) ),
-    Aot_intrinsic( "llvm.ctpop.i64", "aot_intrinsic_popcnt_i64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 15)) ),
-    Aot_intrinsic( "f64_convert_i32_s", "aot_intrinsic_i32_to_f64", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 18)) ),
-    Aot_intrinsic( "f64_convert_i32_u", "aot_intrinsic_u32_to_f64", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 19)) ),
-    Aot_intrinsic( "f32_convert_i32_s", "aot_intrinsic_i32_to_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 16)) ),
-    Aot_intrinsic( "f32_convert_i32_u", "aot_intrinsic_u32_to_f32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 17)) ),
-    Aot_intrinsic( "f64_convert_i64_s", "aot_intrinsic_i64_to_f64", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 18)) ),
-    Aot_intrinsic( "f64_convert_i64_u", "aot_intrinsic_u64_to_f64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 19)) ),
-    Aot_intrinsic( "f32_convert_i64_s", "aot_intrinsic_i64_to_f32", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 16)) ),
-    Aot_intrinsic( "f32_convert_i64_u", "aot_intrinsic_u64_to_f32", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 17)) ),
-    Aot_intrinsic( "i32_trunc_f32_u", "aot_intrinsic_f32_to_u32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 21)) ),
-    Aot_intrinsic( "i32_trunc_f32_s", "aot_intrinsic_f32_to_i32", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 20)) ),
-    Aot_intrinsic( "i32_trunc_f64_u", "aot_intrinsic_f64_to_u32", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 21)) ),
-    Aot_intrinsic( "i32_trunc_f64_s", "aot_intrinsic_f64_to_i32", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 20)) ),
-    Aot_intrinsic( "i64_trunc_f64_u", "aot_intrinsic_f64_to_u64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 23)) ),
-    Aot_intrinsic( "i64_trunc_f64_s", "aot_intrinsic_f64_to_i64", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 22)) ),
-    Aot_intrinsic( "f32_demote_f64", "aot_intrinsic_f64_to_f32", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 24)) ),
-    Aot_intrinsic( "f64_promote_f32", "aot_intrinsic_f32_to_f64", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 24)) ),
-    Aot_intrinsic( "f32_cmp", "aot_intrinsic_f32_cmp", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 25)) ),
-    Aot_intrinsic( "f64_cmp", "aot_intrinsic_f64_cmp", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 25)) ),
-    Aot_intrinsic( "i32.const", null, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 27)) ),
-    Aot_intrinsic( "i64.const", null, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 27)) ),
-    Aot_intrinsic( "f32.const", null, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 26)) ),
-    Aot_intrinsic( "f64.const", null, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 26)) ),
-    Aot_intrinsic( "i64.div_s", "aot_intrinsic_i64_div_s", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 28))),
-    Aot_intrinsic( "i32.div_s", "aot_intrinsic_i32_div_s", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 31))),
-    Aot_intrinsic( "i32.div_u", "aot_intrinsic_i32_div_u", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 28))),
-    Aot_intrinsic( "i32.rem_s", "aot_intrinsic_i32_rem_s", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 29))),
-    Aot_intrinsic( "i32.rem_u", "aot_intrinsic_i32_rem_u", (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 30))),
-    Aot_intrinsic( "i64.div_u", "aot_intrinsic_i64_div_u", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 29))),
-    Aot_intrinsic( "i64.rem_s", "aot_intrinsic_i64_rem_s", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 30))),
-    Aot_intrinsic( "i64.rem_u", "aot_intrinsic_i64_rem_u", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 31))),
-    Aot_intrinsic( "i64.or", "aot_intrinsic_i64_bit_or", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 32))),
-    Aot_intrinsic( "i64.and", "aot_intrinsic_i64_bit_and", (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 33))),
+private const(aot_intrinsic)[65] g_intrinsic_mapping = [
+    [ "llvm.experimental.constrained.fadd.f32", "aot_intrinsic_fadd_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 0)) ],
+    [ "llvm.experimental.constrained.fadd.f64", "aot_intrinsic_fadd_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 0)) ],
+    [ "llvm.experimental.constrained.fsub.f32", "aot_intrinsic_fsub_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 1)) ],
+    [ "llvm.experimental.constrained.fsub.f64", "aot_intrinsic_fsub_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 1)) ],
+    [ "llvm.experimental.constrained.fmul.f32", "aot_intrinsic_fmul_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 2)) ],
+    [ "llvm.experimental.constrained.fmul.f64", "aot_intrinsic_fmul_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 2)) ],
+    [ "llvm.experimental.constrained.fdiv.f32", "aot_intrinsic_fdiv_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 3)) ],
+    [ "llvm.experimental.constrained.fdiv.f64", "aot_intrinsic_fdiv_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 3)) ],
+    [ "llvm.fabs.f32", "aot_intrinsic_fabs_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 4)) ],
+    [ "llvm.fabs.f64", "aot_intrinsic_fabs_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 4)) ],
+    [ "llvm.ceil.f32", "aot_intrinsic_ceil_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 5)) ],
+    [ "llvm.ceil.f64", "aot_intrinsic_ceil_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 5)) ],
+    [ "llvm.floor.f32", "aot_intrinsic_floor_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 6)) ],
+    [ "llvm.floor.f64", "aot_intrinsic_floor_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 6)) ],
+    [ "llvm.trunc.f32", "aot_intrinsic_trunc_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 7)) ],
+    [ "llvm.trunc.f64", "aot_intrinsic_trunc_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 7)) ],
+    [ "llvm.rint.f32", "aot_intrinsic_rint_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 8)) ],
+    [ "llvm.rint.f64", "aot_intrinsic_rint_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 8)) ],
+    [ "llvm.sqrt.f32", "aot_intrinsic_sqrt_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 9)) ],
+    [ "llvm.sqrt.f64", "aot_intrinsic_sqrt_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 9)) ],
+    [ "llvm.copysign.f32", "aot_intrinsic_copysign_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 10)) ],
+    [ "llvm.copysign.f64", "aot_intrinsic_copysign_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 10)) ],
+    [ "llvm.minnum.f32", "aot_intrinsic_fmin_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 11)) ],
+    [ "llvm.minnum.f64", "aot_intrinsic_fmin_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 11)) ],
+    [ "llvm.maxnum.f32", "aot_intrinsic_fmax_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 12)) ],
+    [ "llvm.maxnum.f64", "aot_intrinsic_fmax_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 12)) ],
+    [ "llvm.ctlz.i32", "aot_intrinsic_clz_i32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 13)) ],
+    [ "llvm.ctlz.i64", "aot_intrinsic_clz_i64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 13)) ],
+    [ "llvm.cttz.i32", "aot_intrinsic_ctz_i32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 14)) ],
+    [ "llvm.cttz.i64", "aot_intrinsic_ctz_i64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 14)) ],
+    [ "llvm.ctpop.i32", "aot_intrinsic_popcnt_i32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 15)) ],
+    [ "llvm.ctpop.i64", "aot_intrinsic_popcnt_i64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 15)) ],
+    [ "f64_convert_i32_s", "aot_intrinsic_i32_to_f64", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 18)) ],
+    [ "f64_convert_i32_u", "aot_intrinsic_u32_to_f64", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 19)) ],
+    [ "f32_convert_i32_s", "aot_intrinsic_i32_to_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 16)) ],
+    [ "f32_convert_i32_u", "aot_intrinsic_u32_to_f32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 17)) ],
+    [ "f64_convert_i64_s", "aot_intrinsic_i64_to_f64", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 18)) ],
+    [ "f64_convert_i64_u", "aot_intrinsic_u64_to_f64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 19)) ],
+    [ "f32_convert_i64_s", "aot_intrinsic_i64_to_f32", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 16)) ],
+    [ "f32_convert_i64_u", "aot_intrinsic_u64_to_f32", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 17)) ],
+    [ "i32_trunc_f32_u", "aot_intrinsic_f32_to_u32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 21)) ],
+    [ "i32_trunc_f32_s", "aot_intrinsic_f32_to_i32", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 20)) ],
+    [ "i32_trunc_f64_u", "aot_intrinsic_f64_to_u32", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 21)) ],
+    [ "i32_trunc_f64_s", "aot_intrinsic_f64_to_i32", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 20)) ],
+    [ "i64_trunc_f64_u", "aot_intrinsic_f64_to_u64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 23)) ],
+    [ "i64_trunc_f64_s", "aot_intrinsic_f64_to_i64", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 22)) ],
+    [ "f32_demote_f64", "aot_intrinsic_f64_to_f32", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 24)) ],
+    [ "f64_promote_f32", "aot_intrinsic_f32_to_f64", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 24)) ],
+    [ "f32_cmp", "aot_intrinsic_f32_cmp", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 25)) ],
+    [ "f64_cmp", "aot_intrinsic_f64_cmp", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 25)) ],
+    [ "i32.const", null, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 27)) ],
+    [ "i64.const", null, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 27)) ],
+    [ "f32.const", null, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 26)) ],
+    [ "f64.const", null, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 26)) ],
+    [ "i64.div_s", "aot_intrinsic_i64_div_s", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 28))],
+    [ "i32.div_s", "aot_intrinsic_i32_div_s", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 31))],
+    [ "i32.div_u", "aot_intrinsic_i32_div_u", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 28))],
+    [ "i32.rem_s", "aot_intrinsic_i32_rem_s", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 29))],
+    [ "i32.rem_u", "aot_intrinsic_i32_rem_u", ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 30))],
+    [ "i64.div_u", "aot_intrinsic_i64_div_u", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 29))],
+    [ "i64.rem_s", "aot_intrinsic_i64_rem_s", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 30))],
+    [ "i64.rem_u", "aot_intrinsic_i64_rem_u", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 31))],
+    [ "i64.or", "aot_intrinsic_i64_bit_or", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 32))],
+    [ "i64.and", "aot_intrinsic_i64_bit_and", ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 33))],
 ];
 /* clang-format on */
-enum g_intrinsic_count = g_intrinsic_mapping.length;
-
-float aot_intrinsic_fadd_f32(float a, float b) {
+private const(uint) g_intrinsic_count = g_intrinsic_mapping.sizeof / aot_intrinsic.sizeof;
+float32 aot_intrinsic_fadd_f32(float32 a, float32 b) {
     return a + b;
 }
-double aot_intrinsic_fadd_f64(double a, double b) {
+float64 aot_intrinsic_fadd_f64(float64 a, float64 b) {
     return a + b;
 }
-float aot_intrinsic_fsub_f32(float a, float b) {
+float32 aot_intrinsic_fsub_f32(float32 a, float32 b) {
     return a - b;
 }
-double aot_intrinsic_fsub_f64(double a, double b) {
+float64 aot_intrinsic_fsub_f64(float64 a, float64 b) {
     return a - b;
 }
-float aot_intrinsic_fmul_f32(float a, float b) {
+float32 aot_intrinsic_fmul_f32(float32 a, float32 b) {
     return a * b;
 }
-double aot_intrinsic_fmul_f64(double a, double b) {
+float64 aot_intrinsic_fmul_f64(float64 a, float64 b) {
     return a * b;
 }
-float aot_intrinsic_fdiv_f32(float a, float b) {
+float32 aot_intrinsic_fdiv_f32(float32 a, float32 b) {
     return a / b;
 }
-double aot_intrinsic_fdiv_f64(double a, double b) {
+float64 aot_intrinsic_fdiv_f64(float64 a, float64 b) {
     return a / b;
 }
-float aot_intrinsic_fabs_f32(float a) {
-    return cast(float)fabs(a);
+float32 aot_intrinsic_fabs_f32(float32 a) {
+    return cast(float32)fabs(a);
 }
-double aot_intrinsic_fabs_f64(double a) {
+float64 aot_intrinsic_fabs_f64(float64 a) {
     return fabs(a);
 }
-float aot_intrinsic_ceil_f32(float a) {
-    return cast(float)ceilf(a);
+float32 aot_intrinsic_ceil_f32(float32 a) {
+    return cast(float32)ceilf(a);
 }
-double aot_intrinsic_ceil_f64(double a) {
+float64 aot_intrinsic_ceil_f64(float64 a) {
     return ceil(a);
 }
-float aot_intrinsic_floor_f32(float a) {
-    return cast(float)floorf(a);
+float32 aot_intrinsic_floor_f32(float32 a) {
+    return cast(float32)floorf(a);
 }
-double aot_intrinsic_floor_f64(double a) {
+float64 aot_intrinsic_floor_f64(float64 a) {
     return floor(a);
 }
-float aot_intrinsic_trunc_f32(float a) {
-    return cast(float)trunc(a);
+float32 aot_intrinsic_trunc_f32(float32 a) {
+    return cast(float32)trunc(a);
 }
-double aot_intrinsic_trunc_f64(double a) {
+float64 aot_intrinsic_trunc_f64(float64 a) {
     return trunc(a);
 }
-float aot_intrinsic_rint_f32(float a) {
-    return cast(float)rint(a);
+float32 aot_intrinsic_rint_f32(float32 a) {
+    return cast(float32)rint(a);
 }
-double aot_intrinsic_rint_f64(double a) {
+float64 aot_intrinsic_rint_f64(float64 a) {
     return rint(a);
 }
-float aot_intrinsic_sqrt_f32(float a) {
-    return cast(float)sqrt(a);
+float32 aot_intrinsic_sqrt_f32(float32 a) {
+    return cast(float32)sqrt(a);
 }
-double aot_intrinsic_sqrt_f64(double a) {
+float64 aot_intrinsic_sqrt_f64(float64 a) {
     return sqrt(a);
 }
-float aot_intrinsic_copysign_f32(float a, float b) {
-    return signbit(b) ?cast(float)-fabs(a) : cast(float)fabs(a);
+float32 aot_intrinsic_copysign_f32(float32 a, float32 b) {
+    return signbit(b) ? (float32)-fabs(a) : cast(float32)fabs(a);
 }
-double aot_intrinsic_copysign_f64(double a, double b) {
+float64 aot_intrinsic_copysign_f64(float64 a, float64 b) {
     return signbit(b) ? -fabs(a) : fabs(a);
 }
-float aot_intrinsic_fmin_f32(float a, float b) {
+float32 aot_intrinsic_fmin_f32(float32 a, float32 b) {
     if (isnan(a))
         return a;
     else if (isnan(b))
         return b;
     else
-        return cast(float)fmin(a, b);
+        return cast(float32)fmin(a, b);
 }
-double aot_intrinsic_fmin_f64(double a, double b) {
-    double c = fmin(a, b);
+float64 aot_intrinsic_fmin_f64(float64 a, float64 b) {
+    float64 c = fmin(a, b);
     if (c == 0 && a == b)
         return signbit(a) ? a : b;
     return c;
 }
-float aot_intrinsic_fmax_f32(float a, float b) {
+float32 aot_intrinsic_fmax_f32(float32 a, float32 b) {
     if (isnan(a))
         return a;
     else if (isnan(b))
         return b;
     else
-        return cast(float)fmax(a, b);
+        return cast(float32)fmax(a, b);
 }
-double aot_intrinsic_fmax_f64(double a, double b) {
-    double c = fmax(a, b);
+float64 aot_intrinsic_fmax_f64(float64 a, float64 b) {
+    float64 c = fmax(a, b);
     if (c == 0 && a == b)
         return signbit(a) ? b : a;
     return c;
@@ -301,7 +299,7 @@ uint aot_intrinsic_clz_i64(ulong type) {
     uint num = 0;
     if (type == 0)
         return 64;
-    while (!(type & 0x8000000000000000L)) {
+    while (!(type & 0x8000000000000000LL)) {
         num++;
         type <<= 1;
     }
@@ -343,64 +341,64 @@ uint aot_intrinsic_popcnt_i64(ulong u) {
     }
     return ret;
 }
-float aot_intrinsic_i32_to_f32(int i) {
-    return cast(float)i;
+float32 aot_intrinsic_i32_to_f32(int i) {
+    return cast(float32)i;
 }
-float aot_intrinsic_u32_to_f32(uint u) {
-    return cast(float)u;
+float32 aot_intrinsic_u32_to_f32(uint u) {
+    return cast(float32)u;
 }
-double aot_intrinsic_i32_to_f64(int i) {
-    return cast(double)i;
+float64 aot_intrinsic_i32_to_f64(int i) {
+    return cast(float64)i;
 }
-double aot_intrinsic_u32_to_f64(uint u) {
-    return cast(double)u;
+float64 aot_intrinsic_u32_to_f64(uint u) {
+    return cast(float64)u;
 }
-float aot_intrinsic_i64_to_f32(long i) {
-    return cast(float)i;
+float32 aot_intrinsic_i64_to_f32(long i) {
+    return cast(float32)i;
 }
-float aot_intrinsic_u64_to_f32(ulong u) {
-    return cast(float)u;
+float32 aot_intrinsic_u64_to_f32(ulong u) {
+    return cast(float32)u;
 }
-double aot_intrinsic_i64_to_f64(long i) {
-    return cast(double)i;
+float64 aot_intrinsic_i64_to_f64(long i) {
+    return cast(float64)i;
 }
-double aot_intrinsic_u64_to_f64(ulong u) {
-    return cast(double)u;
+float64 aot_intrinsic_u64_to_f64(ulong u) {
+    return cast(float64)u;
 }
-int aot_intrinsic_f32_to_i32(float f) {
+int aot_intrinsic_f32_to_i32(float32 f) {
     return cast(int)f;
 }
-uint aot_intrinsic_f32_to_u32(float f) {
+uint aot_intrinsic_f32_to_u32(float32 f) {
     return cast(uint)f;
 }
-long aot_intrinsic_f32_to_i64(float f) {
+long aot_intrinsic_f32_to_i64(float32 f) {
     return cast(long)f;
 }
-ulong aot_intrinsic_f32_to_u64(float f) {
+ulong aot_intrinsic_f32_to_u64(float32 f) {
     return cast(ulong)f;
 }
-int aot_intrinsic_f64_to_i32(double f) {
+int aot_intrinsic_f64_to_i32(float64 f) {
     return cast(int)f;
 }
-uint aot_intrinsic_f64_to_u32(double f) {
+uint aot_intrinsic_f64_to_u32(float64 f) {
     return cast(uint)f;
 }
-long aot_intrinsic_f64_to_i64(double f) {
+long aot_intrinsic_f64_to_i64(float64 f) {
     return cast(long)f;
 }
-ulong aot_intrinsic_f64_to_u64(double f) {
+ulong aot_intrinsic_f64_to_u64(float64 f) {
     return cast(ulong)f;
 }
-double aot_intrinsic_f32_to_f64(float f) {
-    return cast(double)f;
+float64 aot_intrinsic_f32_to_f64(float32 f) {
+    return cast(float64)f;
 }
-float aot_intrinsic_f64_to_f32(double f) {
-    return cast(float)f;
+float32 aot_intrinsic_f64_to_f32(float64 f) {
+    return cast(float32)f;
 }
-int aot_intrinsic_f32_cmp(AOTFloatCond cond, float lhs, float rhs) {
+int aot_intrinsic_f32_cmp(AOTFloatCond cond, float32 lhs, float32 rhs) {
     switch (cond) {
         case FLOAT_EQ:
-            return cast(float)fabs(lhs - rhs) <= WA_FLT_EPSILON ? 1 : 0;
+            return cast(float32)fabs(lhs - rhs) <= WA_FLT_EPSILON ? 1 : 0;
         case FLOAT_LT:
             return lhs < rhs ? 1 : 0;
         case FLOAT_GT:
@@ -418,7 +416,7 @@ int aot_intrinsic_f32_cmp(AOTFloatCond cond, float lhs, float rhs) {
     }
     return 0;
 }
-int aot_intrinsic_f64_cmp(AOTFloatCond cond, double lhs, double rhs) {
+int aot_intrinsic_f64_cmp(AOTFloatCond cond, float64 lhs, float64 rhs) {
     switch (cond) {
         case FLOAT_EQ:
             return fabs(lhs - rhs) <= WA_DBL_EPSILON ? 1 : 0;
@@ -472,16 +470,16 @@ ulong aot_intrinsic_i64_bit_and(ulong l, ulong r) {
 const(char)* aot_intrinsic_get_symbol(const(char)* llvm_intrinsic) {
     uint cnt = void;
     for (cnt = 0; cnt < g_intrinsic_count; cnt++) {
-        if (!strcmp(llvm_intrinsic, g_intrinsic_mappingAot_intrinsic(cnt).llvm_intrinsic)) {
-            return g_intrinsic_mappingAot_intrinsic(cnt).native_intrinsic;
+        if (!strcmp(llvm_intrinsic, g_intrinsic_mapping[cnt].llvm_intrinsic)) {
+            return g_intrinsic_mapping[cnt].native_intrinsic;
         }
     }
     return null;
 }
 private void add_intrinsic_capability(AOTCompContext* comp_ctx, ulong flag) {
-    ulong group = (((cast(ulong)flag) >> 48) & 0xffffL);
+    ulong group = (((cast(ulong)flag) >> 48) & 0xffffLL);
     if (group < sizeof(comp_ctx.flags) / uint64.sizeof) {
-        comp_ctx.flagsAot_intrinsic(group) |= flag;
+        comp_ctx.flags[group] |= flag;
     }
     else {
         bh_log(BH_LOG_LEVEL_WARNING, "aot_intrinsic.c", 584,
@@ -489,74 +487,74 @@ private void add_intrinsic_capability(AOTCompContext* comp_ctx, ulong flag) {
     }
 }
 private void add_i64_common_intrinsics(AOTCompContext* comp_ctx) {
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 28)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 29)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 30)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 31)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 32)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 33)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 28)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 29)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 30)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 31)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 32)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 33)));
 }
 private void add_i32_common_intrinsics(AOTCompContext* comp_ctx) {
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 31)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 28)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 29)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 30)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 31)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 28)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 29)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 30)));
 }
 private void add_f32_common_intrinsics(AOTCompContext* comp_ctx) {
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 4)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 0)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 1)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 2)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 3)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 9)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 25)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 11)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 12)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 5)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 6)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 7)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 8)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 4)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 0)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 1)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 2)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 3)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 9)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 25)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 11)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 12)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 5)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 6)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 7)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 8)));
 }
 private void add_f64_common_intrinsics(AOTCompContext* comp_ctx) {
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 4)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 0)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 1)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 2)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 3)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 9)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 25)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 4)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 0)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 1)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 2)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 3)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 9)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 25)));
 }
 private void add_common_float_integer_convertion(AOTCompContext* comp_ctx) {
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 16)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 17)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 18)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 19)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 16)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 17)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 18)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 19)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 20)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 21)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 22)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 23)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 20)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 21)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 22)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 23)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 24)));
-    add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 24)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 16)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 17)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 18)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 19)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 16)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 17)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 18)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 19)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 20)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 21)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 22)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 23)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 20)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 21)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 22)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 23)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 24)));
+    add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 24)));
 }
 bool aot_intrinsic_check_capability(const(AOTCompContext)* comp_ctx, const(char)* llvm_intrinsic) {
     uint cnt = void;
     ulong flag = void;
     ulong group = void;
     for (cnt = 0; cnt < g_intrinsic_count; cnt++) {
-        if (!strcmp(llvm_intrinsic, g_intrinsic_mappingAot_intrinsic(cnt).llvm_intrinsic)) {
-            flag = g_intrinsic_mappingAot_intrinsic(cnt).flag;
-            group = (((cast(ulong)flag) >> 48) & 0xffffL);
-            flag &= (0x0000ffffffffffffL);
+        if (!strcmp(llvm_intrinsic, g_intrinsic_mapping[cnt].llvm_intrinsic)) {
+            flag = g_intrinsic_mapping[cnt].flag;
+            group = (((cast(ulong)flag) >> 48) & 0xffffLL);
+            flag &= (0x0000ffffffffffffLL);
             if (group < sizeof(comp_ctx.flags) / uint64.sizeof) {
-                if (comp_ctx.flagsAot_intrinsic(group) & flag) {
+                if (comp_ctx.flags[group] & flag) {
                     return true;
                 }
             }
@@ -573,7 +571,7 @@ void aot_intrinsic_fill_capability_flags(AOTCompContext* comp_ctx) {
     if (!comp_ctx.target_cpu)
         return;
     if (!strncmp(comp_ctx.target_arch, "thumb", 5)) {
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 27)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 27)));
         add_i32_common_intrinsics(comp_ctx);
         if (!strcmp(comp_ctx.target_cpu, "cortex-m7")) {
         }
@@ -588,7 +586,7 @@ void aot_intrinsic_fill_capability_flags(AOTCompContext* comp_ctx) {
         }
     }
     else if (!strncmp(comp_ctx.target_arch, "riscv", 5)) {
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 27)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 27)));
         /*
          * Note: Use builtin intrinsics since hardware float operation
          * will cause rodata relocation
@@ -610,16 +608,16 @@ void aot_intrinsic_fill_capability_flags(AOTCompContext* comp_ctx) {
         add_f64_common_intrinsics(comp_ctx);
         add_i64_common_intrinsics(comp_ctx);
         add_common_float_integer_convertion(comp_ctx);
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 26)));
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 26)));
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 27)));
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 27)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 26)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 26)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 27)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 27)));
     }
     else {
         /*
          * Use constant value table by default
          */
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(0 & 0xffffL)) << 48) | (cast(ulong)1 << 26)));
-        add_intrinsic_capability(comp_ctx, (((cast(ulong)(1 & 0xffffL)) << 48) | (cast(ulong)1 << 26)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(0 & 0xffffLL)) << 48) | (cast(ulong)1 << 26)));
+        add_intrinsic_capability(comp_ctx, ((((uint64)(1 & 0xffffLL)) << 48) | (cast(ulong)1 << 26)));
     }
 }

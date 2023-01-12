@@ -617,7 +617,7 @@ struct WASMBranchBlock {
  *
  * @return the aligned value
  */
-pragma(inline, true) uint align_uint(uint v, uint b) {
+ uint align_uint(uint v, uint b) {
     uint m = b - 1;
     return (v + m) & ~m;
 }

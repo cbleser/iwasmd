@@ -182,20 +182,6 @@ struct WASMModule {
     bool orcjit_stop_compiling;
 }
 
-
-/* Execution environment, e.g. stack info */
-/**
- * Align an unsigned value on a alignment boundary.
- *
- * @param v the value to be aligned
- * @param b the alignment boundary (2, 4, 8, ...)
- *
- * @return the aligned value
- */
- uint align_uint(uint v, uint b) {
-    uint m = b - 1;
-    return (v + m) & ~m;
-}
 /**
  * Return the hash value of c string.
  */

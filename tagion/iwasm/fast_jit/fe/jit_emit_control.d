@@ -389,7 +389,7 @@ private bool handle_func_return(JitCompContext* cc, JitBlock* block) {
  * if the opcode is one of unreachable/br/br_table/return, stack is marked
  * to polymorphic state until the block's 'end' opcode is processed
  */
-private bool handle_op_end(JitCompContext* cc, ubyte** p_frame_ip, bool is_block_polymorphic) {
+private bool handle_op_end(JitCompContext* cc, const(ubyte)** p_frame_ip, bool is_block_polymorphic) {
     JitBlock* block = void, block_prev = void;
     JitIncomingInsn* incoming_insn = void;
     JitInsn* insn = void;
@@ -528,7 +528,7 @@ fail:
  * if the opcode is one of unreachable/br/br_table/return, stack is marked
  * to polymorphic state until the block's 'end' opcode is processed
  */
-private bool handle_op_else(JitCompContext* cc, ubyte** p_frame_ip, bool is_block_polymorphic) {
+private bool handle_op_else(JitCompContext* cc, const(ubyte)** p_frame_ip, bool is_block_polymorphic) {
     JitBlock* block = jit_block_stack_top(&cc.block_stack);
     JitInsn* insn = void;
     /* Check block */
@@ -593,7 +593,7 @@ fail:
     return false;
 }
 
-private bool handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip) {
+private bool handle_next_reachable_block(JitCompContext* cc, const(ubyte)** p_frame_ip) {
     JitBlock* block = jit_block_stack_top(&cc.block_stack);
     bh_assert(block !is null);
     do {
@@ -626,7 +626,7 @@ private bool handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip)
     return true;
 }
 
-bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_ip_end, uint label_type, uint param_count, ubyte* param_types, uint result_count, ubyte* result_types, bool merge_cmp_and_if) {
+bool jit_compile_op_block(JitCompContext* cc, const(ubyte)** p_frame_ip, const(ubyte)* frame_ip_end, uint label_type, ushort param_count, ValueType* param_types, ushort result_count, ValueType* result_types, bool merge_cmp_and_if) {
     BlockAddr[BLOCK_ADDR_CONFLICT_SIZE][BLOCK_ADDR_CACHE_SIZE] block_addr_cache = void;
     JitBlock* block = void;
     JitReg value = void;
@@ -639,7 +639,7 @@ bool jit_compile_op_block(JitCompContext* cc, ubyte** p_frame_ip, ubyte* frame_i
     memset(block_addr_cache.ptr, 0, block_addr_cache.sizeof);
     /* Get block info */
     if (!(wasm_loader_find_block_addr(
-            null, cast(BlockAddr*) block_addr_cache, *p_frame_ip, frame_ip_end,
+            cast(WASMExecEnv*)null, cast(BlockAddr*) block_addr_cache, *p_frame_ip, frame_ip_end,
             cast(ubyte) label_type, &else_addr, &end_addr))) {
         jit_set_last_error(cc, "find block end addr failed");
         return false;
@@ -752,11 +752,11 @@ fail:
     return false;
 }
 
-bool jit_compile_op_else(JitCompContext* cc, ubyte** p_frame_ip) {
+bool jit_compile_op_else(JitCompContext* cc, const(ubyte)** p_frame_ip) {
     return handle_op_else(cc, p_frame_ip, false);
 }
 
-bool jit_compile_op_end(JitCompContext* cc, ubyte** p_frame_ip) {
+bool jit_compile_op_end(JitCompContext* cc, const(ubyte)** p_frame_ip) {
     return handle_op_end(cc, p_frame_ip, false);
 }
 /* Check whether need to copy arities when jumping from current block
@@ -783,7 +783,7 @@ private bool check_copy_arities(const(JitBlock)* block_dst, JitFrame* jit_frame)
     }
 }
 
-private bool handle_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip) {
+private bool handle_op_br(JitCompContext* cc, uint br_depth, const(ubyte)** p_frame_ip) {
     JitFrame* jit_frame = void;
     JitBlock* block_dst = void, block = void;
     JitReg frame_sp_dst = void;
@@ -851,7 +851,7 @@ fail:
     return false;
 }
 
-bool jit_compile_op_br(JitCompContext* cc, uint br_depth, ubyte** p_frame_ip) {
+bool jit_compile_op_br(JitCompContext* cc, uint br_depth, const(ubyte)** p_frame_ip) {
     return handle_op_br(cc, br_depth, p_frame_ip)
         && handle_next_reachable_block(cc, p_frame_ip);
 }
@@ -884,7 +884,7 @@ private void jit_frame_copy(JitFrame* jit_frame_dst, const(JitFrame)* jit_frame_
         jit_frame_dst.lp + (jit_frame_src.sp - jit_frame_src.lp);
 }
 
-bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_br_if, ubyte** p_frame_ip) {
+bool jit_compile_op_br_if(JitCompContext* cc, uint br_depth, bool merge_cmp_and_br_if, const(ubyte)** p_frame_ip) {
     JitFrame* jit_frame, jit_frame_cloned;
     JitBlock* block_dst;
     JitReg cond = void;
@@ -978,7 +978,7 @@ fail:
     return false;
 }
 
-bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count, ubyte** p_frame_ip) {
+bool jit_compile_op_br_table(JitCompContext* cc, uint* br_depths, uint br_count, const(ubyte)** p_frame_ip) {
     JitBasicBlock* cur_basic_block = void;
     JitReg value = void;
     JitInsn* insn = void;
@@ -1065,7 +1065,7 @@ fail:
     return false;
 }
 
-bool jit_compile_op_return(JitCompContext* cc, ubyte** p_frame_ip) {
+bool jit_compile_op_return(JitCompContext* cc, const(ubyte)** p_frame_ip) {
     JitBlock* block_func = cc.block_stack.block_list_head;
     bh_assert(block_func !is null);
     if (!handle_func_return(cc, block_func)) {
@@ -1077,12 +1077,12 @@ bool jit_compile_op_return(JitCompContext* cc, ubyte** p_frame_ip) {
     return handle_next_reachable_block(cc, p_frame_ip);
 }
 
-bool jit_compile_op_unreachable(JitCompContext* cc, ubyte** p_frame_ip) {
+bool jit_compile_op_unreachable(JitCompContext* cc, const(ubyte)** p_frame_ip) {
     if (!jit_emit_exception(cc, EXCE_UNREACHABLE, JIT_OP_JMP, 0, null))
         return false;
     return handle_next_reachable_block(cc, p_frame_ip);
 }
 
-bool jit_handle_next_reachable_block(JitCompContext* cc, ubyte** p_frame_ip) {
+bool jit_handle_next_reachable_block(JitCompContext* cc, const(ubyte)** p_frame_ip) {
     return handle_next_reachable_block(cc, p_frame_ip);
 }

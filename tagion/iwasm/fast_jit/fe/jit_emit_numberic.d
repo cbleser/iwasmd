@@ -88,7 +88,7 @@ import tagion.iwasm.fast_jit.fe.jit_emit_exception : jit_emit_exception;
 import tagion.iwasm.fast_jit.fe.jit_emit_control : jit_handle_next_reachable_block;
 import tagion.iwasm.share.utils.bh_assert;
 
-private uint clz32(uint type) {
+uint clz32(uint type) {
     uint num = 0;
     if (type == 0)
         return 32;
@@ -99,7 +99,7 @@ private uint clz32(uint type) {
     return num;
 }
 
-private ulong clz64(ulong type) {
+ulong clz64(ulong type) {
     uint num = 0;
     if (type == 0)
         return 64;
@@ -110,10 +110,11 @@ private ulong clz64(ulong type) {
     return num;
 }
 
-private uint ctz32(uint type) {
+uint ctz32(uint type) {
     uint num = 0;
-    if (type == 0)
+    if (type == 0) {
         return 32;
+}
     while (!(type & 1)) {
         num++;
         type >>= 1;
@@ -121,10 +122,11 @@ private uint ctz32(uint type) {
     return num;
 }
 
-private ulong ctz64(ulong type) {
+ulong ctz64(ulong type) {
     uint num = 0;
-    if (type == 0)
+    if (type == 0) {
         return 64;
+	}
     while (!(type & 1)) {
         num++;
         type >>= 1;
@@ -132,7 +134,7 @@ private ulong ctz64(ulong type) {
     return num;
 }
 
-private uint popcnt32(uint u) {
+uint popcnt32(uint u) {
     uint ret = 0;
     while (u) {
         u = (u & (u - 1));
@@ -141,7 +143,7 @@ private uint popcnt32(uint u) {
     return ret;
 }
 
-private ulong popcnt64(ulong u) {
+ulong popcnt64(ulong u) {
     uint ret = 0;
     while (u) {
         u = (u & (u - 1));
@@ -250,7 +252,7 @@ alias uni_const_handler = JitReg function(JitCompContext*, JitReg, JitReg, bool)
 alias bin_i32_consts_handler = int function(int, int);
 alias bin_i64_consts_handler = long function(long, long);
 /* ibinopt for integer binary operations */
-private JitReg compile_op_ibinopt_const(JitCompContext* cc, JitReg left, JitReg right, bool is_i32, uni_const_handler handle_one_const, bin_i32_consts_handler handle_two_i32_const, bin_i64_consts_handler handle_two_i64_const) {
+JitReg compile_op_ibinopt_const(JitCompContext* cc, JitReg left, JitReg right, bool is_i32, uni_const_handler handle_one_const, bin_i32_consts_handler handle_two_i32_const, bin_i64_consts_handler handle_two_i64_const) {
     JitReg res = void;
     if (jit_reg_is_const(left) && jit_reg_is_const(right)) {
         if (is_i32) {
@@ -275,7 +277,7 @@ shortcut:
     return res;
 }
 
-private JitReg compile_int_add_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_add_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     /* If one of the operands is 0, just return the other */
     if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))))
         return right;
@@ -284,15 +286,15 @@ private JitReg compile_int_add_consts(JitCompContext* cc, JitReg left, JitReg ri
     return 0;
 }
 
-private int do_i32_const_add(int lhs, int rhs) {
+int do_i32_const_add(int lhs, int rhs) {
     return lhs + rhs;
 }
 
-private long do_i64_const_add(long lhs, long rhs) {
+long do_i64_const_add(long lhs, long rhs) {
     return lhs + rhs;
 }
 
-private JitReg compile_int_add(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_add(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_add_consts, &do_i32_const_add, &do_i64_const_add);
     if (res)
@@ -304,22 +306,22 @@ shortcut:
     return res;
 }
 
-private JitReg compile_int_sub_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_sub_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     /* If the right operand is 0, just return the left */
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
         return left;
     return 0;
 }
 
-private int do_i32_const_sub(int lhs, int rhs) {
+int do_i32_const_sub(int lhs, int rhs) {
     return lhs - rhs;
 }
 
-private long do_i64_const_sub(long lhs, long rhs) {
+long do_i64_const_sub(long lhs, long rhs) {
     return lhs - rhs;
 }
 
-private JitReg compile_int_sub(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_sub(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_sub_consts, &do_i32_const_sub, &do_i64_const_sub);
     if (res)
@@ -331,7 +333,7 @@ shortcut:
     return res;
 }
 
-private JitReg compile_int_mul_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_mul_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     /* If one of the operands is 0, just return constant 0 */
     if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))) || (
             jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
@@ -339,15 +341,15 @@ private JitReg compile_int_mul_consts(JitCompContext* cc, JitReg left, JitReg ri
     return 0;
 }
 
-private int do_i32_const_mul(int lhs, int rhs) {
+int do_i32_const_mul(int lhs, int rhs) {
     return cast(int)(cast(ulong) lhs * cast(ulong) rhs);
 }
 
-private long do_i64_const_mul(long lhs, long rhs) {
+long do_i64_const_mul(long lhs, long rhs) {
     return cast(long)(cast(ulong) lhs * cast(ulong) rhs);
 }
 
-private JitReg compile_int_mul(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_mul(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_mul_consts, &do_i32_const_mul, &do_i64_const_mul);
     if (res)
@@ -359,7 +361,7 @@ shortcut:
     return res;
 }
 
-private bool compile_int_div_no_check(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, JitReg left, JitReg right, JitReg res) {
+bool compile_int_div_no_check(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, JitReg left, JitReg right, JitReg res) {
     if (jit_reg_is_const(right) && jit_reg_is_const(left)) {
         if (INT_DIV_S == arith_op || INT_REM_S == arith_op) {
             if (is_i32) {
@@ -440,7 +442,7 @@ fail:
     return false;
 }
 
-private bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, ubyte** p_frame_ip) {
+bool compile_int_div(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, const(ubyte)** p_frame_ip) {
     JitReg left = void, right = void, res = void;
     bh_assert(arith_op == INT_DIV_S || arith_op == INT_DIV_U
             || arith_op == INT_REM_S || arith_op == INT_REM_U);
@@ -578,7 +580,7 @@ fail:
     return false;
 }
 
-private bool compile_op_int_arithmetic(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, ubyte** p_frame_ip) {
+bool compile_op_int_arithmetic(JitCompContext* cc, IntArithmetic arith_op, bool is_i32, const(ubyte)** p_frame_ip) {
     switch (arith_op) {
     case INT_ADD:
         do {
@@ -689,15 +691,15 @@ fail:
     return false;
 }
 
-bool jit_compile_op_i32_arithmetic(JitCompContext* cc, IntArithmetic arith_op, ubyte** p_frame_ip) {
+bool jit_compile_op_i32_arithmetic(JitCompContext* cc, IntArithmetic arith_op, const(ubyte)** p_frame_ip) {
     return compile_op_int_arithmetic(cc, arith_op, true, p_frame_ip);
 }
 
-bool jit_compile_op_i64_arithmetic(JitCompContext* cc, IntArithmetic arith_op, ubyte** p_frame_ip) {
+bool jit_compile_op_i64_arithmetic(JitCompContext* cc, IntArithmetic arith_op, const(ubyte)** p_frame_ip) {
     return compile_op_int_arithmetic(cc, arith_op, false, p_frame_ip);
 }
 
-private JitReg compile_int_and_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_and_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))) || (
             jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0)))) {
@@ -717,15 +719,15 @@ shortcut:
     return res;
 }
 
-private int do_i32_const_and(int lhs, int rhs) {
+int do_i32_const_and(int lhs, int rhs) {
     return lhs & rhs;
 }
 
-private long do_i64_const_and(long lhs, long rhs) {
+long do_i64_const_and(long lhs, long rhs) {
     return lhs & rhs;
 }
 
-private JitReg compile_int_and(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_and(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     /* shortcuts */
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_and_consts, &do_i32_const_and, &do_i64_const_and);
@@ -738,7 +740,7 @@ shortcut:
     return res;
 }
 
-private JitReg compile_int_or_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_or_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))) {
         res = right;
@@ -758,15 +760,15 @@ shortcut:
     return res;
 }
 
-private int do_i32_const_or(int lhs, int rhs) {
+int do_i32_const_or(int lhs, int rhs) {
     return lhs | rhs;
 }
 
-private long do_i64_const_or(long lhs, long rhs) {
+long do_i64_const_or(long lhs, long rhs) {
     return lhs | rhs;
 }
 
-private JitReg compile_int_or(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_or(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     /* shortcuts */
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_or_consts, &do_i32_const_or, &do_i64_const_or);
@@ -779,7 +781,7 @@ shortcut:
     return res;
 }
 
-private JitReg compile_int_xor_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_xor_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     if ((jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0))))
         return right;
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))))
@@ -787,15 +789,15 @@ private JitReg compile_int_xor_consts(JitCompContext* cc, JitReg left, JitReg ri
     return 0;
 }
 
-private int do_i32_const_xor(int lhs, int rhs) {
+int do_i32_const_xor(int lhs, int rhs) {
     return lhs ^ rhs;
 }
 
-private long do_i64_const_xor(long lhs, long rhs) {
+long do_i64_const_xor(long lhs, long rhs) {
     return lhs ^ rhs;
 }
 
-private JitReg compile_int_xor(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_xor(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     /* shortcuts */
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_xor_consts, &do_i32_const_xor, &do_i64_const_xor);
@@ -808,7 +810,7 @@ shortcut:
     return res;
 }
 
-private bool compile_op_int_bitwise(JitCompContext* cc, IntBitwise arith_op, bool is_i32) {
+bool compile_op_int_bitwise(JitCompContext* cc, IntBitwise arith_op, bool is_i32) {
     JitReg left = void, right = void, res = void;
     do {
         if (is_i32)
@@ -862,7 +864,7 @@ bool jit_compile_op_i64_bitwise(JitCompContext* cc, IntBitwise bitwise_op) {
     return compile_op_int_bitwise(cc, bitwise_op, false);
 }
 
-private JitReg compile_int_shl_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_shl_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (
             jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))) {
         return left;
@@ -875,7 +877,7 @@ private JitReg compile_int_shl_consts(JitCompContext* cc, JitReg left, JitReg ri
     return 0;
 }
 
-private JitReg compile_int_shrs_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_shrs_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (
             jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))
             || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L)))) {
@@ -889,7 +891,7 @@ private JitReg compile_int_shrs_consts(JitCompContext* cc, JitReg left, JitReg r
     return 0;
 }
 
-private JitReg compile_int_shru_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_shru_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (
             jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))) {
         return left;
@@ -902,27 +904,27 @@ private JitReg compile_int_shru_consts(JitCompContext* cc, JitReg left, JitReg r
     return 0;
 }
 
-private int do_i32_const_shl(int lhs, int rhs) {
+int do_i32_const_shl(int lhs, int rhs) {
     return cast(int)(cast(uint) lhs << cast(uint) rhs);
 }
 
-private long do_i64_const_shl(long lhs, long rhs) {
+long do_i64_const_shl(long lhs, long rhs) {
     return cast(int)(cast(ulong) lhs << cast(ulong) rhs);
 }
 
-private int do_i32_const_shrs(int lhs, int rhs) {
+int do_i32_const_shrs(int lhs, int rhs) {
     return lhs >> rhs;
 }
 
-private long do_i64_const_shrs(long lhs, long rhs) {
+long do_i64_const_shrs(long lhs, long rhs) {
     return lhs >> rhs;
 }
 
-private int do_i32_const_shru(int lhs, int rhs) {
+int do_i32_const_shru(int lhs, int rhs) {
     return cast(uint) lhs >> rhs;
 }
 
-private long do_i64_const_shru(long lhs, long rhs) {
+long do_i64_const_shru(long lhs, long rhs) {
     return cast(ulong) lhs >> rhs;
 }
 
@@ -934,7 +936,7 @@ enum ShiftOp : ubyte {
     ROTR
 }
 
-private JitReg compile_int_shift_modulo(JitCompContext* cc, JitReg rhs, bool is_i32, ShiftOp op) {
+JitReg compile_int_shift_modulo(JitCompContext* cc, JitReg rhs, bool is_i32, ShiftOp op) {
     JitReg res = void;
     if (jit_reg_is_const(rhs)) {
         if (is_i32) {
@@ -966,7 +968,7 @@ private JitReg compile_int_shift_modulo(JitCompContext* cc, JitReg rhs, bool is_
     return res;
 }
 
-private JitReg mov_left_to_reg(JitCompContext* cc, bool is_i32, JitReg left) {
+JitReg mov_left_to_reg(JitCompContext* cc, bool is_i32, JitReg left) {
     JitReg res = left;
     /* left needs to be a variable */
     if (jit_reg_is_const(left)) {
@@ -976,7 +978,7 @@ private JitReg mov_left_to_reg(JitCompContext* cc, bool is_i32, JitReg left) {
     return res;
 }
 
-private JitReg compile_int_shl(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_shl(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     right = compile_int_shift_modulo(cc, right, is_i32, ShiftOp.SHL);
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_shl_consts, &do_i32_const_shl, &do_i64_const_shl);
@@ -994,7 +996,7 @@ fail:
     return cast(JitReg) 0;
 }
 
-private JitReg compile_int_shrs(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_shrs(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     right = compile_int_shift_modulo(cc, right, is_i32, ShiftOp.SHRS);
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_shrs_consts, &do_i32_const_shrs, &do_i64_const_shrs);
@@ -1012,7 +1014,7 @@ fail:
     return cast(JitReg) 0;
 }
 
-private JitReg compile_int_shru(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_shru(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     right = compile_int_shift_modulo(cc, right, is_i32, ShiftOp.SHRU);
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_shru_consts, &do_i32_const_shru, &do_i64_const_shru);
@@ -1030,7 +1032,7 @@ fail:
     return cast(JitReg) 0;
 }
 
-private JitReg compile_int_rotl_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_rotl_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (
             jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))
             || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L))))
@@ -1043,19 +1045,19 @@ private JitReg compile_int_rotl_consts(JitCompContext* cc, JitReg left, JitReg r
     return 0;
 }
 
-private int do_i32_const_rotl(int lhs, int rhs) {
+int do_i32_const_rotl(int lhs, int rhs) {
     uint n = cast(uint) lhs;
     uint d = cast(uint) rhs;
     return (n << d) | (n >> (32 - d));
 }
 
-private long do_i64_const_rotl(long lhs, long rhs) {
+long do_i64_const_rotl(long lhs, long rhs) {
     ulong n = cast(ulong) lhs;
     ulong d = cast(ulong) rhs;
     return (n << d) | (n >> (64 - d));
 }
 
-private JitReg compile_int_rotl(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_rotl(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     right = compile_int_shift_modulo(cc, right, is_i32, ShiftOp.ROTL);
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_rotl_consts, &do_i32_const_rotl, &do_i64_const_rotl);
@@ -1073,7 +1075,7 @@ fail:
     return cast(JitReg) 0;
 }
 
-private JitReg compile_int_rotr_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_rotr_consts(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     if ((jit_reg_is_const(right) && ((is_i32 && cc.get_const_I32(right) == 0) || (!is_i32 && cc.get_const_I64(right) == 0))) || (
             jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == 0) || (!is_i32 && cc.get_const_I64(left) == 0)))
             || (jit_reg_is_const(left) && ((is_i32 && cc.get_const_I32(left) == -1) || (!is_i32 && cc.get_const_I64(left) == -1L))))
@@ -1086,19 +1088,19 @@ private JitReg compile_int_rotr_consts(JitCompContext* cc, JitReg left, JitReg r
     return 0;
 }
 
-private int do_i32_const_rotr(int lhs, int rhs) {
+int do_i32_const_rotr(int lhs, int rhs) {
     uint n = cast(uint) lhs;
     uint d = cast(uint) rhs;
     return (n >> d) | (n << (32 - d));
 }
 
-private long do_i64_const_rotr(long lhs, long rhs) {
+long do_i64_const_rotr(long lhs, long rhs) {
     ulong n = cast(ulong) lhs;
     ulong d = cast(ulong) rhs;
     return (n >> d) | (n << (64 - d));
 }
 
-private JitReg compile_int_rotr(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
+JitReg compile_int_rotr(JitCompContext* cc, JitReg left, JitReg right, bool is_i32) {
     JitReg res = void;
     right = compile_int_shift_modulo(cc, right, is_i32, ShiftOp.ROTR);
     res = compile_op_ibinopt_const(cc, left, right, is_i32, &compile_int_rotr_consts, &do_i32_const_rotr, &do_i64_const_rotr);
@@ -1116,7 +1118,7 @@ fail:
     return cast(JitReg) 0;
 }
 
-private bool compile_op_int_shift(JitCompContext* cc, IntShift shift_op, bool is_i32) {
+bool compile_op_int_shift(JitCompContext* cc, IntShift shift_op, bool is_i32) {
     JitReg left = void, right = void, res = void;
     do {
         if (is_i32)
@@ -1178,15 +1180,15 @@ bool jit_compile_op_i64_shift(JitCompContext* cc, IntShift shift_op) {
     return compile_op_int_shift(cc, shift_op, false);
 }
 
-private float negf(float f32) {
+float negf(float f32) {
     return -f32;
 }
 
-private double neg(double f64) {
+double neg(double f64) {
     return -f64;
 }
 
-private bool compile_op_float_math(JitCompContext* cc, FloatMath math_op, bool is_f32) {
+bool compile_op_float_math(JitCompContext* cc, FloatMath math_op, bool is_f32) {
     JitReg value = void, res = void;
     void* func = null;
     if (is_f32)
@@ -1245,7 +1247,7 @@ bool jit_compile_op_f64_math(JitCompContext* cc, FloatMath math_op) {
     return compile_op_float_math(cc, math_op, false);
 }
 
-private float f32_min(float a, float b) {
+float f32_min(float a, float b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1254,7 +1256,7 @@ private float f32_min(float a, float b) {
         return a > b ? b : a;
 }
 
-private float f32_max(float a, float b) {
+float f32_max(float a, float b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1263,7 +1265,7 @@ private float f32_max(float a, float b) {
         return a > b ? a : b;
 }
 
-private double f64_min(double a, double b) {
+double f64_min(double a, double b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1272,7 +1274,7 @@ private double f64_min(double a, double b) {
         return a > b ? b : a;
 }
 
-private double f64_max(double a, double b) {
+double f64_max(double a, double b) {
     if (isnan(a) || isnan(b))
         return NAN;
     else if (a == 0 && a == b)
@@ -1281,7 +1283,7 @@ private double f64_max(double a, double b) {
         return a > b ? a : b;
 }
 
-private bool compile_op_float_min_max(JitCompContext* cc, FloatArithmetic arith_op, bool is_f32, JitReg lhs, JitReg rhs, JitReg* out_) {
+bool compile_op_float_min_max(JitCompContext* cc, FloatArithmetic arith_op, bool is_f32, JitReg lhs, JitReg rhs, JitReg* out_) {
     JitReg res = void;
     JitReg[2] args = void;
     void* func = void;
@@ -1298,7 +1300,7 @@ private bool compile_op_float_min_max(JitCompContext* cc, FloatArithmetic arith_
     return true;
 }
 
-private bool compile_op_float_arithmetic(JitCompContext* cc, FloatArithmetic arith_op, bool is_f32) {
+bool compile_op_float_arithmetic(JitCompContext* cc, FloatArithmetic arith_op, bool is_f32) {
     JitReg lhs = void, rhs = void, res = void;
     if (is_f32) {
         cc.pop_f32(rhs);
