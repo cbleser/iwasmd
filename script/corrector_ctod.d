@@ -28,6 +28,20 @@ struct ReplaceRegex {
     string option;
 }
 
+struct MacroDeclaration {
+    enum macro_args_regex = regex(`(\w+):(\w*)\(([^\)]+)\)`);
+    Regex!char name_regex;
+    string return_type;
+    string[] param_types;
+    this(string macro_declaration) {
+        auto m = macro_declaration.matchFirst(macro_args_regex);
+        name_regex = regex(m[1], m[4]);
+        return_type = (m[2].length) ? m[2] : void.stringof;
+        param_types = m[3].splitter(Corrector.comman_regex).array;
+
+    }
+}
+
 const(string[]) allIncludes(string[] paths) {
     import std.file;
     import std.path;
@@ -46,31 +60,31 @@ const(string[]) allIncludes(string[] paths) {
 
 struct Corrector {
     string filename; /// Source filename
-    const(string[]) replaces; /// replaces pattern
-    const(string[]) includes; /// Include paths
+    Config config;
+    //   const(string[]) config.replaces; /// config.replaces pattern
     const bool verbose;
+    enum include_regex = regex(`^(\s*#include\s+)"(.*)"`);
+    enum define_regex = regex(`^\s*#define\s+(\w+)\s*\(([^\)]*)\)`, "g");
+    enum comman_regex = regex(`,\s*`);
+    enum continue_regex = regex(`\s*\\$`);
+    enum line_comment_regex = regex(`^\s*//`);
+    enum comment_begin_regex = regex(`^\s*/\*`);
+    enum comment_end_regex = regex(`\*/`);
 
-    int precorrect() { //File file, string[] replaces, const(string[]) includes) {
-        enum include_regex = regex(`^(\s*#include\s+)"(.*)"`);
-        enum define_regex = regex(`^\s*#define\s+(\w+)\s*\(([^\)]*)\)`, "g");
-        enum comman_regex = regex(`,\s*`);
-        enum continue_regex = regex(`\s*\\$`);
-        enum line_comment_regex = regex(`^\s*//`);
-        enum comment_begin_regex = regex(`^\s*/\*`);
-        enum comment_end_regex = regex(`\*/`);
+    int precorrect() { //File file, string[] config.replaces, const(string[]) includes) {
         bool comment;
         bool comment_first_line;
         bool continue_line;
         bool in_macro;
         ReplaceRegex[] replaces_regex;
-        replaces_regex.length = replaces.length;
+        replaces_regex.length = config.replaces.length;
         const file_path = filename.dirName;
         auto file = File(filename);
         scope (exit) {
             file.close;
         }
         int errors;
-        foreach (i, replace; replaces) {
+        foreach (i, replace; config.replaces) {
             try {
                 replaces_regex[i] = ReplaceRegex(replace);
             }
@@ -140,10 +154,10 @@ struct Corrector {
                     if (verbose)
                         writefln("Match %s", m);
                     writefln("// %s", line);
-				auto param_list=m[2]
-				.splitter(comman_regex)
-				.enumerate
-				.map!(p => format("param_%d %s", p.index, p.value)); 
+                    auto param_list = m[2]
+                        .splitter(comman_regex)
+                        .enumerate
+                        .map!(p => format("param_%d %s", p.index, p.value));
 
                     //writefln("void %s(%-(%s, %)) ", m[1], m[2].splitter(comman_regex));
                     auto _line = format("void %s(%-(%s, %))) ", m[1], param_list).dup;
@@ -179,6 +193,8 @@ struct Config {
     import std.json;
 
     string[] replaces;
+    string[] includes; /// Include paths
+    string[] macro_declarations;
     this(string filename) {
         load(filename);
     }
@@ -211,7 +227,7 @@ int main(string[] args) {
     string[] paths;
     Config config;
     string config_file;
-    // string[] replaces;
+    // string[] config.replaces;
     bool verbose;
     bool overwrite;
     int errors;
@@ -223,9 +239,12 @@ int main(string[] args) {
                 "I", "Include directory", &paths, //		std.getopt.config.bundling,
                 "v|verbose", "Verbose switch", &verbose,
                 "s", "Regex substitute (/<regex>/<to with $ param>/x) (x=g,i,x,s,m)", &(config.replaces),
+                "m", "Set the parameter types for a macro -m<macro-name>:<return-type>(<param-type>,...) ", &(config
+                    .macro_declarations),
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
+
         if (main_args.helpWanted) {
             defaultGetoptPrinter([
                 "Documentation: https://tagion.org/",
@@ -237,7 +256,7 @@ int main(string[] args) {
             ].join("\n"), main_args.options);
             return 0;
         }
-        writefln("config_file=%s", config_file);
+        writefln("%s", config.macro_declarations);
         const filenames = args[1 .. $];
         if (config_file.length && !config_file.endsWith(json_ext)) {
             stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
@@ -264,7 +283,7 @@ int main(string[] args) {
 
         //const included = allIncludes(paths);
         foreach (filename; args[1 .. $]) {
-            errors += Corrector(filename, config.replaces, paths, verbose).precorrect;
+            errors += Corrector(filename, config, verbose).precorrect;
         }
     }
     catch (Exception e) {
