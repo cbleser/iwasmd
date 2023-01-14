@@ -35,7 +35,7 @@ struct MacroDeclaration {
     string[] param_types;
     this(string macro_declaration) {
         auto m = macro_declaration.matchFirst(macro_args_regex);
-        name_regex = regex(m[1], m[4]);
+        name_regex = regex(m[1]);
         return_type = (m[2].length) ? m[2] : void.stringof;
         param_types = m[3].splitter(Corrector.comman_regex).array;
 
@@ -76,24 +76,12 @@ struct Corrector {
         bool comment_first_line;
         bool continue_line;
         bool in_macro;
-        ReplaceRegex[] replaces_regex;
-        replaces_regex.length = config.replaces.length;
         const file_path = filename.dirName;
         auto file = File(filename);
         scope (exit) {
             file.close;
         }
-        int errors;
-        foreach (i, replace; config.replaces) {
-            try {
-                replaces_regex[i] = ReplaceRegex(replace);
-            }
-            catch (RegexException e) {
-                errors++;
-                stderr.writefln("Error: in regex %s", replace);
-                stderr.writefln("%s", e.msg);
-            }
-        }
+        int errors = config.prepare;
         if (errors) {
             return errors;
         }
@@ -154,16 +142,23 @@ struct Corrector {
                     if (verbose)
                         writefln("Match %s", m);
                     writefln("// %s", line);
+                    const macro_name = m[1];
+                    const change_macro_params = config.macroDeclaration(macro_name);
+                    string param_name(const size_t index) {
+                        if (change_macro_params is change_macro_params.init || 
+					(index >= change_macro_params.param_types.length)) {
+                            return format("param_%d", index);
+                        }
+                        return change_macro_params.param_types[index];
+                    }
+
                     auto param_list = m[2]
                         .splitter(comman_regex)
                         .enumerate
-                        .map!(p => format("param_%d %s", p.index, p.value));
+                        .map!(p => format("%s %s", param_name(p.index), p.value));
 
-                    //writefln("void %s(%-(%s, %)) ", m[1], m[2].splitter(comman_regex));
-                    auto _line = format("void %s(%-(%s, %))) ", m[1], param_list).dup;
-                    pragma(msg, typeof(_line));
-                    //writeln(_line);
-                    line = _line;
+                    line = format("void %s(%-(%s, %))) ", macro_name, param_list).dup;
+                    //line = _line;
                     in_macro = continue_line;
                     if (in_macro) {
 
@@ -172,7 +167,7 @@ struct Corrector {
                 }
             }
 
-            foreach (rep; replaces_regex) {
+            foreach (rep; config.replaces_regex) {
                 line = replace(line, rep.re, rep.to);
             }
             writefln("%s", line);
@@ -194,7 +189,9 @@ struct Config {
 
     string[] replaces;
     string[] includes; /// Include paths
-    string[] macro_declarations;
+    string[] macros;
+    ReplaceRegex[] replaces_regex;
+    MacroDeclaration[] macro_declarations;
     this(string filename) {
         load(filename);
     }
@@ -208,6 +205,7 @@ struct Config {
     void save(string filename) {
         JSONValue json;
         json[replaces.stringof.basename] = replaces;
+        json[macros.stringof.basename] = macros;
         filename.fwrite(json.toPrettyString);
     }
 
@@ -217,13 +215,55 @@ struct Config {
         replaces = json[replaces.stringof.basename].array
             .map!(j => j.str)
             .array;
+        macros = json[macros.stringof.basename].array
+            .map!(j => j.str)
+            .array;
 
     }
 
+    const(MacroDeclaration) macroDeclaration(const(char[]) name) const {
+        foreach (macro_decl; macro_declarations) {
+            if (!name.matchFirst(macro_decl.name_regex).empty) {
+                return macro_decl;
+            }
+        }
+        return MacroDeclaration.init;
+    }
+
+    int prepare() {
+        int errors;
+        if (replaces_regex.length !is replaces.length) {
+            replaces_regex.length = replaces.length;
+            foreach (i, replace; replaces) {
+                try {
+                    replaces_regex[i] = ReplaceRegex(replace);
+                }
+                catch (RegexException e) {
+                    errors++;
+                    stderr.writefln("Error: in regex %s", replace);
+                    stderr.writefln("%s", e.msg);
+                }
+            }
+        }
+        if (macro_declarations.length !is macros.length) {
+            macro_declarations.length = macros.length;
+            foreach (i, macro_; macros) {
+                try {
+                    macro_declarations[i] = MacroDeclaration(macro_);
+                }
+                catch (Exception e) {
+                    errors++;
+                    stderr.writefln("Error: in macro declaration %s", macro_);
+                    stderr.writefln("%s", e.msg);
+                }
+            }
+        }
+        return errors;
+    }
 }
 
 int main(string[] args) {
-    immutable program = "precorrect";
+    immutable program = "corrector_ctod";
     string[] paths;
     Config config;
     string config_file;
@@ -238,9 +278,10 @@ int main(string[] args) {
                 std.getopt.config.bundling,
                 "I", "Include directory", &paths, //		std.getopt.config.bundling,
                 "v|verbose", "Verbose switch", &verbose,
-                "s", "Regex substitute (/<regex>/<to with $ param>/x) (x=g,i,x,s,m)", &(config.replaces),
-                "m", "Set the parameter types for a macro -m<macro-name>:<return-type>(<param-type>,...) ", &(config
-                    .macro_declarations),
+                "s", "Regex substitute (/<regex>/<to with $ param>/x) (x=g,i,x,s,m)",
+                &(config.replaces),
+                "m", "Set the parameter types for a macro -m<macro-name>:<return-type>(<param-type>,...) ",
+                &(config.macros),
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
@@ -256,7 +297,7 @@ int main(string[] args) {
             ].join("\n"), main_args.options);
             return 0;
         }
-        writefln("%s", config.macro_declarations);
+        writefln("%s", config.macros);
         const filenames = args[1 .. $];
         if (config_file.length && !config_file.endsWith(json_ext)) {
             stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
