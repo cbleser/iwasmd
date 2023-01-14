@@ -7,7 +7,7 @@ import std.array;
 import std.regex;
 import std.path;
 import std.range;
-import std.file : fwrite = write, fread = read, readText, isDir, isFile, getcwd;
+import std.file : fwrite = write, fread = read, readText, isDir, isFile, getcwd, mkdirRecurse, exists;
 import std.exception : enforce;
 import std.algorithm.iteration : map, uniq, each, filter, joiner;
 import std.algorithm.searching : endsWith, canFind, commonPrefix;
@@ -97,7 +97,7 @@ Ex.
         bool continue_line;
         bool in_macro;
         bool keep_macro;
-        const file_path = commonSrcRoot(filename.dirName, srcdirs);
+        const file_path = commonSrcRoot(filename, srcdirs).dirName;
         writefln("file_path=%s", file_path);
         bool remove_line_extend() {
             return !keep_macro;
@@ -383,8 +383,8 @@ int main(string[] args) {
                 "E|enum", "Keep single line macro (Often enum declaration)", &(config.keep_single),
                 "cpp", "Sets the C-preprocessor program", &(config.cpp),
                 "c", "Enable C pre-processing", &(config.cpp_enable),
-                "od", "Output director", &(config.outdir),
-
+                "od", "Output director (Default stdout)", &(config.outdir),
+                "p|package", "Sets the common d-module package", &(config.packagename),
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
@@ -433,6 +433,17 @@ int main(string[] args) {
         //const included = allIncludes(paths);
         File fout = stdout;
         foreach (filename; filenames) {
+            if (config.outdir.length) {
+                const outfilename = config.outdir.buildPath(Corrector.commonSrcRoot(filename, srcdirs));
+                const outpath = outfilename.dirName;
+                if (!outpath.exists) {
+                    outpath.mkdirRecurse;
+                }
+                fout = File(outfilename, "w");
+            }
+            scope (exit) {
+                fout.close;
+            }
             errors += Corrector(filename, config, verbose).precorrect(fout, srcdirs);
         }
     }
