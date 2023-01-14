@@ -92,6 +92,7 @@ struct Corrector {
             return errors;
         }
         foreach (line; file.byLine) {
+            bool keep_single_line_macro;
             { // comment begin '/*'
                 auto m = line.matchFirst(comment_begin_regex);
                 if (!m.empty) {
@@ -122,9 +123,11 @@ struct Corrector {
                 }
 
             }
+
             { // #define NAME
                 auto m = line.matchFirst(define_regex);
                 if (!m.empty && !config.isMacroDeclared(m[1])) {
+                    keep_single_line_macro = true;
                     keep_macro = config.includeMacro(m[1]);
 
                 }
@@ -150,8 +153,8 @@ struct Corrector {
                     continue;
                 }
             }
-            { // define marcros with arguments '#define NAME(<arg>, ...)'
-            auto m = line.matchFirst(define_with_params_regex);
+            if (!keep_single_line_macro) { // define marcros with arguments '#define NAME(<arg>, ...)'
+                auto m = line.matchFirst(define_with_params_regex);
                 if (!m.empty) {
                     if (verbose)
                         writefln("Match %s", m);
@@ -161,7 +164,7 @@ struct Corrector {
                     //				if (macro_name.matchFirst(config.macro_exclu
                     writefln("// %s", line);
                     const change_macro_params = config.macroDeclaration(macro_name);
-	const no_change = change_macro_params is change_macro_params.init;
+                    const no_change = change_macro_params is change_macro_params.init;
                     string return_type() {
                         if (no_change ||
                                 change_macro_params.return_type.length is 0) {
@@ -177,6 +180,7 @@ struct Corrector {
                         }
                         return change_macro_params.param_types[index];
                     }
+
                     auto param_list = m[2]
                         .splitter(comman_regex)
                         .enumerate
@@ -216,6 +220,7 @@ struct Config {
     string[] includes; /// Include paths
     string[] macros;
     string[] keep_macros;
+    bool keep_single;
     ReplaceRegex[] replaces_regex;
     MacroDeclaration[] macro_declarations;
     //	RegEx!char[] macro_enabled_regex;
@@ -237,6 +242,7 @@ struct Config {
         json[replaces.stringof.basename] = replaces;
         json[macros.stringof.basename] = macros;
         json[keep_macros.stringof.basename] = keep_macros;
+        json[keep_single.stringof.basename] = keep_single;
         filename.fwrite(json.toPrettyString);
     }
 
@@ -252,6 +258,7 @@ struct Config {
         keep_macros = json[keep_macros.stringof.basename].array
             .map!(j => j.str)
             .array;
+        keep_single = json[keep_single.stringof.basename].boolean;
 
     }
 
@@ -264,9 +271,10 @@ struct Config {
         return MacroDeclaration.init;
     }
 
-	bool isMacroDeclared(const(char[]) name) const {
-	return macroDeclaration(name) !is MacroDeclaration.init;
-}
+    bool isMacroDeclared(const(char[]) name) const {
+        return macroDeclaration(name) !is MacroDeclaration.init;
+    }
+
     bool includeMacro(const(char[]) name) const {
         return ((keep_macros_regex !is Regex!char.init) &&
                 !name.matchAll(keep_macros_regex).empty);
@@ -337,6 +345,7 @@ int main(string[] args) {
                 "m", "Set the parameter types for a macro -m<macro-name>:<return-type>(<param-type>,...) ",
                 &(config.macros),
                 "k", "Keep macros <regex-macro>", &(config.keep_macros),
+                "E|enum", "Keep single line macro (Often enum declaration)", &(config.keep_single),
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
