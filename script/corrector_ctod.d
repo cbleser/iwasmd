@@ -6,6 +6,7 @@ import std.format;
 import std.array;
 import std.regex;
 import std.path;
+import std.range;
 import std.exception : enforce;
 import std.algorithm.iteration : map, uniq, each, filter, joiner;
 import std.algorithm.searching : endsWith;
@@ -51,7 +52,8 @@ struct Corrector {
 
     int precorrect() { //File file, string[] replaces, const(string[]) includes) {
         enum include_regex = regex(`^(\s*#include\s+)"(.*)"`);
-        enum define_regex = regex(`^\s*#define\s+(\w+)\s*\(((.*),)*(.*)\)`);
+        enum define_regex = regex(`^\s*#define\s+(\w+)\s*\(([^\)]*)\)`, "g");
+        enum comman_regex = regex(`,\s*`);
         enum continue_regex = regex(`\s*\\$`);
         enum line_comment_regex = regex(`^\s*//`);
         enum comment_begin_regex = regex(`^\s*/\*`);
@@ -59,13 +61,14 @@ struct Corrector {
         bool comment;
         bool comment_first_line;
         bool continue_line;
+        bool in_macro;
         ReplaceRegex[] replaces_regex;
         replaces_regex.length = replaces.length;
-		const file_path=filename.dirName;
-		auto file=File(filename);
-	scope(exit) {
-		file.close;
-	}
+        const file_path = filename.dirName;
+        auto file = File(filename);
+        scope (exit) {
+            file.close;
+        }
         int errors;
         foreach (i, replace; replaces) {
             try {
@@ -101,16 +104,6 @@ struct Corrector {
                 continue;
 
             }
-            { // extend line '\'
-                auto m = line.matchFirst(continue_regex);
-                continue_line = !m.empty;
-                if (continue_line) {
-                    if (verbose)
-                        writefln("Match %s", m);
-                    line = m.pre;
-                    //                continue;
-                }
-            }
             { // single line comment '//'
                 auto m = line.matchFirst(line_comment_regex);
                 if (!m.empty) {
@@ -122,6 +115,15 @@ struct Corrector {
 
             }
 
+            { // extend line '\'
+                auto m = line.matchFirst(continue_regex);
+                continue_line = !m.empty;
+                if (continue_line) {
+                    if (verbose)
+                        writefln("Match %s", m);
+                    line = m.pre;
+                }
+            }
             { // include statement '#include'
                 auto m = line.matchFirst(include_regex);
                 if (!m.empty) {
@@ -137,16 +139,28 @@ struct Corrector {
                 if (!m.empty) {
                     if (verbose)
                         writefln("Match %s", m);
+                    writefln("// %s", line);
+                    //writefln("void %s(%-(%s, %)) ", m[1], m[2].splitter(comman_regex));
+                    auto _line = format("void %s(%-(%s, %)) ", m[1], m[2].splitter(comman_regex)).dup;
+                    pragma(msg, typeof(_line));
+                    //writeln(_line);
+                    line = _line;
+                    in_macro = continue_line;
+                    if (in_macro) {
+
+                        line ~= " {";
+                    }
                 }
             }
 
             foreach (rep; replaces_regex) {
-                writefln("Replace %s", line);
                 line = replace(line, rep.re, rep.to);
-                //               replaceFirstInto(result, line, rep.re, rep.to);
-                //line=replace;
             }
             writefln("%s", line);
+            if (in_macro && !continue_line) {
+                in_macro = false;
+                writeln("}");
+            }
         }
         return errors;
     }
@@ -178,12 +192,11 @@ int main(string[] args) {
             ].join("\n"), main_args.options);
             return 0;
         }
-        writefln("%s", args[1 .. $]);
+        // writefln("%s", args[1 .. $]);
 
-        const included = allIncludes(paths);
-        included.each!writeln;
+        //const included = allIncludes(paths);
         foreach (filename; args[1 .. $]) {
-            errors += Corrector(filename, replaces, included, verbose).precorrect;
+            errors += Corrector(filename, replaces, paths, verbose).precorrect;
         }
     }
     catch (Exception e) {
