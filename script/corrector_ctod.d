@@ -36,7 +36,7 @@ struct MacroDeclaration {
     this(string macro_declaration) {
         auto m = macro_declaration.matchFirst(macro_args_regex);
         name_regex = regex(m[1]);
-        return_type = (m[2].length) ? m[2] : void.stringof;
+        return_type = m[2]; //.length) ? m[2] : void.stringof;
         param_types = m[3].splitter(Corrector.comman_regex).array;
 
     }
@@ -144,7 +144,15 @@ struct Corrector {
                     writefln("// %s", line);
                     const macro_name = m[1];
                     const change_macro_params = config.macroDeclaration(macro_name);
-                    string param_name(const size_t index) {
+                
+				string return_type() {
+                        if (change_macro_params is change_macro_params.init || 
+					change_macro_params.return_type.length is 0) {
+                            return void.stringof;
+                        }
+                        return change_macro_params.return_type;
+                    }
+				string param_name(const size_t index) {
                         if (change_macro_params is change_macro_params.init || 
 					(index >= change_macro_params.param_types.length)) {
                             return format("param_%d", index);
@@ -157,7 +165,7 @@ struct Corrector {
                         .enumerate
                         .map!(p => format("%s %s", param_name(p.index), p.value));
 
-                    line = format("void %s(%-(%s, %))) ", macro_name, param_list).dup;
+                    line = format("%s %s(%-(%s, %))) ", return_type, macro_name, param_list).dup;
                     //line = _line;
                     in_macro = continue_line;
                     if (in_macro) {
