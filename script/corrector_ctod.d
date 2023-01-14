@@ -7,9 +7,10 @@ import std.array;
 import std.regex;
 import std.path;
 import std.range;
+import std.file : fwrite = write, fread = read, readText;
 import std.exception : enforce;
 import std.algorithm.iteration : map, uniq, each, filter, joiner;
-import std.algorithm.searching : endsWith;
+import std.algorithm.searching : endsWith, canFind;
 
 struct ReplaceRegex {
     enum regex_sub_split = regex(`^\/(.*)\/(.*)/(\w*)`);
@@ -40,8 +41,7 @@ const(string[]) allIncludes(string[] paths) {
         .map!(file => file.name)
 
         .uniq
-        .array //	.map!(file => typeof(file.name).stringof);
-        ;
+        .array;
 }
 
 struct Corrector {
@@ -166,20 +166,59 @@ struct Corrector {
     }
 }
 
+string basename(string name) {
+    return name.split(".").tail(1).front;
+}
+
+struct Config {
+    import std.json;
+
+    string[] replaces;
+this(string filename) {
+	load(filename);
+}
+    void accumulate(const(Config) conf) {
+        conf.replaces
+            .filter!(rep => replaces.canFind(rep))
+            .each!(rep => replaces ~= rep);
+    }
+
+    void save(string filename) {
+        JSONValue json;
+        json[replaces.stringof.basename] = replaces;
+        filename.fwrite(json.toPrettyString);
+    }
+
+    void load(string filename) {
+        JSONValue json;
+        immutable json_text = filename.readText;
+        replaces = json[replaces.stringof.basename].array
+            .map!(j => j.str)
+            .array;
+
+    }
+
+}
+
 int main(string[] args) {
     immutable program = "precorrect";
     string[] paths;
-    string[] replaces;
+    Config config;
+	string config_file;
+    // string[] replaces;
     bool verbose;
+    bool overwrite;
     int errors;
+    enum json_ext = ".json";
     try {
         auto main_args = getopt(args,
                 std.getopt.config.caseSensitive,
                 std.getopt.config.bundling,
                 "I", "Include directory", &paths, //		std.getopt.config.bundling,
                 "v|verbose", "Verbose switch", &verbose,
-                "s", "Regex substitute (/<regex>/<to with $ param>/x) (x=g,i,x,s,m)", &replaces
-
+                "s", "Regex substitute (/<regex>/<to with $ param>/x) (x=g,i,x,s,m)", &(config.replaces),
+                "O", "Overwrites config file", &overwrite,
+                "f", "Config file to be overwritter", &config_file,
         );
         if (main_args.helpWanted) {
             defaultGetoptPrinter([
@@ -192,15 +231,33 @@ int main(string[] args) {
             ].join("\n"), main_args.options);
             return 0;
         }
+        const filenames = args[1 .. $];
+		if (config_file.length && !config_file.endsWith(json_ext)) {
+			stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
+		}
+        /// Loads all config files into one config
+        filenames
+            .filter!(f => f.endsWith(json_ext))
+            .map!(f => Config(f))
+            .each!(conf => config.accumulate(conf));
+
+        if (overwrite) {
+            // overwrite all the configs into files with .json extension
+            ((config_file.length is 0)?filenames:[config_file])
+                .filter!(f => !f.endsWith(json_ext))
+                .map!(f => f.setExtension(json_ext))
+                .each!(f => config.save(f));
+            return 0;
+        }
         // writefln("%s", args[1 .. $]);
 
         //const included = allIncludes(paths);
         foreach (filename; args[1 .. $]) {
-            errors += Corrector(filename, replaces, paths, verbose).precorrect;
+            errors += Corrector(filename, config.replaces, paths, verbose).precorrect;
         }
     }
     catch (Exception e) {
-        stderr.writeln("Error: %s", e.msg);
+        stderr.writefln("Error: %s", e.msg);
         return -1;
     }
 
