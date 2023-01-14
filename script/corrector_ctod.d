@@ -124,7 +124,7 @@ struct Corrector {
             }
             { // #define NAME
                 auto m = line.matchFirst(define_regex);
-                if (!m.empty) {
+                if (!m.empty && !config.isMacroDeclared(m[1])) {
                     keep_macro = config.includeMacro(m[1]);
 
                 }
@@ -150,21 +150,20 @@ struct Corrector {
                     continue;
                 }
             }
-            if (!keep_macro) { // define marcros with arguments '#define NAME(<arg>, ...)'
-                auto m = line.matchFirst(define_with_params_regex);
+            { // define marcros with arguments '#define NAME(<arg>, ...)'
+            auto m = line.matchFirst(define_with_params_regex);
                 if (!m.empty) {
                     if (verbose)
                         writefln("Match %s", m);
 
                     const macro_name = m[1];
-                    keep_macro = config.includeMacro(macro_name);
 
                     //				if (macro_name.matchFirst(config.macro_exclu
                     writefln("// %s", line);
                     const change_macro_params = config.macroDeclaration(macro_name);
-
+	const no_change = change_macro_params is change_macro_params.init;
                     string return_type() {
-                        if (change_macro_params is change_macro_params.init ||
+                        if (no_change ||
                                 change_macro_params.return_type.length is 0) {
                             return void.stringof;
                         }
@@ -172,13 +171,12 @@ struct Corrector {
                     }
 
                     string param_name(const size_t index) {
-                        if (change_macro_params is change_macro_params.init ||
+                        if (no_change ||
                                 (index >= change_macro_params.param_types.length)) {
                             return format("param_%d", index);
                         }
                         return change_macro_params.param_types[index];
                     }
-
                     auto param_list = m[2]
                         .splitter(comman_regex)
                         .enumerate
@@ -266,6 +264,9 @@ struct Config {
         return MacroDeclaration.init;
     }
 
+	bool isMacroDeclared(const(char[]) name) const {
+	return macroDeclaration(name) !is MacroDeclaration.init;
+}
     bool includeMacro(const(char[]) name) const {
         return ((keep_macros_regex !is Regex!char.init) &&
                 !name.matchAll(keep_macros_regex).empty);
@@ -335,8 +336,7 @@ int main(string[] args) {
                 &(config.replaces),
                 "m", "Set the parameter types for a macro -m<macro-name>:<return-type>(<param-type>,...) ",
                 &(config.macros),
-                "K", "Keep macros <regex-macro>", &(config.keep_macros),
-                "k", "Keep single line macros <regex-macro> (Often enum declations)", &(config.keep_macros),
+                "k", "Keep macros <regex-macro>", &(config.keep_macros),
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
