@@ -64,7 +64,8 @@ struct Corrector {
     //   const(string[]) config.replaces; /// config.replaces pattern
     const bool verbose;
     enum include_regex = regex(`^(\s*#include\s+)"(.*)"`);
-    enum define_regex = regex(`^\s*#define\s+(\w+)\s*\(([^\)]*)\)`, "g");
+    enum define_with_params_regex = regex(`^\s*#define\s+(\w+)\s*\(([^\)]*)\)`, "g");
+    enum define_regex = regex(`^\s*#define\s+(\w+)`);
     enum comman_regex = regex(`,\s*`);
     enum continue_regex = regex(`\s*\\$`);
     enum line_comment_regex = regex(`^\s*//`);
@@ -76,7 +77,12 @@ struct Corrector {
         bool comment_first_line;
         bool continue_line;
         bool in_macro;
+        bool keep_macro;
         const file_path = filename.dirName;
+        bool remove_line_extend() {
+            return !keep_macro;
+        }
+
         auto file = File(filename);
         scope (exit) {
             file.close;
@@ -116,15 +122,23 @@ struct Corrector {
                 }
 
             }
+            { // #define NAME
+                auto m = line.matchFirst(define_regex);
+                if (!m.empty) {
+                    keep_macro = config.includeMacro(m[1]);
 
+                }
+            }
             { // extend line '\'
                 auto m = line.matchFirst(continue_regex);
                 continue_line = !m.empty;
                 if (continue_line) {
                     if (verbose)
                         writefln("Match %s", m);
-                    line = m.pre;
+                    if (remove_line_extend)
+                        line = m.pre;
                 }
+                keep_macro &= continue_line;
             }
             { // include statement '#include'
                 auto m = line.matchFirst(include_regex);
@@ -136,13 +150,17 @@ struct Corrector {
                     continue;
                 }
             }
-            { // define marcros with arguments '#define NAME(<arg>, ...)'
-                auto m = line.matchFirst(define_regex);
+            if (!keep_macro) { // define marcros with arguments '#define NAME(<arg>, ...)'
+                auto m = line.matchFirst(define_with_params_regex);
                 if (!m.empty) {
                     if (verbose)
                         writefln("Match %s", m);
-                    writefln("// %s", line);
+
                     const macro_name = m[1];
+                    keep_macro = config.includeMacro(macro_name);
+
+                    //				if (macro_name.matchFirst(config.macro_exclu
+                    writefln("// %s", line);
                     const change_macro_params = config.macroDeclaration(macro_name);
 
                     string return_type() {
@@ -199,8 +217,13 @@ struct Config {
     string[] replaces;
     string[] includes; /// Include paths
     string[] macros;
+    string[] keep_macros;
     ReplaceRegex[] replaces_regex;
     MacroDeclaration[] macro_declarations;
+    //	RegEx!char[] macro_enabled_regex;
+    size_t keep_macros_length;
+    Regex!char keep_macros_regex;
+
     this(string filename) {
         load(filename);
     }
@@ -215,6 +238,7 @@ struct Config {
         JSONValue json;
         json[replaces.stringof.basename] = replaces;
         json[macros.stringof.basename] = macros;
+        json[keep_macros.stringof.basename] = keep_macros;
         filename.fwrite(json.toPrettyString);
     }
 
@@ -227,6 +251,9 @@ struct Config {
         macros = json[macros.stringof.basename].array
             .map!(j => j.str)
             .array;
+        keep_macros = json[keep_macros.stringof.basename].array
+            .map!(j => j.str)
+            .array;
 
     }
 
@@ -237,6 +264,11 @@ struct Config {
             }
         }
         return MacroDeclaration.init;
+    }
+
+    bool includeMacro(const(char[]) name) const {
+        return ((keep_macros_regex !is Regex!char.init) &&
+                !name.matchAll(keep_macros_regex).empty);
     }
 
     int prepare() {
@@ -267,6 +299,18 @@ struct Config {
                 }
             }
         }
+        if (keep_macros_length !is keep_macros.length) {
+            keep_macros_length = keep_macros.length;
+            try {
+                keep_macros_regex = regex(keep_macros);
+            }
+            catch (RegexException e) {
+                errors++;
+                stderr.writefln("Error: exclude macro %s", keep_macros);
+                stderr.writefln("%s", e.msg);
+            }
+
+        }
         return errors;
     }
 }
@@ -291,6 +335,8 @@ int main(string[] args) {
                 &(config.replaces),
                 "m", "Set the parameter types for a macro -m<macro-name>:<return-type>(<param-type>,...) ",
                 &(config.macros),
+                "K", "Keep macros <regex-macro>", &(config.keep_macros),
+                "k", "Keep single line macros <regex-macro> (Often enum declations)", &(config.keep_macros),
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
