@@ -144,17 +144,18 @@ struct Corrector {
                     writefln("// %s", line);
                     const macro_name = m[1];
                     const change_macro_params = config.macroDeclaration(macro_name);
-                
-				string return_type() {
-                        if (change_macro_params is change_macro_params.init || 
-					change_macro_params.return_type.length is 0) {
+
+                    string return_type() {
+                        if (change_macro_params is change_macro_params.init ||
+                                change_macro_params.return_type.length is 0) {
                             return void.stringof;
                         }
                         return change_macro_params.return_type;
                     }
-				string param_name(const size_t index) {
-                        if (change_macro_params is change_macro_params.init || 
-					(index >= change_macro_params.param_types.length)) {
+
+                    string param_name(const size_t index) {
+                        if (change_macro_params is change_macro_params.init ||
+                                (index >= change_macro_params.param_types.length)) {
                             return format("param_%d", index);
                         }
                         return change_macro_params.param_types[index];
