@@ -140,8 +140,13 @@ struct Corrector {
                     if (verbose)
                         writefln("Match %s", m);
                     writefln("// %s", line);
+				auto param_list=m[2]
+				.splitter(comman_regex)
+				.enumerate
+				.map!(p => format("param_%d %s", p.index, p.value)); 
+
                     //writefln("void %s(%-(%s, %)) ", m[1], m[2].splitter(comman_regex));
-                    auto _line = format("void %s(%-(%s, %)) ", m[1], m[2].splitter(comman_regex)).dup;
+                    auto _line = format("void %s(%-(%s, %))) ", m[1], param_list).dup;
                     pragma(msg, typeof(_line));
                     //writeln(_line);
                     line = _line;
@@ -174,12 +179,13 @@ struct Config {
     import std.json;
 
     string[] replaces;
-this(string filename) {
-	load(filename);
-}
+    this(string filename) {
+        load(filename);
+    }
+
     void accumulate(const(Config) conf) {
         conf.replaces
-            .filter!(rep => replaces.canFind(rep))
+            .filter!(rep => !replaces.canFind(rep))
             .each!(rep => replaces ~= rep);
     }
 
@@ -190,8 +196,8 @@ this(string filename) {
     }
 
     void load(string filename) {
-        JSONValue json;
-        immutable json_text = filename.readText;
+        auto json = filename.readText.parseJSON;
+
         replaces = json[replaces.stringof.basename].array
             .map!(j => j.str)
             .array;
@@ -204,7 +210,7 @@ int main(string[] args) {
     immutable program = "precorrect";
     string[] paths;
     Config config;
-	string config_file;
+    string config_file;
     // string[] replaces;
     bool verbose;
     bool overwrite;
@@ -231,10 +237,11 @@ int main(string[] args) {
             ].join("\n"), main_args.options);
             return 0;
         }
+        writefln("config_file=%s", config_file);
         const filenames = args[1 .. $];
-		if (config_file.length && !config_file.endsWith(json_ext)) {
-			stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
-		}
+        if (config_file.length && !config_file.endsWith(json_ext)) {
+            stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
+        }
         /// Loads all config files into one config
         filenames
             .filter!(f => f.endsWith(json_ext))
@@ -242,11 +249,15 @@ int main(string[] args) {
             .each!(conf => config.accumulate(conf));
 
         if (overwrite) {
+            auto list_of_configs =
+                ((config_file.length is 0) ? filenames : [config_file])
+                .filter!(f => f.endsWith(json_ext));
+
             // overwrite all the configs into files with .json extension
-            ((config_file.length is 0)?filenames:[config_file])
-                .filter!(f => !f.endsWith(json_ext))
+            list_of_configs
                 .map!(f => f.setExtension(json_ext))
                 .each!(f => config.save(f));
+            list_of_configs.each!(c => writefln("Overwrite file '%s'", c));
             return 0;
         }
         // writefln("%s", args[1 .. $]);
