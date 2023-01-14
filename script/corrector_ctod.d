@@ -7,10 +7,10 @@ import std.array;
 import std.regex;
 import std.path;
 import std.range;
-import std.file : fwrite = write, fread = read, readText;
+import std.file : fwrite = write, fread = read, readText, isDir, isFile, getcwd;
 import std.exception : enforce;
 import std.algorithm.iteration : map, uniq, each, filter, joiner;
-import std.algorithm.searching : endsWith, canFind;
+import std.algorithm.searching : endsWith, canFind, commonPrefix;
 
 struct ReplaceRegex {
     enum regex_sub_split = regex(`^\/(.*)\/(.*)/(\w*)`);
@@ -72,13 +72,33 @@ struct Corrector {
     enum comment_begin_regex = regex(`^\s*/\*`);
     enum comment_end_regex = regex(`\*/`);
 
-    int precorrect() { //File file, string[] config.replaces, const(string[]) includes) {
+    /*
+	Returns: the common srcroot between the default_path and the list of srcdirs
+Ex.
+	default_path "xxx/yyy/zzz" and srcdir=["xxx/zzz", "xxx/yyy"]
+	returns "zzz"
+*/
+    static string commonSrcRoot(string default_path, const(string[]) srcdirs) {
+        //auto default_path = filename.dirName;
+        auto filepath_split = default_path.pathSplitter;
+        foreach (dir; srcdirs) {
+            auto dir_split = dir.pathSplitter;
+            const srcroot = dir_split.commonPrefix(filepath_split);
+            if (srcroot.length == dir_split.walkLength) {
+                return filepath_split.dropExactly(srcroot.length).buildPath;
+            }
+        }
+        return default_path;
+    }
+
+    int precorrect(File fout, const(string[]) srcdirs) { //File file, string[] config.replaces, const(string[]) includes) {
         bool comment;
         bool comment_first_line;
         bool continue_line;
         bool in_macro;
         bool keep_macro;
-        const file_path = filename.dirName;
+        const file_path = commonSrcRoot(filename.dirName, srcdirs);
+        writefln("file_path=%s", file_path);
         bool remove_line_extend() {
             return !keep_macro;
         }
@@ -98,7 +118,7 @@ struct Corrector {
                 if (!m.empty) {
                     comment = true;
                     if (verbose)
-                        writefln("Match %s", m);
+                        fout.writefln("Match %s", m);
                 }
 
             }
@@ -106,10 +126,10 @@ struct Corrector {
                 auto m = line.matchFirst(comment_end_regex);
                 if (!m.empty) {
                     if (verbose)
-                        writefln("Match %s", m);
+                        fout.writefln("Match %s", m);
                     comment = false;
                 }
-                writefln("%s", line);
+                fout.writefln("%s", line);
                 continue;
 
             }
@@ -118,7 +138,7 @@ struct Corrector {
                 if (!m.empty) {
 
                     if (verbose)
-                        writefln("Match %s", m);
+                        fout.writefln("Match %s", m);
                     continue;
                 }
 
@@ -127,7 +147,7 @@ struct Corrector {
             { // #define NAME
                 auto m = line.matchFirst(define_regex);
                 if (!m.empty && !config.isMacroDeclared(m[1])) {
-                    keep_single_line_macro = true;
+                    keep_single_line_macro = config.keep_single;
                     keep_macro = config.includeMacro(m[1]);
 
                 }
@@ -137,7 +157,7 @@ struct Corrector {
                 continue_line = !m.empty;
                 if (continue_line) {
                     if (verbose)
-                        writefln("Match %s", m);
+                        fout.writefln("Match %s", m);
                     if (remove_line_extend)
                         line = m.pre;
                 }
@@ -148,8 +168,8 @@ struct Corrector {
                 if (!m.empty) {
 
                     if (verbose)
-                        writefln("Match %s", m);
-                    writefln(`%s "%s"`, m[1], asNormalizedPath(buildPath(file_path, m[2])));
+                        fout.writefln("Match %s", m);
+                    fout.writefln(`%s "%s"`, m[1], asNormalizedPath(buildPath(file_path, m[2])));
                     continue;
                 }
             }
@@ -157,12 +177,12 @@ struct Corrector {
                 auto m = line.matchFirst(define_with_params_regex);
                 if (!m.empty) {
                     if (verbose)
-                        writefln("Match %s", m);
+                        fout.writefln("Match %s", m);
 
                     const macro_name = m[1];
 
                     //				if (macro_name.matchFirst(config.macro_exclu
-                    writefln("// %s", line);
+                    fout.writefln("// %s", line);
                     const change_macro_params = config.macroDeclaration(macro_name);
                     const no_change = change_macro_params is change_macro_params.init;
                     string return_type() {
@@ -199,10 +219,10 @@ struct Corrector {
             foreach (rep; config.replaces_regex) {
                 line = replace(line, rep.re, rep.to);
             }
-            writefln("%s", line);
+            fout.writefln("%s", line);
             if (in_macro && !continue_line) {
                 in_macro = false;
-                writeln("}");
+                fout.writeln("}");
             }
         }
         return errors;
@@ -216,11 +236,16 @@ string basename(string name) {
 struct Config {
     import std.json;
 
+    enum default_cpp = "cpp -E -CC";
     string[] replaces;
     string[] includes; /// Include paths
     string[] macros;
     string[] keep_macros;
     bool keep_single;
+    string cpp; /// C-preprocessor
+    bool cpp_enable; /// Execute the cpp after pre-correct
+    string outdir; /// Output directory
+    string packagename; /// Package name
     ReplaceRegex[] replaces_regex;
     MacroDeclaration[] macro_declarations;
     //	RegEx!char[] macro_enabled_regex;
@@ -243,6 +268,10 @@ struct Config {
         json[macros.stringof.basename] = macros;
         json[keep_macros.stringof.basename] = keep_macros;
         json[keep_single.stringof.basename] = keep_single;
+        json[cpp.stringof.basename] = cpp;
+        json[cpp_enable.stringof.basename] = cpp_enable;
+        json[outdir.stringof.basename] = outdir;
+        json[packagename.stringof.basename] = packagename;
         filename.fwrite(json.toPrettyString);
     }
 
@@ -259,7 +288,13 @@ struct Config {
             .map!(j => j.str)
             .array;
         keep_single = json[keep_single.stringof.basename].boolean;
-
+        cpp = json[cpp.stringof.basename].str;
+        if (!cpp.length) {
+            cpp = default_cpp;
+        }
+        cpp_enable = json[cpp_enable.stringof.basename].boolean;
+        outdir = json[outdir.stringof.basename].str;
+        packagename = json[packagename.stringof.basename].str;
     }
 
     const(MacroDeclaration) macroDeclaration(const(char[]) name) const {
@@ -346,6 +381,10 @@ int main(string[] args) {
                 &(config.macros),
                 "k", "Keep macros <regex-macro>", &(config.keep_macros),
                 "E|enum", "Keep single line macro (Often enum declaration)", &(config.keep_single),
+                "cpp", "Sets the C-preprocessor program", &(config.cpp),
+                "c", "Enable C pre-processing", &(config.cpp_enable),
+                "od", "Output director", &(config.outdir),
+
                 "O", "Overwrites config file", &overwrite,
                 "f", "Config file to be overwritter", &config_file,
         );
@@ -355,14 +394,20 @@ int main(string[] args) {
                 "Documentation: https://tagion.org/",
                 "",
                 "Usage:",
-                format("%s [<option>...] <c-source>", program),
+                format("%s [<option>...] [<src-roots>] <c-source>", program),
                 "",
                 "<option>:",
             ].join("\n"), main_args.options);
             return 0;
         }
-        writefln("%s", config.macros);
-        const filenames = args[1 .. $];
+        auto dirs = args[1 .. $]
+            .filter!(file => file.isDir);
+        const srcdirs = (dirs.empty) ? [getcwd] : dirs.array;
+
+        const filenames = args[1 .. $]
+            .filter!(file => file.isFile)
+            .array;
+
         if (config_file.length && !config_file.endsWith(json_ext)) {
             stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
         }
@@ -384,11 +429,11 @@ int main(string[] args) {
             list_of_configs.each!(c => writefln("Overwrite file '%s'", c));
             return 0;
         }
-        // writefln("%s", args[1 .. $]);
 
         //const included = allIncludes(paths);
-        foreach (filename; args[1 .. $]) {
-            errors += Corrector(filename, config, verbose).precorrect;
+        File fout = stdout;
+        foreach (filename; filenames) {
+            errors += Corrector(filename, config, verbose).precorrect(fout, srcdirs);
         }
     }
     catch (Exception e) {
