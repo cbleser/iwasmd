@@ -7,10 +7,10 @@ import std.array;
 import std.regex;
 import std.path;
 import std.range;
-import std.file : fwrite = write, fread = read, readText, isDir, isFile, getcwd, mkdirRecurse, exists, rename;
+import std.file : fwrite = write, fread = read, readText, isDir, isFile, getcwd, mkdirRecurse, exists, rename, dirEntries, SpanMode;
 import std.exception : enforce;
 import std.algorithm.iteration : map, uniq, each, filter, joiner;
-import std.algorithm.searching : endsWith, canFind, commonPrefix;
+import std.algorithm.searching : endsWith, canFind, commonPrefix, countUntil;
 import process = std.process;
 
 struct ReplaceRegex {
@@ -367,19 +367,304 @@ struct Config {
     }
 }
 
+enum json_ext = ".json";
+enum tmp_ext = ".tmp";
+enum d_ext = ".d";
+enum c_ext = ".c";
+enum h_ext = ".h";
+
+void dryPrint(string[] filenames) {
+    static string env(string filename) {
+        const index = [c_ext, h_ext, d_ext].countUntil!(ext => filename.endsWith(ext));
+        if (index < 0) {
+            return "FILES";
+        }
+        return ["# FILES", "C_SRC_FILES", "H_SRC_FILES", "D_SRC_FILES"][index + 1];
+    }
+
+    filenames.each!(file => writefln("%s += %s", env(file), file));
+}
+
+immutable keywords = [
+    "bool",
+    "byte",
+    "ubyte",
+    "short",
+    "ushort",
+    "int",
+    "uint",
+    "long",
+    "ulong",
+    "cent",
+    "ucent",
+    "char",
+    "wchar",
+    "dchar",
+    "float",
+    "double",
+    "real",
+    "ifloat",
+    "idouble",
+    "ireal",
+    "cfloat",
+    "cdouble",
+    "creal",
+    "void",
+    "abstract",
+    "alias",
+    "align",
+    "asm",
+    "assert",
+    "auto",
+
+    "body",
+    "bool",
+    "break",
+    "byte",
+
+    "case",
+    "cast",
+    "catch",
+    "cdouble",
+    "cent",
+    "cfloat",
+    "char",
+    "class",
+    "const",
+    "continue",
+    "creal",
+
+    "dchar",
+    "debug",
+    "default",
+    "delegate",
+    "delete",
+    "deprecated",
+    "do",
+    "double",
+
+    "else",
+    "enum",
+    "export",
+    "extern",
+
+    "false",
+    "final",
+    "finally",
+    "float",
+    "for",
+    "foreach",
+    "foreach_reverse",
+    "function",
+
+    "goto",
+
+    "idouble",
+    "if",
+    "ifloat",
+    "immutable",
+    "import",
+    "in",
+    "inout",
+    "int",
+    "interface",
+    "invariant",
+    "ireal",
+    "is",
+
+    "lazy",
+    "long",
+
+    "macro",
+    "mixin",
+    "module",
+
+    "new",
+    "nothrow",
+    "null",
+
+    "out",
+    "override",
+
+    "package",
+    "pragma",
+    "private",
+    "protected",
+    "public",
+    "pure",
+
+    "real",
+    "ref",
+    "return",
+
+    "scope",
+    "shared",
+    "short",
+    "static",
+    "struct",
+    "super",
+    "switch",
+    "synchronized",
+
+    "template",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeid",
+    "typeof",
+
+    "ubyte",
+    "ucent",
+    "uint",
+    "ulong",
+    "union",
+    "unittest",
+    "ushort",
+
+    "version",
+    "void",
+
+    "wchar",
+    "while",
+    "with",
+
+    "__FILE__",
+    "__FILE_FULL_PATH__",
+    "__MODULE__",
+    "__LINE__",
+    "__FUNCTION__",
+    "__PRETTY_FUNCTION__",
+
+    "__gshared",
+    "__traits",
+    "__vector",
+    "__parameters",
+
+];
+
+/**
+	Returns: converts a filepath to a valid d-file path
+	Note replaces - with _
+*/
+string correctDPath(string filename) {
+    return filename
+        .replace("-", "_")
+        .pathSplitter
+        .map!((pathbit) {
+            const index = keywords.countUntil(pathbit);
+            if (index < 0)
+                return pathbit;
+            return keywords[index] ~ "_";
+        })
+        .buildPath;
+}
+
+enum deps_makefile = "deps.mk";
+enum config_makefile = "config.mk";
+void makeDeps(string[] filenames, const(Config) config, const(string[]) srcdirs, const bool force) {
+    import std.ascii : toUpper, toLower;
+    import std.conv : to;
+
+    bool[string] make_env;
+    enum TARGET_CFILES = "TARGET_CFILES";
+    enum TARGET_DFILES = "TARGET_DFILES";
+    enum SRC_CFILES = "SRC_CFILES";
+    enum ALL_DTARGETS = "ALL_DTARGETS";
+
+    make_env[TARGET_CFILES] = true;
+    make_env[SRC_CFILES] = true;
+
+    auto fout = File("deps.mk", "w");
+    scope (exit) {
+        fout.close;
+    }
+    const generate_config_makefile = force || !config_makefile.exists;
+    File config_fout;
+    if (generate_config_makefile) {
+        config_fout = File(config_makefile, "w");
+    }
+    scope (exit) {
+        config_fout.close;
+    }
+    string new_env(string name, string prefix = null) {
+        string result;
+        string nextName(string str) {
+            if ((str in make_env) !is null) {
+                alias name_format = format!("%s%s_%s", string, string, uint);
+                enum name_regex = regex(`^(\w+)_(\d+)$`);
+                auto m = str.matchFirst(name_regex);
+                return (m.empty) ? name_format(prefix, str, 1) : name_format(prefix, m[1], m[2].to!uint + 1);
+            }
+            return str;
+        }
+
+        for (result = name.baseName.stripExtension.map!(c => cast(char) toUpper(c)).array; (result in make_env) !is null;
+                result = nextName(
+                    result)) {
+            /// empty
+        }
+        make_env[result] = true;
+        return result;
+    }
+
+    foreach (filename; filenames) {
+        const dest_cfile = config.outdir.buildPath(Corrector.commonSrcRoot(filename, srcdirs)).correctDPath;
+
+        const dest_dfile = dest_cfile.setExtension(d_ext);
+        fout.writeln("#");
+        fout.writefln("# target %s", dest_dfile);
+        fout.writeln("#");
+
+        fout.writefln("%s := %s", new_env(dest_cfile, "c_"), dest_cfile);
+        fout.writefln("%s += %s", TARGET_CFILES, dest_cfile);
+        const dtarget_file_env = new_env(dest_dfile);
+        fout.writefln("%s := %s", dtarget_file_env, dest_dfile);
+        fout.writefln("%s += %s", TARGET_DFILES, dest_dfile);
+        fout.writeln;
+
+        fout.writefln("%s: %s", dest_cfile, filename);
+        fout.writeln;
+
+        fout.writefln("%s: %s", dest_dfile, dest_cfile);
+        fout.writeln;
+
+        const dtarget = dtarget_file_env.map!(c => cast(char) c.toLower).array;
+
+        fout.writefln("%s: $(%s)", dtarget, dtarget_file_env);
+        fout.writeln;
+        fout.writefln("%s += %s", ALL_DTARGETS, dtarget);
+
+        if (generate_config_makefile) {
+            config_fout.writeln("#");
+            config_fout.writefln("# Setup for %s", dest_dfile);
+            config_fout.writeln("#");
+            config_fout.writefln("%s:", dtarget);
+            config_fout.writeln;
+        }
+    }
+    if (generate_config_makefile) {
+        config_fout.writefln("all_ctod: $(%s)", ALL_DTARGETS);
+        config_fout.writeln;
+    }
+
+}
+
 int main(string[] args) {
     immutable program = "corrector_ctod";
     string[] paths;
     Config config;
     string config_file;
+    string indir;
+    string infilter = "*.[ch]";
     // string[] config.replaces;
     bool verbose;
     bool overwrite;
     bool insert;
+    bool dry;
+    bool deps;
+    bool force;
     int errors;
-    enum json_ext = ".json";
-    enum tmp_ext = ".tmp";
-    enum d_ext = ".d";
     try {
         auto main_args = getopt(args,
                 std.getopt.config.caseSensitive,
@@ -392,11 +677,18 @@ int main(string[] args) {
                 &(config.macros),
                 "k", "Keep macros <regex-macro>", &(config.keep_macros),
                 "E|enum", "Keep single line macro (Often enum declaration)", &(config.keep_single),
-                "od", "Output director (Default stdout)", &(config.outdir),
-                "p|package", "Sets the common d-module package", &(config.packagename),
+                "od", "Output directory (Default stdout)", &(config.outdir),
+                "is", "Input source directory", &indir,
+                "filter", format("Input source-file filter used with -is (Default : %s)", infilter), &infilter,
+                "n|dry", "Dry-run does not produce output just list the files", &dry,
+                "deps", "Writes and make dependency file", &deps,
+                "f", format("Force overwrite of %s", config_makefile), &force,
+                "p|package", "Sets the common d-module package", &(
+                    config.packagename),
                 "i", "Overrite input files (Only for d-files)", &insert,
                 "O", "Overwrites config file", &overwrite,
-                "f", "Config file to be overwritter", &config_file,
+                "config", "g file to be overwritter", &config_file,
+
         );
 
         if (main_args.helpWanted) {
@@ -414,9 +706,20 @@ int main(string[] args) {
             .filter!(file => file.isDir);
         const srcdirs = (dirs.empty) ? [getcwd] : dirs.array;
 
-        const filenames = args[1 .. $]
+        auto filenames = args[1 .. $]
             .filter!(file => file.isFile)
             .array;
+
+        if (!indir.empty) {
+            //	const filter_regex=regex(infilter);
+
+            filenames ~= indir //.dirEntries(filter_regex, SpanMode.depth)
+                .dirEntries(infilter, SpanMode.depth)
+                .filter!(file => file.isFile)
+                .map!(file => file.name)
+                .array;
+
+        }
 
         if (config_file.length && !config_file.endsWith(json_ext)) {
             stderr.writefln("Config file %s must have a %s extension", config_file, json_ext);
@@ -428,6 +731,7 @@ int main(string[] args) {
             .each!(conf => config.accumulate(conf));
 
         if (overwrite) {
+            //string ext_JSON=ext.JSON.to!string;
             auto list_of_configs =
                 ((config_file.length is 0) ? filenames : [config_file])
                 .filter!(f => f.endsWith(json_ext));
@@ -441,6 +745,15 @@ int main(string[] args) {
         }
 
         //const included = allIncludes(paths);
+        if (dry) {
+            dryPrint(filenames);
+            if (!deps)
+                return 0;
+        }
+        if (deps) {
+            makeDeps(filenames, config, srcdirs, force);
+            return 0;
+        }
         File fout = stdout;
         foreach (filename; filenames) {
             const d_source = filename.endsWith(d_ext);
