@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "tagion\/",
+    "packagename": "",
+    "replaces": [
+        "\/JIT_FOREACH_BLOCK_ENTRY_EXIT\\((\\w+),\\s*(\\w+),\\s*(\\w+),\\s*(\\w+)\\)\/for($2=0, $3 = $1._ann._label_num; $2 < $3; $2++ ) if ( ($4 = $1._ann._label_basic_block($2)) != null )\/"
+    ]
+}

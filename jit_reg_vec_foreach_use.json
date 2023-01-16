@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "tagion\/",
+    "packagename": "",
+    "replaces": [
+        "\/JIT_REG_VEC_FOREACH_USE\\((\\w+),\\s*(\\w+),\\s*(\\w+),\\s*(\\w+)\\)\/for($2=$4, $3 = $1._base + $4 * $1._stride; $2 < $1.num; $2++, $3 += $1._stride )\/"
+    ]
+}

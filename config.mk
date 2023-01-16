@@ -360,8 +360,10 @@ $(JIT_CODEGEN): REDREC_DFLAGS+=
 #
 $(C_JIT_REGALLOC): REDREC_FLAGS+=jit_reg_vec_foreach.json
 $(C_JIT_REGALLOC): REDREC_FLAGS+=jit_reg_vec_foreach_def.json
+$(C_JIT_REGALLOC): REDREC_FLAGS+=jit_reg_vec_foreach_use.json
 $(C_JIT_REGALLOC): REDREC_FLAGS+=jit_foreach_insn.json
 $(C_JIT_REGALLOC): REDREC_FLAGS+=jit_foreach_insn_reverse.json
+$(C_JIT_REGALLOC): REDREC_FLAGS+=jit_foreach_block_entry_exit.json
 
 $(JIT_REGALLOC): REDREC_DFLAGS+=
 
