@@ -17,10 +17,6 @@ OBJS:=$(DFILES:.d=.o)
 CHECKS:=${addsuffix -check,$(DFILES)}
 
 
-DEF_CFILES+=insn_opnd_tmp.d jit_ir_tmp.d
-.SECONDARY: insn_opnd_tmp.c jit_ir_tmp.c
-
-
 DEF_DFILES=$(DEF_CFILES:.c=.d)
 
 DINC?=-I$(PWD)

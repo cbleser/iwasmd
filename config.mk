@@ -358,7 +358,7 @@ $(JIT_CODEGEN): REDREC_DFLAGS+=
 #
 # Setup for tagion/iwasm/fast_jit/jit_regalloc.d
 #
-$(C_JIT_REGALLOC): REDREC_FLAGS+=
+$(C_JIT_REGALLOC): REDREC_FLAGS+=jit_reg_vec_foreach.json
 
 $(JIT_REGALLOC): REDREC_DFLAGS+=
 
