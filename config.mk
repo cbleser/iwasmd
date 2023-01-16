@@ -232,7 +232,7 @@ $(WASM_INTERP_CLASSIC): REDREC_DFLAGS+=
 #
 # Setup for tagion/iwasm/fast_jit/jit_compiler.d
 #
-$(C_JIT_COMPILER): REDREC_FLAGS+=
+$(C_JIT_COMPILER): REDREC_FLAGS+=-q
 
 $(JIT_COMPILER): REDREC_DFLAGS+=
 
