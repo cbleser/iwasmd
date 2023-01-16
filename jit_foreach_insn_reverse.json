@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "tagion\/",
+    "packagename": "",
+    "replaces": [
+        "\/JIT_FOREACH_INSN_REVERSE\\((\\w+),\\s*(\\w+)\\)\/for($2=jit_basic_last_insn($1); $2 != jit_basic_block_end_insn($1); $2 = $2.prev )\/"
+    ]
+}

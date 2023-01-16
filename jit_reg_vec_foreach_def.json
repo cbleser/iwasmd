@@ -5,6 +5,6 @@
     "outdir": "tagion\/",
     "packagename": "",
     "replaces": [
-        "\/JIT_REG_VEC_FOREACH\\((\\w+),\\s*(\\w+),\\s*(\\w+)\\)\/for($2=0, $3=$2._base; $2 < $1.num; $2++, $3+=$1._stride)\/"
+        "\/JIT_REG_VEC_FOREACH_DEF\\((\\w+),\\s*(\\w+),\\s*(\\w+),\\s*(\\w+)\\)\/for($2=0, $3 = $1._base; $2 < $4; $3 += $1._stride )\/"
     ]
 }
