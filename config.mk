@@ -239,9 +239,11 @@ $(JIT_COMPILER): REDREC_DFLAGS+=
 #
 # Setup for tagion/iwasm/fast_jit/jit_frontend.d
 #
-$(C_JIT_FRONTEND): REDREC_FLAGS+=
+$(C_JIT_FRONTEND): REDREC_FLAGS+=check_buf.json
+$(C_JIT_FRONTEND): REDREC_FLAGS+=read_leb.json
 
-$(JIT_FRONTEND): REDREC_DFLAGS+=
+$(JIT_FRONTEND): REDREC_DFLAGS+=read_leb_d.json
+
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_codecache.d

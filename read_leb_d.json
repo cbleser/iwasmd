@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "",
+    "packagename": "",
+    "replaces": [
+        "\/(read_leb_(\\w+)\\()(.*)LEB_TYPE\/$1JitCompContext* cc, $3ref $2\/"
+    ]
+}

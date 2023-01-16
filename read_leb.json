@@ -1,0 +1,13 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [
+        "read_leb_\\w+:bool(void*,void*,LEB_TYPE)\/:; return true;"
+    ],
+    "outdir": "tagion",
+    "packagename": "",
+    "replaces": [
+        "\/(_u?int)32\/$1\/",
+        "\/(_u?)int64\/$1long\/"
+    ]
+}

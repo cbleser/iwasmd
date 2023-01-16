@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [
+        "CHECK_BUF:bool(void*,void*,size_t)\/check_buf:; return true;"
+    ],
+    "outdir": "tagion",
+    "packagename": "",
+    "replaces": []
+}
