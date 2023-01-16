@@ -1,0 +1,12 @@
+{
+    "keep_macros": [
+        "REG_PASS: xxx "
+    ],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "tagion",
+    "packagename": "",
+    "replaces": [
+        "\/^(\\s+)REG_PASS\\((\\w+)\\)\/$1JitCompilerPass($2, &jit_pass_$2)\/"
+    ]
+}

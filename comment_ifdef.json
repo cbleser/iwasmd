@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "",
+    "packagename": "",
+    "replaces": [
+        "%^(\\s*\\#(ifdef|ifndef|if|else|endif)\\s*)%\/\/ <CTOD>$1%"
+    ]
+}
