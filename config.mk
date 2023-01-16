@@ -1,462 +1,646 @@
 #
 # Setup for tagion/iwasm/compilation/aot_llvm.d
 #
-aot_llvm:
+$(C_AOT_LLVM): REDREC_FLAGS+=
+
+$(AOT_LLVM): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_aot_file.d
 #
-aot_emit_aot_file:
+$(C_AOT_EMIT_AOT_FILE): REDREC_FLAGS+=
+
+$(AOT_EMIT_AOT_FILE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_conversion.d
 #
-aot_emit_conversion:
+$(C_AOT_EMIT_CONVERSION): REDREC_FLAGS+=
+
+$(AOT_EMIT_CONVERSION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_control.d
 #
-aot_emit_control:
+$(C_AOT_EMIT_CONTROL): REDREC_FLAGS+=
+
+$(AOT_EMIT_CONTROL): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_exception.d
 #
-aot_emit_exception:
+$(C_AOT_EMIT_EXCEPTION): REDREC_FLAGS+=
+
+$(AOT_EMIT_EXCEPTION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_comparisons.d
 #
-simd_comparisons:
+$(C_SIMD_COMPARISONS): REDREC_FLAGS+=
+
+$(SIMD_COMPARISONS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_load_store.d
 #
-simd_load_store:
+$(C_SIMD_LOAD_STORE): REDREC_FLAGS+=
+
+$(SIMD_LOAD_STORE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_construct_values.d
 #
-simd_construct_values:
+$(C_SIMD_CONSTRUCT_VALUES): REDREC_FLAGS+=
+
+$(SIMD_CONSTRUCT_VALUES): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_int_arith.d
 #
-simd_int_arith:
+$(C_SIMD_INT_ARITH): REDREC_FLAGS+=
+
+$(SIMD_INT_ARITH): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_bitwise_ops.d
 #
-simd_bitwise_ops:
+$(C_SIMD_BITWISE_OPS): REDREC_FLAGS+=
+
+$(SIMD_BITWISE_OPS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_floating_point.d
 #
-simd_floating_point:
+$(C_SIMD_FLOATING_POINT): REDREC_FLAGS+=
+
+$(SIMD_FLOATING_POINT): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_common.d
 #
-simd_common:
+$(C_SIMD_COMMON): REDREC_FLAGS+=
+
+$(SIMD_COMMON): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_bit_shifts.d
 #
-simd_bit_shifts:
+$(C_SIMD_BIT_SHIFTS): REDREC_FLAGS+=
+
+$(SIMD_BIT_SHIFTS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_sat_int_arith.d
 #
-simd_sat_int_arith:
+$(C_SIMD_SAT_INT_ARITH): REDREC_FLAGS+=
+
+$(SIMD_SAT_INT_ARITH): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_bitmask_extracts.d
 #
-simd_bitmask_extracts:
+$(C_SIMD_BITMASK_EXTRACTS): REDREC_FLAGS+=
+
+$(SIMD_BITMASK_EXTRACTS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_access_lanes.d
 #
-simd_access_lanes:
+$(C_SIMD_ACCESS_LANES): REDREC_FLAGS+=
+
+$(SIMD_ACCESS_LANES): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_conversions.d
 #
-simd_conversions:
+$(C_SIMD_CONVERSIONS): REDREC_FLAGS+=
+
+$(SIMD_CONVERSIONS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/simd/simd_bool_reductions.d
 #
-simd_bool_reductions:
+$(C_SIMD_BOOL_REDUCTIONS): REDREC_FLAGS+=
+
+$(SIMD_BOOL_REDUCTIONS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_function.d
 #
-aot_emit_function:
+$(C_AOT_EMIT_FUNCTION): REDREC_FLAGS+=
+
+$(AOT_EMIT_FUNCTION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_variable.d
 #
-aot_emit_variable:
+$(C_AOT_EMIT_VARIABLE): REDREC_FLAGS+=
+
+$(AOT_EMIT_VARIABLE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_const.d
 #
-aot_emit_const:
+$(C_AOT_EMIT_CONST): REDREC_FLAGS+=
+
+$(AOT_EMIT_CONST): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot.d
 #
-aot:
+$(C_AOT): REDREC_FLAGS+=
+
+$(AOT): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_memory.d
 #
-aot_emit_memory:
+$(C_AOT_EMIT_MEMORY): REDREC_FLAGS+=
+
+$(AOT_EMIT_MEMORY): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_parametric.d
 #
-aot_emit_parametric:
+$(C_AOT_EMIT_PARAMETRIC): REDREC_FLAGS+=
+
+$(AOT_EMIT_PARAMETRIC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_numberic.d
 #
-aot_emit_numberic:
+$(C_AOT_EMIT_NUMBERIC): REDREC_FLAGS+=
+
+$(AOT_EMIT_NUMBERIC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_table.d
 #
-aot_emit_table:
+$(C_AOT_EMIT_TABLE): REDREC_FLAGS+=
+
+$(AOT_EMIT_TABLE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_compiler.d
 #
-aot_compiler:
+$(C_AOT_COMPILER): REDREC_FLAGS+=
+
+$(AOT_COMPILER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/compilation/aot_emit_compare.d
 #
-aot_emit_compare:
+$(C_AOT_EMIT_COMPARE): REDREC_FLAGS+=
+
+$(AOT_EMIT_COMPARE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/interpreter/wasm_runtime.d
 #
-wasm_runtime:
+$(C_WASM_RUNTIME): REDREC_FLAGS+=
+
+$(WASM_RUNTIME): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/interpreter/wasm_interp_fast.d
 #
-wasm_interp_fast:
+$(C_WASM_INTERP_FAST): REDREC_FLAGS+=
+
+$(WASM_INTERP_FAST): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/interpreter/wasm_loader.d
 #
-wasm_loader:
+$(C_WASM_LOADER): REDREC_FLAGS+=
+
+$(WASM_LOADER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/interpreter/wasm_mini_loader.d
 #
-wasm_mini_loader:
+$(C_WASM_MINI_LOADER): REDREC_FLAGS+=
+
+$(WASM_MINI_LOADER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/interpreter/wasm_interp_classic.d
 #
-wasm_interp_classic:
+$(C_WASM_INTERP_CLASSIC): REDREC_FLAGS+=
+
+$(WASM_INTERP_CLASSIC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_compiler.d
 #
-jit_compiler:
+$(C_JIT_COMPILER): REDREC_FLAGS+=
+
+$(JIT_COMPILER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_frontend.d
 #
-jit_frontend:
+$(C_JIT_FRONTEND): REDREC_FLAGS+=
+
+$(JIT_FRONTEND): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_codecache.d
 #
-jit_codecache:
+$(C_JIT_CODECACHE): REDREC_FLAGS+=
+
+$(JIT_CODECACHE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_ir.d
 #
-jit_ir:
+$(C_JIT_IR): REDREC_FLAGS+=
+
+$(JIT_IR): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_parametric.d
 #
-jit_emit_parametric:
+$(C_JIT_EMIT_PARAMETRIC): REDREC_FLAGS+=
+
+$(JIT_EMIT_PARAMETRIC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_memory.d
 #
-jit_emit_memory:
+$(C_JIT_EMIT_MEMORY): REDREC_FLAGS+=
+
+$(JIT_EMIT_MEMORY): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_control.d
 #
-jit_emit_control:
+$(C_JIT_EMIT_CONTROL): REDREC_FLAGS+=
+
+$(JIT_EMIT_CONTROL): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_table.d
 #
-jit_emit_table:
+$(C_JIT_EMIT_TABLE): REDREC_FLAGS+=
+
+$(JIT_EMIT_TABLE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_compare.d
 #
-jit_emit_compare:
+$(C_JIT_EMIT_COMPARE): REDREC_FLAGS+=
+
+$(JIT_EMIT_COMPARE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_function.d
 #
-jit_emit_function:
+$(C_JIT_EMIT_FUNCTION): REDREC_FLAGS+=
+
+$(JIT_EMIT_FUNCTION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_const.d
 #
-jit_emit_const:
+$(C_JIT_EMIT_CONST): REDREC_FLAGS+=
+
+$(JIT_EMIT_CONST): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_variable.d
 #
-jit_emit_variable:
+$(C_JIT_EMIT_VARIABLE): REDREC_FLAGS+=
+
+$(JIT_EMIT_VARIABLE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_conversion.d
 #
-jit_emit_conversion:
+$(C_JIT_EMIT_CONVERSION): REDREC_FLAGS+=
+
+$(JIT_EMIT_CONVERSION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_numberic.d
 #
-jit_emit_numberic:
+$(C_JIT_EMIT_NUMBERIC): REDREC_FLAGS+=
+
+$(JIT_EMIT_NUMBERIC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_exception.d
 #
-jit_emit_exception:
+$(C_JIT_EMIT_EXCEPTION): REDREC_FLAGS+=
+
+$(JIT_EMIT_EXCEPTION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_dump.d
 #
-jit_dump:
+$(C_JIT_DUMP): REDREC_FLAGS+=
+
+$(JIT_DUMP): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_utils.d
 #
-jit_utils:
+$(C_JIT_UTILS): REDREC_FLAGS+=
+
+$(JIT_UTILS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_codegen.d
 #
-jit_codegen:
+$(C_JIT_CODEGEN): REDREC_FLAGS+=
+
+$(JIT_CODEGEN): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/fast_jit/jit_regalloc.d
 #
-jit_regalloc:
+$(C_JIT_REGALLOC): REDREC_FLAGS+=
+
+$(JIT_REGALLOC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_shared_memory.d
 #
-wasm_shared_memory:
+$(C_WASM_SHARED_MEMORY): REDREC_FLAGS+=
+
+$(WASM_SHARED_MEMORY): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_application.d
 #
-wasm_application:
+$(C_WASM_APPLICATION): REDREC_FLAGS+=
+
+$(WASM_APPLICATION): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_c_api.d
 #
-wasm_c_api:
+$(C_WASM_C_API): REDREC_FLAGS+=
+
+$(WASM_C_API): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_exec_env.d
 #
-wasm_exec_env:
+$(C_WASM_EXEC_ENV): REDREC_FLAGS+=
+
+$(WASM_EXEC_ENV): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/arch/invokeNative_general.d
 #
-invokenative_general:
+$(C_INVOKENATIVE_GENERAL): REDREC_FLAGS+=
+
+$(INVOKENATIVE_GENERAL): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_native.d
 #
-wasm_native:
+$(C_WASM_NATIVE): REDREC_FLAGS+=
+
+$(WASM_NATIVE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_runtime_common.d
 #
-wasm_runtime_common:
+$(C_WASM_RUNTIME_COMMON): REDREC_FLAGS+=
+
+$(WASM_RUNTIME_COMMON): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/common/wasm_memory.d
 #
-wasm_memory:
+$(C_WASM_MEMORY): REDREC_FLAGS+=
+
+$(WASM_MEMORY): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/aot_runtime.d
 #
-aot_runtime:
+$(C_AOT_RUNTIME): REDREC_FLAGS+=
+
+$(AOT_RUNTIME): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_aarch64.d
 #
-aot_reloc_aarch64:
+$(C_AOT_RELOC_AARCH64): REDREC_FLAGS+=
+
+$(AOT_RELOC_AARCH64): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_mips.d
 #
-aot_reloc_mips:
+$(C_AOT_RELOC_MIPS): REDREC_FLAGS+=
+
+$(AOT_RELOC_MIPS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_x86_32.d
 #
-aot_reloc_x86_32:
+$(C_AOT_RELOC_X86_32): REDREC_FLAGS+=
+
+$(AOT_RELOC_X86_32): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_arc.d
 #
-aot_reloc_arc:
+$(C_AOT_RELOC_ARC): REDREC_FLAGS+=
+
+$(AOT_RELOC_ARC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_thumb.d
 #
-aot_reloc_thumb:
+$(C_AOT_RELOC_THUMB): REDREC_FLAGS+=
+
+$(AOT_RELOC_THUMB): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_riscv.d
 #
-aot_reloc_riscv:
+$(C_AOT_RELOC_RISCV): REDREC_FLAGS+=
+
+$(AOT_RELOC_RISCV): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_xtensa.d
 #
-aot_reloc_xtensa:
+$(C_AOT_RELOC_XTENSA): REDREC_FLAGS+=
+
+$(AOT_RELOC_XTENSA): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_arm.d
 #
-aot_reloc_arm:
+$(C_AOT_RELOC_ARM): REDREC_FLAGS+=
+
+$(AOT_RELOC_ARM): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/arch/aot_reloc_x86_64.d
 #
-aot_reloc_x86_64:
+$(C_AOT_RELOC_X86_64): REDREC_FLAGS+=
+
+$(AOT_RELOC_X86_64): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/aot_intrinsic.d
 #
-aot_intrinsic:
+$(C_AOT_INTRINSIC): REDREC_FLAGS+=
+
+$(AOT_INTRINSIC): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/debug_/elf_parser.d
 #
-elf_parser:
+$(C_ELF_PARSER): REDREC_FLAGS+=
+
+$(ELF_PARSER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/debug_/jit_debug.d
 #
-jit_debug:
+$(C_JIT_DEBUG): REDREC_FLAGS+=
+
+$(JIT_DEBUG): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/aot/aot_loader.d
 #
-aot_loader:
+$(C_AOT_LOADER): REDREC_FLAGS+=
+
+$(AOT_LOADER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/lib_pthread/lib_pthread_wrapper.d
 #
-lib_pthread_wrapper:
+$(C_LIB_PTHREAD_WRAPPER): REDREC_FLAGS+=
+
+$(LIB_PTHREAD_WRAPPER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/lib_socket/src/wasi/wasi_socket_ext.d
 #
-wasi_socket_ext:
+$(C_WASI_SOCKET_EXT): REDREC_FLAGS+=
+
+$(WASI_SOCKET_EXT): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_builtin/libc_builtin_wrapper.d
 #
-libc_builtin_wrapper:
+$(C_LIBC_BUILTIN_WRAPPER): REDREC_FLAGS+=
+
+$(LIBC_BUILTIN_WRAPPER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/thread_mgr/thread_manager.d
 #
-thread_manager:
+$(C_THREAD_MANAGER): REDREC_FLAGS+=
+
+$(THREAD_MANAGER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/debug_engine/gdbserver.d
 #
-gdbserver:
+$(C_GDBSERVER): REDREC_FLAGS+=
+
+$(GDBSERVER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/debug_engine/packets.d
 #
-packets:
+$(C_PACKETS): REDREC_FLAGS+=
+
+$(PACKETS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/debug_engine/handler.d
 #
-handler:
+$(C_HANDLER): REDREC_FLAGS+=
+
+$(HANDLER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/debug_engine/debug_engine.d
 #
-debug_engine:
+$(C_DEBUG_ENGINE): REDREC_FLAGS+=
+
+$(DEBUG_ENGINE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/debug_engine/utils.d
 #
-utils:
+$(C_UTILS): REDREC_FLAGS+=
+
+$(UTILS): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_wasi/sandboxed_system_primitives/src/posix.d
 #
-posix:
+$(C_POSIX): REDREC_FLAGS+=
+
+$(POSIX): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_wasi/sandboxed_system_primitives/src/str.d
 #
-str:
+$(C_STR): REDREC_FLAGS+=
+
+$(STR): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_wasi/sandboxed_system_primitives/src/random.d
 #
-random:
+$(C_RANDOM): REDREC_FLAGS+=
+
+$(RANDOM): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_wasi/libc_wasi_wrapper.d
 #
-libc_wasi_wrapper:
+$(C_LIBC_WASI_WRAPPER): REDREC_FLAGS+=
+
+$(LIBC_WASI_WRAPPER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_uvwasi/libc_uvwasi_wrapper.d
 #
-libc_uvwasi_wrapper:
+$(C_LIBC_UVWASI_WRAPPER): REDREC_FLAGS+=
+
+$(LIBC_UVWASI_WRAPPER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/lib_rats/lib_rats_wrapper.d
 #
-lib_rats_wrapper:
+$(C_LIB_RATS_WRAPPER): REDREC_FLAGS+=
+
+$(LIB_RATS_WRAPPER): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/wasi_nn/test/test_tensorflow.d
 #
-test_tensorflow:
+$(C_TEST_TENSORFLOW): REDREC_FLAGS+=
+
+$(TEST_TENSORFLOW): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/wasi_nn/wasi_nn_native.d
 #
-wasi_nn_native:
+$(C_WASI_NN_NATIVE): REDREC_FLAGS+=
+
+$(WASI_NN_NATIVE): REDREC_DFLAGS+=
 
 #
 # Setup for tagion/iwasm/libraries/libc_emcc/libc_emcc_wrapper.d
 #
-libc_emcc_wrapper:
+$(C_LIBC_EMCC_WRAPPER): REDREC_FLAGS+=
+
+$(LIBC_EMCC_WRAPPER): REDREC_DFLAGS+=
 
 REDREC_FLAGS += ../wasm-micro-runtime/core/
 REDREC_FLAGS += --od tagion 

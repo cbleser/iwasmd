@@ -6,8 +6,8 @@ CTOD?=ctod
 DC?=dmd
 DSCANNER?=dscanner
 
-include config.mk
 include deps.mk
+include config.mk
 
 
 DFILES:=$(TARGET_DFILES)
