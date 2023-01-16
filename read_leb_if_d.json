@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [],
+    "outdir": "",
+    "packagename": "",
+    "replaces": [
+        "\/((?<!bool)\\s+)(read_leb_\\w+\\()(.*);\/$1if (!($2cc, $3)) return false;\/"
+    ]
+}

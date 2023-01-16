@@ -243,6 +243,7 @@ $(C_JIT_FRONTEND): REDREC_FLAGS+=check_buf.json
 $(C_JIT_FRONTEND): REDREC_FLAGS+=read_leb.json
 
 $(JIT_FRONTEND): REDREC_DFLAGS+=read_leb_d.json
+$(JIT_FRONTEND): REDREC_DFLAGS+=read_leb_if_d.json
 
 
 #
