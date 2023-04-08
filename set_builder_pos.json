@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [
+        "SET_BUILDER_POS:(JitBasicBlock*)\/set_builder_pos:;"
+    ],
+    "outdir": "tagion",
+    "packagename": "",
+    "replaces": []
+}

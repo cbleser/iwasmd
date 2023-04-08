@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [
+        "CREATE_BASIC_BLOCK:bool(JitBasicBlock*)\/create_basic_block:; return false; fail: return true;"
+    ],
+    "outdir": "tagion",
+    "packagename": "",
+    "replaces": []
+}

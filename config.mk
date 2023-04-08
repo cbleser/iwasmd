@@ -277,7 +277,10 @@ $(JIT_EMIT_MEMORY): REDREC_DFLAGS+=
 #
 # Setup for tagion/iwasm/fast_jit/fe/jit_emit_control.d
 #
-$(C_JIT_EMIT_CONTROL): REDREC_FLAGS+=
+$(C_JIT_EMIT_CONTROL): REDREC_FLAGS+=create_basic_block.json
+$(C_JIT_EMIT_CONTROL): REDREC_FLAGS+=build_br.json
+$(C_JIT_EMIT_CONTROL): REDREC_FLAGS+=build_cond_br.json
+$(C_JIT_EMIT_CONTROL): REDREC_FLAGS+=set_build_pos.json
 
 $(JIT_EMIT_CONTROL): REDREC_DFLAGS+=
 

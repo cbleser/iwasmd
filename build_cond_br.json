@@ -1,0 +1,10 @@
+{
+    "keep_macros": [],
+    "keep_single": false,
+    "macros": [
+        "BUILD_COND_BR:bool(LLVMValueRef, JitBasicBlock*, JitBasicBlock*)\/build_cond_br:; return false; fail: return true;"
+    ],
+    "outdir": "tagion",
+    "packagename": "",
+    "replaces": []
+}

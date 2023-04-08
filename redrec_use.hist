@@ -1,178 +1,109 @@
-git status
-git clean -f
-ls
-git commit -am"jit_reg_vec_foreach.json added"
-git add jit_reg_vec_foreach.json
-ls -tral
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$2=0, \$3=\$2._base; \$2 < \$1.num; \$2++, \$3+=\$1._stride)/"  --config jit_reg_vec_foreach.json -O
-find . -name "*.json"
 history
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$2=0, \$3=\$2._base; \$2 < \$1.num; \$2++, \$3+=\$1._stride)/" -O --config jit_reg_vec_foreach.json
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$2=0, \$3=\$2._base; \$2 < \$1.num; \$2++, \$3+=\$1._stride)/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$2=0, \$3=\$2._base; \$2 < \$1.num; \$2++, <\$2>,<\$3> )/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$2=0, \$3=\$2._base; \$2 < \$1.num; <\$2>,<\$3> )/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$2=0, \$3=\$2._base; <\$2>,<\$3> )/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(\$1=0; <\$2>,<\$3> )/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/__for(<\$1>,<\$2>,<\$3> )/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/for(<\$1>,<\$2>,<\$3> )/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+),\s*(\w+)/FOREACH xxx<\$1>,<\$2>,<\$3> /"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+)/FOREACH xxx<\$1>,<\$2> /"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*(\w+)/FOREACH xxx\$1,\$2 /"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*/FOREACH xxx\$1, /"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),/FOREACH xxx\$1, /"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),/FOREACH xxx\$1 /"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+),\s*,(\w+),\s*(\w+)\)/FOREACH xxx\$1 \$2 \$3/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+)/FOREACH xxx\$1/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\((\w+)/FOREACH xxx\$1/"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\(\w+/FOREACH xxx\$1/"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\(\w+/FOREACH xxx\$1/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\(\w+/xxx\$1/"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "-s/JIT_REG_VEC_FOREACH\(\w+/xxx\$1/"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "=s/JIT_REG_VEC_FOREACH\(\w+/xxx\$1/"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n "=s/JIT_REG_VEC_FOREACH\(\w+/---\$1/"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_regalloc.c --od tagion/ -n
-rm tagion/iwasm/fast_jit/jit_regalloc.c
-make tagion/iwasm/fast_jit/jit_regalloc.d-check
-make check -k|grep fast_jit
-make check|grep fast_jit
-make check
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.d-check
-less tagion/iwasm/fast_jit/fe/jit_emit_parametric.d
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.d
-rm tagion/iwasm/fast_jit/fe/jit_emit_parametric.c
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.c
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.c -B
-make check-tagion/iwasm/fast_jit/fe/jit_emit_parametric.d
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.o
-less tagion/iwasm/fast_jit/fe/jit_emit_parametric.o
-make
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.d.check
-make check-tagion/iwasm/fast_jit/fe/jit_emit_parametric.c
-find -name "jit_*.c"
-make check -k
-rm -fR manual_tagion/
-git commit -am"WIP: translating with redrec"
-git add ./tagion/iwasm/fast_jit/jit_compiler.json
-rm tagion/default.json
-less default.json
-less ./tagion/default.json
-find -name "*.json"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -O
-cd ../iwasmd/
-less redrec_use.hist
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n -q|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n |less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n
-ls -tral /tmp/
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -q -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n -O|less
-less tagion/iwasm/fast_jit/jit_compiler.json
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n -O
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -q -n
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -q
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -o
-iredrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -o
-edrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c --od tagion -o
-rm tagion/iwasm/fast_jit/jit_compiler.json
-mkdir -p tagion/iwasm/fast_jit/
 redrec -h
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n -O
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, &jit_pass_\$2)/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1JitCompilerPass(\$2, jit_pass_\$2)/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/JitCompilerPass(\$2, \$1jit_pass_\$2)/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^(\s+)REG_PASS\((\w+)\)/\$1jit_pass_\$2/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^\s+REG_PASS\((\w+)\)/jit_pass_\$1/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^\s+REG_REG\((\w+)\)/jit_pass_\$1/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " "-s/^\s+PASS_REG\((\w+)\)/jit_pass_\$1/" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS:xxx -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k "REG_PASS: xxx " -n
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS:xxx -n
-cd -
-nvim Relase_notes.md
-cd documents/
-cd ../tagion
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -kREG_PASS -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c "-k REG_PASS:xxx" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%(\#define REG_PASS)%// \$1%" -n|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%(\#define REG_PASS)%// \$1%" -n
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%(\#define REG_PASS)%// \$1%" --dry
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%(\#define REG_PASS)%// \$1%" -dry
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%(\#define REG_PASS)%// \$1%" -dry|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%(\#define REG_PASS)%// \$1%"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%\#define REG_PASS%// \\$1%"|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%\#define REG_PASS%// \\$1%"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%\(#define REG_PASS)%// \\$1%"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS "-s%\(#define REG_PASS)%// \$1%"
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS|less
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c
-rm -fR tagion/
-less tagion/iwasm/fast_jit/jit_compiler.c
-redrec tagion/iwasm/fast_jit/jit_compiler.c -k REG_PASS -O
-redrec ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS -O
-git add comment_ifdef.json
-less comment_ifdef.json
-redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c -k REG_PASS
-less ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c
-redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_compiler.c |less
-make tagion/iwasm/fast_jit/jit_compiler.d-check
-nvim tagion/iwasm/fast_jit/jit_compiler.d-check
-make check -k|less
-find . -name "*.o"
-make all -k
-make all
+make tagion/iwasm/fast_jit/fe/jit_emit_control.d-check
+rm tagion/iwasm/fast_jit/fe/jit_emit_control.c
+less make.log
+make check -k|tee make.log
+make check -k
+make clean -k
+git commit -am"WIP: read_leb if check in jit_frontend.d"
+git add read_leb_if_d.json
+git status
+git staus
 make clean
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#(ifdef|ifndef|if|else|endif)\s*)%// <CTOD>\$1%" --config comment_ifdef.json -O
-make tagion/iwasm/compilation/aot_emit_aot_file.d-check
-make tagion/iwasm/compilation/aot_emit_aot_file.o
-make ctod
-make check|less
-make test
-nvim Makefile
-find . -name "*local*"
-
-find . -name "*locali*"
-
-find . -name "*local"
-
-grep -nH local *.mk
-less local.mk
-nvim setup.mk
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#(ifdef|ifndef|else|endif)\s*)%// <CTOD>\$1%" --config comment_ifdef.json -O
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#(ifdef|ifndef|else|endif)\s*)%// <CTOD>\$1%"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// <CTOD>\$1%" "-s%^(\s*\#endif)%// <CTOD>\$1%"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// <CTOD>\$1%" "-s%^(\s*\#endif)%// <CTOD>\$1%" --config comment_ifdef.json -O
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// <CTOD>\$1%"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// <CTOD>\$1%" --config comment_ifdef.json -O
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// CTOD\$1%" --config comment_ifdef.json -O
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// DTOC\$1%" --config comment_ifdef.json -O
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\s*\#ifdef\s*)%// DTOC\$1%"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\#ifdef\s*)%// DTOC\$1%" --config comment_ifdef.json -O
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\#ifdef\s*)%// DTOC\$1%" --config comment_ifdef.json -f
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\#ifdef\s*)%// DTOC\$1%"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s%^(\#ifdef\s*)%# DTOC\$1%"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/\# DTOC\$1/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/\\/DTOC\$1/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/\/DTOC\$1/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/\\DTOC\$1/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/DTOC\$1/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/DTOC\$/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/\/\/DTOC\$/"
-redrec tagion/iwasm/fast_jit/fe/jit_emit_parametric.d "-s/^(\#ifdef\s*)/\/\/<DTOC>\$/"
-nvim README.md
-make tagion/iwasm/fast_jit/fe/jit_emit_parametric.check
-less deps.mk
-make cheack
+make tagion/iwasm/fast_jit/jit_frontend.d-check
+rm tagion/iwasm/fast_jit/jit_frontend.c
+nvim config.mk
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+)(read_leb_\w+\()(.*);/\$1if (!(\$2cc, \$3)) return false;/" --config read_leb_if_d.json -O
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+)(read_leb_\w+\()(.*);/\$1if (!(\$2cc, \$3)) return false;/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+)(read_leb_\w+\()(.*);/\$1if ((\$2cc, \$3)) return false;/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+read_leb_\w+\()(.*);/if ((\$1cc, \$2)) return false;/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+read_leb_\w+\()(.*);/\$1cc, <\$2>/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+read_leb_\w+\()/\$1cc, /"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+read_leb_\w+\()/\$1---/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_led_\w+\()/\$1---/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/((?<!bool)\s+read_led_\w+\()/\$1---/"|less
+mv test.json read_leb.json
+cp read_leb.json read_leb.json.parked
+less test.json
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n "-s/(_u?int)32/\$1/" "-s/(_u?)int64/\$1long/" read_leb.json --config test.json -O
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n "-s/(_u?int)32/\$1/" "-s/(_u?)int64/\$1long/"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n "-s/(_u?int)32/\$1/"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n "-s/(_u?int)32/\\$1/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1JitCompContext* cc, \$3ref \$2/" --config read_leb_d.json -O
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1JitCompContext* cc,\$3ref \$2/" --config read_leb_d.json -O
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1JitCompContext* cc,\$3ref \$2/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1JitCompContext* cc,\$3 ref \$2/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1JitContext* cc,\$3 ref \$2/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1---\$3 ref \$2/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1---\$2 ref \$3/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()(.*)LEB_TYPE/\$1\$2 ref \$3/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\(.*)LEB_TYPE/\$1 ref \$2/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\(.*)LEB_TYPE/\$1, \$2/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\(.*)LEB_TYPE/\$1, XXX/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\(.*)LEB/\$1, XXX/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\()/\$1, XXX/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+))/\$1, XXX/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+))/\\$1, XXX/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)/\\$1, XXX/"|less
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\(.*,)LEB_TYPE\)/\\$1, XXX/"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\\w+:bool(void*,void*,LEB_TYPE)/:; return true;" --config read_leb.json -O
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n "-s/(read_leb_(\w+)\(.*,)LEB_TYPE\)/\\$1, XXX/"
+redrec tagion/iwasm/fast_jit/jit_frontend.d -n
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\\w+:bool(void*,void*,T)/:; return true;" --config read_leb.json -O
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\\w+:bool(void*,void*,ref leb_type)/:; return true;" --config read_leb.json -O
+git add jit_compiler.json read_leb.json
+ls -tral
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\\w+:bool(void*,void*,size_t)/:; return true;" --config read_leb.json -O
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\\w+:bool(void*,void*,size_t)/:; return true;"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\\w+:bool(void*,void*,size_t)"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\w+:bool(void*,void*,size_t)"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_int64:bool(void*,void*,size_t)"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_int64:bool(void*,void*,size_t)/xxx"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "read_leb_\w+:bool(void*,void*,size_t)/:; return true;"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)/check_buf:; return true;" --config check_buf.json -O
+nvim tagion/iwasm/fast_jit/jit_frontend.d
+git add check_buf.json
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)/check_buf:return true;" --config check_buf.json -O
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)/check_buf:return true;" --config check_buf.json
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)/check_buf:return true;"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)/check_buf"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)/new_name"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)"|less
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n -m "CHECK_BUF:bool(void*,void*,size_t)"
+redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -n "-mCHECK_BUF:bool(void*,void*,size_t)"
+less ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c
 less tagion/iwasm/fast_jit/jit_frontend.d
+less ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.d
+nvim tagion/iwasm/fast_jit/jit_regalloc.d
+find ../wasm-micro-runtime/core/iwasm/ -name "*.h" -exec grep -nH FOREACH {} \;
+find ../wasm-micro-runtime/core/ -name "*.h" -exec grep -nH FOREACH {} \;
+nvim
+less default.json
+find tagion -name "*.json"
+git add Makefile
+find . -name "*.o"
+find . -name "*.o" -exec rm {} \;
+make ctod
+make ctor
+nvim Makefile
+nvim tagion/iwasm/fast_jit/jit_compiler.d
+nvim tagion/iwasm/compilation/aot_emit_aot_file.d
+make check
+nvim tagion/iwasm/fast_jit/fe/jit_emit_parametric.d
+cd ../iwasmd/
+cd work/redrec/
+git commit -am"default.json deps.mk config.mk and setup.mk added"
+git add setup.mk
+git add config.mk
+git add deps.mk
+git add default.json
+cd work/iwasmd/
 make tagion/iwasm/fast_jit/jit_frontend.d
 less tagion/iwasm/fast_jit/jit_codecache.c
 less tagion/iwasm/fast_jit/jit_codecache.d
 make tagion/iwasm/fast_jit/jit_codecache.d
 make tagion/iwasm/fast_jit/jit_codecache.c
-cd work/iwasmd/
 redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/compilation/aot_llvm.c "-s/\#if\\s+(\\w+)\s*!=\s*0/#ifdef \$1/" --config default.json -O
 redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/compilation/aot_llvm.c "-s/\#if\\s+(\\w+)\s*!=\s*0/#ifdef \$1/" -C default.json -O
 redrec ../wasm-micro-runtime/core/ --od tagion  ../wasm-micro-runtime/core/iwasm/compilation/aot_llvm.c "-s/\#if\\s+(\\w+)\s*!=\s*0/#ifdef \$1/" -f default.json -O
@@ -213,7 +144,6 @@ less ../wasm-micro-runtime/core/iwasm/fast-jit/jit_codecache.c
 ls iwasm/
 cd ../wasm-micro-runtime/core/
 ls ../wasm-micro-runtime/core/
-redrec ../wasm-micro-runtime/core/ --is ../wasm-micro-runtime/core/iwasm/ --filter "*.c" --deps --od tagion -f
 rm -fR iwasm/
 git status .
 cd core/iwasm/
@@ -301,7 +231,6 @@ script/corrector_ctod.d ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/i
 script/corrector_ctod.d ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -m "CHECK_BUF:ret(int)" -k "read_leb_\w+32" -m "read_leb_uint32:(string)" | cpp -CC -P  -I ../wasm-micro-runtime/core/ -I ../wasm-micro-runtime/core/shared/utils/ -I ../wasm-micro-runtime/core/shared/platform/linux/ |less
 script/corrector_ctod.d ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -m "CHECK_BUF:ret(int)" -k "read_leb_\w+32" -m "read_leb_uint32:(string)" | cpp -P -E -I ../wasm-micro-runtime/core/ -I ../wasm-micro-runtime/core/shared/utils/ -I ../wasm-micro-runtime/core/shared/platform/linux/ |less
 script/corrector_ctod.d ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -m "CHECK_BUF:ret(int)" -k "read_leb_\w+32" -m "read_leb_uint32:(string)" | cpp -CC -P -E -I ../wasm-micro-runtime/core/ -I ../wasm-micro-runtime/core/shared/utils/ -I ../wasm-micro-runtime/core/shared/platform/linux/ |less
-less ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c
 script/corrector_ctod.d ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -m "CHECK_BUF:ret(int)" -k "read_leb_\w+32" -m "read_leb_uint32:(string)" | cpp -CC -P -E -I ../wasm-micro-runtime/core/ -I ../wasm-micro-runtime/core/shared/utils/ -I ../wasm-micro-runtime/core/shared/platform/linux/ -o testdir/iwasm/fast-jit/jit_frontend.c
 script/corrector_ctod.d ../wasm-micro-runtime/core/ ../wasm-micro-runtime/core/iwasm/fast-jit/jit_frontend.c -m "CHECK_BUF:ret(int)" -k "read_leb_\w+32" -m "read_leb_uint32:(string)" | cpp -CC -P -E -I ../wasm-micro-runtime/core/ -I ../wasm-micro-runtime/core/shared/utils/ -I ../wasm-micro-runtime/core/shared/platform/linux/
 find ../wasm-micro-runtime/core/ -name "platform_internal.h"
@@ -349,11 +278,9 @@ script/corrector_ctod.d -I tagion/ tagion/iwasm/fast_jit/jit_frontend.c -m "CHEC
 script/corrector_ctod.d -I tagion/ tagion/iwasm/fast_jit/jit_frontend.c -m "CHECK_BUF:ret(int)"  |less
 script/corrector_ctod.d -I tagion/ tagion/iwasm/fast_jit/jit_frontend.c -m "CHECK_BUF:ret(int)" |less
 git commit -am"WIP: correct_ctod change marco now also changes the return-type"
-git diff
 git status|less
 script/corrector_ctod.d -I tagion/ tagion/iwasm/fast_jit/jit_frontend.c -m "CHECK_BUF:ret(int)" -O -f test.json
 git commit -am"WIP: correct_ctod change macro types now works"
-less test.json
 script/corrector_ctod.d -I tagion/ tagion/iwasm/fast_jit/jit_frontend.c -m "test:ret(xx, yy)" |less
 script/corrector_ctod.d -I tagion/ tagion/iwasm/fast_jit/jit_frontend.c -m "test:ret(xx, yy)" -O -f test.json
 ;226
@@ -629,7 +556,6 @@ rm aot_emit_control_tmp.d
 nvim tagion/iwasm/aot/aot_intrinsic.d
 git difftool tagion/iwasm/aot/aot_intrinsic.d
 ctod jit_emit_numberic_tmp.c
-nvim tagion/iwasm/fast_jit/fe/jit_emit_control.d
 cp aot_emit_control_tmp.d tagion/iwasm/compilation/aot_emit_control.d
 cpp -I. -P -CC -DWASM_ENABLE_FAST_JIT=1 -DWASM_ENABLE_JIT=1 -E aot_emit_control.c > aot_emit_control_tmp.c
 ls -al
@@ -909,7 +835,6 @@ find . -name "*.d" -exec grep -nH LLVMInitializeX86AsmParser {} \;
 make -k
 rm platform_api_vmcore.c
 find . -name platform_api_vmcore.c
-less Makefile
 git commit -am"WIP: llvm interface corrected"
 find . -name "*.di" -exec grep -nH LLVMOrcOpaqueLLLazyJIT {} \;
 find . -name "*.di" -exec grep -nH LLVM_C_STRICT_PROTOTYPES_BEGIN {} \;
@@ -1170,7 +1095,6 @@ find . -name "*.c" -exec grep -nH "new_c" {} \;
 tagion --version
 tail -f logs/x86_64-linux/testlog/mode1/tagionwave-beta_10.log
 ss -tnlp
-ls -tral *.json
 less tagionwave-alpha.json
 ls -tral tagionwave-alpha.json
 df -h
@@ -1398,7 +1322,6 @@ cp ../wasm-micro-runtime/core/iwasm/interpreter/wasm_interp.c .
 find . -name "*.d" -exec grep -nH "wasm_interp_interp_frame_size" {} \;
 find . -name "*.d" -exec grep -nH "jit_set_exception_with_id" {} \;
 find . -name "*.d" -exec grep -nH "jit_set_exception_with_id"
-nvim tagion/iwasm/fast_jit/jit_frontend.d
 rm wasm_exec_env.d
 find . -name "wasm_runtime_common.d"
 cp  wasm_exec_env_tmp.d  tagion/iwasm/common/wasm_exec_env.d
@@ -2059,7 +1982,6 @@ cd tub/config/
 nvim ServerAPI.md
 less ServerAPI.d
 less ReceiveBuffer.d
-less make.log
 make tets
 firefox build/doc/index.html &
 less NetworkExceptions.d
@@ -2991,7 +2913,6 @@ git difftool develop /home/carsten/work/tagion/src/lib-services/tagion/services/
 git checkout --patch develop lib-taskwrapper
 git mv lib-actor/ lib-taskwrapper
 git ldiff a7c3960c8aa73148a01a45579abffcff73835325
-git staus
 cd src/lib-actor/tagion/actor/
 git checkout current SSLServiceOptions.d
 git checkout current src/lib-network/tagion/network/SSLServiceOptions.d
@@ -3382,7 +3303,6 @@ make --debug=j mode1 PRECMD= &> make.log
 make --debug-j mode1 PRECMD= &> make.log
 make --trace mode1 PRECMD= &> make.log
 make mode1 PRECMD= &> make.log
-nvim make.log
 make mode1 PRECMD= > make.log
 make mode1 -n > make.log
 make mode1-alpha -n > make.log
